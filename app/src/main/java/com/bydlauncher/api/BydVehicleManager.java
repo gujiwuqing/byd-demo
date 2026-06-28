@@ -109,6 +109,44 @@ public class BydVehicleManager {
         } catch (Exception e) {
             Log.e(TAG, "Error reading vehicle status", e);
         }
+
+        // 模拟模式下补充额外数据
+        if (!acApi.isRealDevice()) {
+            fillSimulationData(s);
+        }
+
         return s;
+    }
+
+    private void fillSimulationData(VehicleStatus s) {
+        s.fuelPercent = 37;
+        s.fuelAmount = 21.0;
+        s.totalRange = 396;
+        s.hevMileage = 18563.0;
+        s.currentElecConsumption = 16.0;
+        s.currentFuelConsumption = 5.7;
+        s.avgElecConsumption = 25.4;
+        s.avgFuelConsumption = 0;
+        s.speed = 0;
+        s.gear = 0;
+        s.powerKw = 0;
+        s.outsideTemp = 38;
+
+        s.tirePressureFL = 250;
+        s.tirePressureFR = 252;
+        s.tirePressureRL = 250;
+        s.tirePressureRR = 250;
+        s.tireTempFL = 31;
+        s.tireTempFR = 31;
+        s.tireTempRL = 30;
+        s.tireTempRR = 33;
+
+        s.tripDistance = 0;
+        s.tripTime = "00:00";
+        s.tripElec = 0;
+        s.tripFuel = 0;
+
+        s.smartChargePercent = 25;
+        s.recoveryMode = "最大回收";
     }
 }

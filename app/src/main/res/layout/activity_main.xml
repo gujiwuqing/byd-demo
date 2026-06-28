@@ -5,11 +5,13 @@
     android:background="@color/bg_primary"
     android:orientation="vertical">
 
+    <!-- 顶部状态栏 -->
     <include
         layout="@layout/view_top_bar"
         android:layout_width="match_parent"
         android:layout_height="@dimen/top_bar_height" />
 
+    <!-- 内容区 -->
     <FrameLayout
         android:id="@+id/content_frame"
         android:layout_width="match_parent"
@@ -17,13 +19,12 @@
         android:layout_weight="1">
 
         <include layout="@layout/page_status" />
-        <include layout="@layout/page_map" />
         <include layout="@layout/page_controls" />
         <include layout="@layout/page_apps" />
         <include layout="@layout/page_settings" />
-        <include layout="@layout/page_placeholder" />
     </FrameLayout>
 
+    <!-- 底部导航栏 -->
     <include
         layout="@layout/view_nav_bar"
         android:layout_width="match_parent"

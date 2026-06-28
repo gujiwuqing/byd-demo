@@ -1,9 +1,12 @@
 package com.bydlauncher.ui;
 
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.core.content.ContextCompat;
 
@@ -13,157 +16,146 @@ import com.bydlauncher.model.VehicleStatus;
 public class StatusPage {
 
     private final View rootView;
+    private final Context context;
 
-    // ── 左侧区域 ──
-    private final VehicleDiagramView vehicleDiagram;
-    private final TextView tireFL, tireFR, tireRL, tireRR;
-    private final TextView[] gears;
-    private final TextView tvSpeed, tvBattery;
+    // 电量油量续航
+    private final TextView tvBattery, tvEvRange, tvFuel, tvFuelAmount, tvTotalRange;
     private final ProgressBar progressBattery;
 
-    // ── 右侧卡片：驾驶 ──
-    private final TextView widgetSpeed;
-    private final TextView[] widgetGears;
+    // 速度挡位功率温度
+    private final TextView tvSpeed, tvOutsideTemp, tvPowerKw;
+    private final TextView gearP, gearR, gearN, gearD;
 
-    // ── 右侧卡片：音乐 ──
-    private final TextView widgetMusicTitle;
-    private final TextView widgetMusicArtist;
-    private final ImageView widgetMusicPrev;
-    private final ImageView widgetMusicPlay;
-    private final ImageView widgetMusicNext;
+    // 能耗
+    private final TextView tvElecConsumption, tvFuelConsumption;
 
-    // ── 右侧卡片：电量 ──
-    private final TextView widgetBattery;
-    private final ProgressBar widgetBatteryProgress;
-    private final TextView widgetChargingStatus;
+    // 胎压胎温
+    private final TextView tireFLPressure, tireFRPressure, tireRLPressure, tireRRPressure;
+    private final TextView tireFLTemp, tireFRTemp, tireRLTemp, tireRRTemp;
 
-    // ── 右侧卡片：胎压 ──
-    private final TextView widgetTireFL, widgetTireFR, widgetTireRL, widgetTireRR;
-
-    // ── 右侧卡片：车门状态 ──
-    private final VehicleDiagramView widgetDoorDiagram;
-    private final TextView widgetDoorStatus;
-
-    // ── 右侧卡片：应用 ──
-    private final ImageView widgetApp1, widgetApp2, widgetApp3;
-    private final TextView widgetAppAdd;
+    // 行程里程
+    private final TextView tvTripDistance, tvTripTime;
+    private final TextView tvSmartCharge, tvRecoveryMode;
+    private final TextView tvTotalMileage, tvHevMileage;
 
     public StatusPage(View rootView) {
         this.rootView = rootView;
+        this.context = rootView.getContext();
 
-        // ── 左侧区域 ──
-        vehicleDiagram = rootView.findViewById(R.id.vehicle_diagram);
-        tireFL = rootView.findViewById(R.id.tire_fl);
-        tireFR = rootView.findViewById(R.id.tire_fr);
-        tireRL = rootView.findViewById(R.id.tire_rl);
-        tireRR = rootView.findViewById(R.id.tire_rr);
-
-        gears = new TextView[]{
-                rootView.findViewById(R.id.gear_p),
-                rootView.findViewById(R.id.gear_r),
-                rootView.findViewById(R.id.gear_n),
-                rootView.findViewById(R.id.gear_d)
-        };
+        tvBattery = rootView.findViewById(R.id.tv_battery);
+        tvEvRange = rootView.findViewById(R.id.tv_ev_range);
+        progressBattery = rootView.findViewById(R.id.progress_battery);
+        tvFuel = rootView.findViewById(R.id.tv_fuel);
+        tvFuelAmount = rootView.findViewById(R.id.tv_fuel_amount);
+        tvTotalRange = rootView.findViewById(R.id.tv_total_range);
 
         tvSpeed = rootView.findViewById(R.id.tv_speed);
-        tvBattery = rootView.findViewById(R.id.tv_battery);
-        progressBattery = rootView.findViewById(R.id.progress_battery);
+        tvOutsideTemp = rootView.findViewById(R.id.tv_outside_temp);
+        tvPowerKw = rootView.findViewById(R.id.tv_power_kw);
+        gearP = rootView.findViewById(R.id.gear_p);
+        gearR = rootView.findViewById(R.id.gear_r);
+        gearN = rootView.findViewById(R.id.gear_n);
+        gearD = rootView.findViewById(R.id.gear_d);
 
-        // ── 右侧卡片：驾驶 ──
-        widgetSpeed = rootView.findViewById(R.id.widget_speed);
-        widgetGears = new TextView[]{
-                rootView.findViewById(R.id.widget_gear_p),
-                rootView.findViewById(R.id.widget_gear_r),
-                rootView.findViewById(R.id.widget_gear_n),
-                rootView.findViewById(R.id.widget_gear_d)
-        };
+        tvElecConsumption = rootView.findViewById(R.id.tv_elec_consumption);
+        tvFuelConsumption = rootView.findViewById(R.id.tv_fuel_consumption);
 
-        // ── 右侧卡片：音乐 ──
-        widgetMusicTitle = rootView.findViewById(R.id.widget_music_title);
-        widgetMusicArtist = rootView.findViewById(R.id.widget_music_artist);
-        widgetMusicPrev = rootView.findViewById(R.id.widget_music_prev);
-        widgetMusicPlay = rootView.findViewById(R.id.widget_music_play);
-        widgetMusicNext = rootView.findViewById(R.id.widget_music_next);
+        tireFLPressure = rootView.findViewById(R.id.tv_tire_fl_pressure);
+        tireFRPressure = rootView.findViewById(R.id.tv_tire_fr_pressure);
+        tireRLPressure = rootView.findViewById(R.id.tv_tire_rl_pressure);
+        tireRRPressure = rootView.findViewById(R.id.tv_tire_rr_pressure);
+        tireFLTemp = rootView.findViewById(R.id.tv_tire_fl_temp);
+        tireFRTemp = rootView.findViewById(R.id.tv_tire_fr_temp);
+        tireRLTemp = rootView.findViewById(R.id.tv_tire_rl_temp);
+        tireRRTemp = rootView.findViewById(R.id.tv_tire_rr_temp);
 
-        // ── 右侧卡片：电量 ──
-        widgetBattery = rootView.findViewById(R.id.widget_battery);
-        widgetBatteryProgress = rootView.findViewById(R.id.widget_battery_progress);
-        widgetChargingStatus = rootView.findViewById(R.id.widget_charging_status);
+        tvTripDistance = rootView.findViewById(R.id.tv_trip_distance);
+        tvTripTime = rootView.findViewById(R.id.tv_trip_time);
+        tvSmartCharge = rootView.findViewById(R.id.tv_smart_charge);
+        tvRecoveryMode = rootView.findViewById(R.id.tv_recovery_mode);
+        tvTotalMileage = rootView.findViewById(R.id.tv_total_mileage);
+        tvHevMileage = rootView.findViewById(R.id.tv_hev_mileage);
 
-        // ── 右侧卡片：胎压 ──
-        widgetTireFL = rootView.findViewById(R.id.widget_tire_fl);
-        widgetTireFR = rootView.findViewById(R.id.widget_tire_fr);
-        widgetTireRL = rootView.findViewById(R.id.widget_tire_rl);
-        widgetTireRR = rootView.findViewById(R.id.widget_tire_rr);
+        initPipArea();
+    }
 
-        // ── 右侧卡片：车门状态 ──
-        widgetDoorDiagram = rootView.findViewById(R.id.widget_door_diagram);
-        widgetDoorStatus = rootView.findViewById(R.id.widget_door_status);
+    private void initPipArea() {
+        rootView.findViewById(R.id.pip_map).setOnClickListener(v -> launchApp("com.autonavi.minimap", "高德地图"));
+        rootView.findViewById(R.id.pip_music).setOnClickListener(v -> launchApp("com.tencent.qqmusic", "QQ音乐"));
+        rootView.findViewById(R.id.pip_video).setOnClickListener(v -> launchApp("com.tencent.qqlive", "腾讯视频"));
+        rootView.findViewById(R.id.pip_phone).setOnClickListener(v -> launchApp("com.android.dialer", "电话"));
+    }
 
-        // ── 右侧卡片：应用 ──
-        widgetApp1 = rootView.findViewById(R.id.widget_app_1);
-        widgetApp2 = rootView.findViewById(R.id.widget_app_2);
-        widgetApp3 = rootView.findViewById(R.id.widget_app_3);
-        widgetAppAdd = rootView.findViewById(R.id.widget_app_add);
+    private void launchApp(String packageName, String appName) {
+        PackageManager pm = context.getPackageManager();
+        Intent intent = pm.getLaunchIntentForPackage(packageName);
+        if (intent != null) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        } else {
+            Toast.makeText(context, appName + " 未安装", Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void updateStatus(VehicleStatus s) {
-        // ── 左侧：车辆图 ──
-        vehicleDiagram.setDoorStates(
-                s.doorLeftFrontOpen, s.doorRightFrontOpen,
-                s.doorLeftRearOpen, s.doorRightRearOpen,
-                s.trunkOpen, s.hoodOpen);
-
-        // ── 左侧：胎压（模拟数据） ──
-        tireFL.setText("37");
-        tireFR.setText("36");
-        tireRL.setText("35");
-        tireRR.setText("35");
-
-        // ── 左侧：挡位（模拟：P 挡） ──
-        int gearIndex = 0;
-        for (int i = 0; i < gears.length; i++) {
-            gears[i].setTextColor(ContextCompat.getColor(rootView.getContext(),
-                    i == gearIndex ? R.color.gear_active : R.color.gear_inactive));
-        }
-
-        // ── 左侧：速度 ──
-        tvSpeed.setText("0");
-
-        // ── 左侧：电量 ──
-        int batteryVal = s.getBatteryValue();
+        // 电量
         tvBattery.setText(s.getBatteryText());
-        progressBattery.setProgress(batteryVal);
+        progressBattery.setProgress(s.getBatteryValue());
+        tvEvRange.setText(s.getEvMileageText());
 
-        // ── 右侧卡片：驾驶（同步左侧数据） ──
-        widgetSpeed.setText("0");
-        for (int i = 0; i < widgetGears.length; i++) {
-            widgetGears[i].setTextColor(ContextCompat.getColor(rootView.getContext(),
-                    i == gearIndex ? R.color.gear_active : R.color.gear_inactive));
+        // 油量
+        if (s.fuelPercent >= 0) {
+            tvFuel.setText(s.fuelPercent + "%");
+        }
+        tvFuelAmount.setText(s.getFuelText());
+
+        // 总续航
+        tvTotalRange.setText(s.getTotalRangeText());
+
+        // 速度
+        tvSpeed.setText(s.getSpeedText());
+        tvOutsideTemp.setText(s.getOutsideTempText());
+
+        // 挡位
+        TextView[] gears = {gearP, gearR, gearN, gearD};
+        for (int i = 0; i < gears.length; i++) {
+            gears[i].setTextColor(ContextCompat.getColor(context,
+                    i == s.gear ? R.color.accent : R.color.gear_inactive));
         }
 
-        // ── 右侧卡片：电量（同步左侧数据） ──
-        widgetBattery.setText(s.getBatteryText());
-        widgetBatteryProgress.setProgress(batteryVal);
-        widgetChargingStatus.setText(R.string.not_charging);
+        // 功率
+        tvPowerKw.setText(s.getPowerKwText());
 
-        // ── 右侧卡片：胎压（同步左侧数据） ──
-        widgetTireFL.setText("37");
-        widgetTireFR.setText("36");
-        widgetTireRL.setText("35");
-        widgetTireRR.setText("35");
-
-        // ── 右侧卡片：车门状态 ──
-        widgetDoorDiagram.setDoorStates(
-                s.doorLeftFrontOpen, s.doorRightFrontOpen,
-                s.doorLeftRearOpen, s.doorRightRearOpen,
-                s.trunkOpen, s.hoodOpen);
-        if (s.hasAnyDoorOpen()) {
-            widgetDoorStatus.setText(R.string.unlocked_text);
-            widgetDoorStatus.setTextColor(ContextCompat.getColor(rootView.getContext(), R.color.status_fair));
-        } else {
-            widgetDoorStatus.setText(R.string.all_closed);
-            widgetDoorStatus.setTextColor(ContextCompat.getColor(rootView.getContext(), R.color.status_good));
+        // 能耗
+        if (s.currentElecConsumption >= 0) {
+            tvElecConsumption.setText(String.format("%.1f度", s.currentElecConsumption));
         }
+        if (s.currentFuelConsumption >= 0) {
+            tvFuelConsumption.setText(String.format("当前：%.1f", s.currentFuelConsumption));
+        }
+
+        // 胎压胎温
+        if (s.tirePressureFL >= 0) {
+            tireFLPressure.setText(String.valueOf(s.tirePressureFL));
+            tireFRPressure.setText(String.valueOf(s.tirePressureFR));
+            tireRLPressure.setText(String.valueOf(s.tirePressureRL));
+            tireRRPressure.setText(String.valueOf(s.tirePressureRR));
+            tireFLTemp.setText(s.tireTempFL + "°C");
+            tireFRTemp.setText(s.tireTempFR + "°C");
+            tireRLTemp.setText(s.tireTempRL + "°C");
+            tireRRTemp.setText(s.tireTempRR + "°C");
+        }
+
+        // 行程
+        tvTripDistance.setText(String.format("%.1fkm", s.tripDistance));
+        tvTripTime.setText(s.tripTime);
+
+        // 能量模式
+        tvSmartCharge.setText("智保" + s.smartChargePercent + "%");
+        tvRecoveryMode.setText(s.recoveryMode);
+
+        // 里程
+        tvTotalMileage.setText(s.getTotalMileageText());
+        tvHevMileage.setText(s.getHevMileageText());
     }
 }

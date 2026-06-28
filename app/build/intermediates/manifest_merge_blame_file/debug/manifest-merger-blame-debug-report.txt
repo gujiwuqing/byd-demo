@@ -1,0 +1,163 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.bydlauncher"
+4    android:versionCode="1"
+5    android:versionName="1.0.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="26"
+8-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml
+9        android:targetSdkVersion="28" />
+9-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml
+10
+11    <!-- BYD Auto 权限声明 -->
+12    <uses-permission android:name="android.permission.BYDAUTO_AC_GET" />
+12-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:6:5-73
+12-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:6:22-70
+13    <uses-permission android:name="android.permission.BYDAUTO_AC_SET" />
+13-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:7:5-73
+13-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:7:22-70
+14    <uses-permission android:name="android.permission.BYDAUTO_AC_COMMON" />
+14-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:8:5-76
+14-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:8:22-73
+15    <uses-permission android:name="android.permission.BYDAUTO_BODYWORK_GET" />
+15-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:9:5-79
+15-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:9:22-76
+16    <uses-permission android:name="android.permission.BYDAUTO_BODYWORK_COMMON" />
+16-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:10:5-82
+16-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:10:22-79
+17    <uses-permission android:name="android.permission.BYDAUTO_DOOR_LOCK_GET" />
+17-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:11:5-80
+17-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:11:22-77
+18    <uses-permission android:name="android.permission.BYDAUTO_DOOR_LOCK_COMMON" />
+18-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:12:5-83
+18-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:12:22-80
+19    <uses-permission android:name="android.permission.BYDAUTO_POWER_GET" />
+19-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:13:5-76
+19-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:13:22-73
+20    <uses-permission android:name="android.permission.BYDAUTO_ENERGY_GET" />
+20-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:14:5-77
+20-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:14:22-74
+21    <uses-permission android:name="android.permission.BYDAUTO_PM2P5_GET" />
+21-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:15:5-76
+21-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:15:22-73
+22    <uses-permission android:name="android.permission.BYDAUTO_STATISTIC_GET" />
+22-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:16:5-80
+22-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:16:22-77
+23    <uses-permission android:name="android.permission.BYDAUTO_GEARBOX_GET" />
+23-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:17:5-78
+23-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:17:22-75
+24    <uses-permission android:name="android.permission.BYDAUTO_SPEED_GET" />
+24-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:18:5-76
+24-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:18:22-73
+25    <uses-permission android:name="android.permission.BYDAUTO_CHARGING_GET" />
+25-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:19:5-79
+25-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:19:22-76
+26    <uses-permission android:name="android.permission.BYDAUTO_TYRE_GET" />
+26-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:20:5-75
+26-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:20:22-72
+27    <uses-permission android:name="android.permission.BYDAUTO_LIGHT_GET" />
+27-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:21:5-76
+27-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:21:22-73
+28    <uses-permission android:name="android.permission.BYDAUTO_LIGHT_SET" />
+28-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:22:5-76
+28-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:22:22-73
+29    <uses-permission android:name="android.permission.BYDAUTO_SETTING_GET" />
+29-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:23:5-78
+29-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:23:22-75
+30
+31    <!-- Android 系统权限 -->
+32    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+32-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:26:5-81
+32-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:26:22-78
+33    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+33-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:27:5-78
+33-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:27:22-75
+34    <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" />
+34-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:28:5-80
+34-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:28:22-77
+35
+36    <permission
+36-->[androidx.core:core:1.9.0] /Users/feng/.gradle/caches/transforms-3/ebcc01801558a7131546317bf5596cb6/transformed/core-1.9.0/AndroidManifest.xml:22:5-24:47
+37        android:name="com.bydlauncher.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+37-->[androidx.core:core:1.9.0] /Users/feng/.gradle/caches/transforms-3/ebcc01801558a7131546317bf5596cb6/transformed/core-1.9.0/AndroidManifest.xml:23:9-81
+38        android:protectionLevel="signature" />
+38-->[androidx.core:core:1.9.0] /Users/feng/.gradle/caches/transforms-3/ebcc01801558a7131546317bf5596cb6/transformed/core-1.9.0/AndroidManifest.xml:24:9-44
+39
+40    <uses-permission android:name="com.bydlauncher.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+40-->[androidx.core:core:1.9.0] /Users/feng/.gradle/caches/transforms-3/ebcc01801558a7131546317bf5596cb6/transformed/core-1.9.0/AndroidManifest.xml:26:5-97
+40-->[androidx.core:core:1.9.0] /Users/feng/.gradle/caches/transforms-3/ebcc01801558a7131546317bf5596cb6/transformed/core-1.9.0/AndroidManifest.xml:26:22-94
+41
+42    <application
+42-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:30:5-52:19
+43        android:allowBackup="false"
+43-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:31:9-36
+44        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+44-->[androidx.core:core:1.9.0] /Users/feng/.gradle/caches/transforms-3/ebcc01801558a7131546317bf5596cb6/transformed/core-1.9.0/AndroidManifest.xml:28:18-86
+45        android:debuggable="true"
+46        android:extractNativeLibs="false"
+47        android:icon="@mipmap/ic_launcher"
+47-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:32:9-43
+48        android:label="@string/app_name"
+48-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:33:9-41
+49        android:supportsRtl="true"
+49-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:34:9-35
+50        android:testOnly="true"
+51        android:theme="@style/AppTheme" >
+51-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:35:9-40
+52        <activity
+52-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:37:9-51:20
+53            android:name="com.bydlauncher.MainActivity"
+53-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:38:13-41
+54            android:configChanges="orientation|screenSize|keyboardHidden"
+54-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:39:13-74
+55            android:exported="true"
+55-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:43:13-36
+56            android:launchMode="singleTask"
+56-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:40:13-44
+57            android:screenOrientation="landscape"
+57-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:41:13-50
+58            android:stateNotNeeded="true" >
+58-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:42:13-42
+59            <intent-filter>
+59-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:45:13-50:29
+60                <action android:name="android.intent.action.MAIN" />
+60-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:46:17-69
+60-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:46:25-66
+61
+62                <category android:name="android.intent.category.HOME" />
+62-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:47:17-73
+62-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:47:27-70
+63                <category android:name="android.intent.category.DEFAULT" />
+63-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:48:17-76
+63-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:48:27-73
+64                <category android:name="android.intent.category.LAUNCHER" />
+64-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:49:17-77
+64-->/Users/feng/work/byd/app/src/main/AndroidManifest.xml:49:27-74
+65            </intent-filter>
+66        </activity>
+67
+68        <provider
+68-->[androidx.emoji2:emoji2:1.2.0] /Users/feng/.gradle/caches/transforms-3/8b06aa6e9a77db041038b7731b098d8a/transformed/jetified-emoji2-1.2.0/AndroidManifest.xml:24:9-32:20
+69            android:name="androidx.startup.InitializationProvider"
+69-->[androidx.emoji2:emoji2:1.2.0] /Users/feng/.gradle/caches/transforms-3/8b06aa6e9a77db041038b7731b098d8a/transformed/jetified-emoji2-1.2.0/AndroidManifest.xml:25:13-67
+70            android:authorities="com.bydlauncher.androidx-startup"
+70-->[androidx.emoji2:emoji2:1.2.0] /Users/feng/.gradle/caches/transforms-3/8b06aa6e9a77db041038b7731b098d8a/transformed/jetified-emoji2-1.2.0/AndroidManifest.xml:26:13-68
+71            android:exported="false" >
+71-->[androidx.emoji2:emoji2:1.2.0] /Users/feng/.gradle/caches/transforms-3/8b06aa6e9a77db041038b7731b098d8a/transformed/jetified-emoji2-1.2.0/AndroidManifest.xml:27:13-37
+72            <meta-data
+72-->[androidx.emoji2:emoji2:1.2.0] /Users/feng/.gradle/caches/transforms-3/8b06aa6e9a77db041038b7731b098d8a/transformed/jetified-emoji2-1.2.0/AndroidManifest.xml:29:13-31:52
+73                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+73-->[androidx.emoji2:emoji2:1.2.0] /Users/feng/.gradle/caches/transforms-3/8b06aa6e9a77db041038b7731b098d8a/transformed/jetified-emoji2-1.2.0/AndroidManifest.xml:30:17-75
+74                android:value="androidx.startup" />
+74-->[androidx.emoji2:emoji2:1.2.0] /Users/feng/.gradle/caches/transforms-3/8b06aa6e9a77db041038b7731b098d8a/transformed/jetified-emoji2-1.2.0/AndroidManifest.xml:31:17-49
+75            <meta-data
+75-->[androidx.lifecycle:lifecycle-process:2.4.1] /Users/feng/.gradle/caches/transforms-3/f9b3545c24b113cebf3bb06cd1d41c02/transformed/jetified-lifecycle-process-2.4.1/AndroidManifest.xml:31:13-33:52
+76                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+76-->[androidx.lifecycle:lifecycle-process:2.4.1] /Users/feng/.gradle/caches/transforms-3/f9b3545c24b113cebf3bb06cd1d41c02/transformed/jetified-lifecycle-process-2.4.1/AndroidManifest.xml:32:17-78
+77                android:value="androidx.startup" />
+77-->[androidx.lifecycle:lifecycle-process:2.4.1] /Users/feng/.gradle/caches/transforms-3/f9b3545c24b113cebf3bb06cd1d41c02/transformed/jetified-lifecycle-process-2.4.1/AndroidManifest.xml:33:17-49
+78        </provider>
+79    </application>
+80
+81</manifest>

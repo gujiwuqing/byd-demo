@@ -1,0 +1,194 @@
+[
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_view_home.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/view_home.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_item_app.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/item_app.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_view_top_bar.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/view_top_bar.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_ac_btn.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_ac_btn.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_page_map.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/page_map.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_card_datetime.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/card_datetime.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_mini_card.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_mini_card.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_view_quick_switch.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/view_quick_switch.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_progress_bar_battery.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/progress_bar_battery.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_top_bar.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_top_bar.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_settings_switch_track_off.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_settings_switch_track_off.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_dock_btn.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_dock_btn.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_page_status.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/page_status.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_bottom_action_btn.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_bottom_action_btn.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_switch_btn.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_switch_btn.xml"
+    },
+    {
+        "merged": "com.bydlauncher.app-merged_res-30:/layout_view_nav_bar.xml.flat",
+        "source": "com.bydlauncher.app-main-32:/layout/view_nav_bar.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_view_vehicle_status.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/view_vehicle_status.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_settings_divider.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_settings_divider.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_activity_main.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/activity_main.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_settings_segment_selected.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_settings_segment_selected.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_view_ac_panel.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/view_ac_panel.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_circle_btn.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_circle_btn.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_dialog_window_control.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/dialog_window_control.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_panel.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_panel.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_card.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_card.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_card_music.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/card_music.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_view_app_drawer.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/view_app_drawer.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_dock.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_dock.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_nav_tab.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_nav_tab.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_page_controls.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/page_controls.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_settings_switch_thumb.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_settings_switch_thumb.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_card_air_quality.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/card_air_quality.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_page_settings.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/page_settings.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_nav_tab_active.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_nav_tab_active.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_view_ac_control.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/view_ac_control.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_drag_handle.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_drag_handle.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_card_app_shortcuts.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/card_app_shortcuts.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_nav_bar.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_nav_bar.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_settings_switch_track_on.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_settings_switch_track_on.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_app_item.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_app_item.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_view_dock.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/view_dock.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_view_nav_bar.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/view_nav_bar.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_page_apps.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/page_apps.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_settings_segment_unselected.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_settings_segment_unselected.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/drawable_bg_ac_quick.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/drawable/bg_ac_quick.xml"
+    },
+    {
+        "merged": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-merged_res-30:/layout_page_placeholder.xml.flat",
+        "source": "/Users/feng/.gradle/daemon/8.2/com.bydlauncher.app-main-32:/layout/page_placeholder.xml"
+    }
+]

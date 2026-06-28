@@ -11,8 +11,6 @@ import com.bydlauncher.model.VehicleStatus;
 import com.bydlauncher.theme.ThemeManager;
 import com.bydlauncher.ui.AppsPage;
 import com.bydlauncher.ui.ControlsPage;
-import com.bydlauncher.ui.MapPage;
-import com.bydlauncher.ui.MusicCardView;
 import com.bydlauncher.ui.NavBar;
 import com.bydlauncher.ui.SettingsPage;
 import com.bydlauncher.ui.StatusPage;
@@ -29,8 +27,6 @@ public class MainActivity extends AppCompatActivity
     private ControlsPage controlsPage;
     private AppsPage appsPage;
     private SettingsPage settingsPage;
-    private MapPage mapPage;
-    private MusicCardView musicCard;
 
     private View[] pages;
     private int currentTab = 0;
@@ -48,26 +44,23 @@ public class MainActivity extends AppCompatActivity
         vehicleManager.setListener(this);
 
         View pageStatusView = findViewById(R.id.page_status);
-        View pageMapView = findViewById(R.id.page_map);
         View pageControlsView = findViewById(R.id.page_controls);
         View pageAppsView = findViewById(R.id.page_apps);
         View pageSettingsView = findViewById(R.id.page_settings);
 
-        pages = new View[]{pageStatusView, pageMapView, pageControlsView, pageAppsView, pageSettingsView};
+        // 4 个标签页：主页/控制/应用/设置
+        pages = new View[]{pageStatusView, pageControlsView, pageAppsView, pageSettingsView};
 
         topBar = new TopBar(findViewById(R.id.top_bar));
-        navBar = new NavBar(findViewById(R.id.nav_bar), vehicleManager.getAcApi());
+        navBar = new NavBar(findViewById(R.id.nav_bar), vehicleManager.getAcApi(), vehicleManager.getBodyworkApi());
         navBar.setTabListener(this);
 
         statusPage = new StatusPage(pageStatusView);
-        mapPage = new MapPage(pageMapView);
         controlsPage = new ControlsPage(pageControlsView, vehicleManager.getAcApi(), vehicleManager.getBodyworkApi());
         appsPage = new AppsPage(pageAppsView);
+
         boolean isSimulation = !vehicleManager.getAcApi().isRealDevice();
         settingsPage = new SettingsPage(pageSettingsView, isSimulation);
-        musicCard = new MusicCardView(findViewById(R.id.music_card));
-
-
     }
 
     @Override
@@ -75,7 +68,6 @@ public class MainActivity extends AppCompatActivity
         super.onResume();
         hideSystemUI();
         vehicleManager.startPolling();
-        musicCard.refreshMediaState();
     }
 
     @Override
@@ -108,8 +100,8 @@ public class MainActivity extends AppCompatActivity
             statusPage.updateStatus(status);
             controlsPage.updateStatus(status);
             navBar.updateAcState(status.acOn, status.acTemp, status.acWindLevel);
-            musicCard.refreshMediaState();
-            topBar.updateMediaSource(musicCard.getMediaSourceName());
+            navBar.updateCycleState(status.acCycleMode);
+            topBar.updateMediaSource("");
         });
     }
 
