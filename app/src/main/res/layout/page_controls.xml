@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/page_controls"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:padding="@dimen/page_padding"
+    android:visibility="gone">
+
+    <!-- 空调控制区 (55%) -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="55"
+        android:background="@drawable/bg_card"
+        android:orientation="vertical"
+        android:padding="@dimen/card_padding"
+        android:layout_marginEnd="@dimen/spacing_md">
+
+        <!-- 标题 + 开关 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="@dimen/spacing_lg">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="空调控制"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/ctrl_ac_power"
+                android:layout_width="56dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_ac_btn"
+                android:gravity="center"
+                android:text="OFF"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- 温度 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_marginBottom="@dimen/spacing_xl">
+            <TextView
+                android:id="@+id/ctrl_temp_down"
+                android:layout_width="@dimen/shortcut_icon_size"
+                android:layout_height="@dimen/shortcut_icon_size"
+                android:background="@drawable/bg_ac_quick"
+                android:gravity="center"
+                android:text="−"
+                android:textColor="@color/accent"
+                android:textSize="22sp" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:layout_marginStart="32dp"
+                android:layout_marginEnd="32dp">
+                <TextView
+                    android:id="@+id/ctrl_ac_temp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="25°C"
+                    android:textColor="@color/accent"
+                    android:textSize="36sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/ctrl_ac_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="已关闭"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+            <TextView
+                android:id="@+id/ctrl_temp_up"
+                android:layout_width="@dimen/shortcut_icon_size"
+                android:layout_height="@dimen/shortcut_icon_size"
+                android:background="@drawable/bg_ac_quick"
+                android:gravity="center"
+                android:text="+"
+                android:textColor="@color/accent"
+                android:textSize="22sp" />
+        </LinearLayout>
+
+        <!-- 风量 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="风量"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            android:layout_marginBottom="@dimen/spacing_sm" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_lg">
+            <TextView android:id="@+id/ctrl_wind_0" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:background="@drawable/bg_switch_btn" android:gravity="center" android:text="0" android:textColor="@color/text_primary" android:textSize="13sp" android:layout_marginEnd="3dp" />
+            <TextView android:id="@+id/ctrl_wind_1" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:background="@drawable/bg_switch_btn" android:gravity="center" android:text="1" android:textColor="@color/text_primary" android:textSize="13sp" android:layout_marginEnd="3dp" />
+            <TextView android:id="@+id/ctrl_wind_2" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:background="@drawable/bg_switch_btn" android:gravity="center" android:text="2" android:textColor="@color/text_primary" android:textSize="13sp" android:layout_marginEnd="3dp" />
+            <TextView android:id="@+id/ctrl_wind_3" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:background="@drawable/bg_switch_btn" android:gravity="center" android:text="3" android:textColor="@color/text_primary" android:textSize="13sp" android:layout_marginEnd="3dp" />
+            <TextView android:id="@+id/ctrl_wind_4" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:background="@drawable/bg_switch_btn" android:gravity="center" android:text="4" android:textColor="@color/text_primary" android:textSize="13sp" android:layout_marginEnd="3dp" />
+            <TextView android:id="@+id/ctrl_wind_5" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:background="@drawable/bg_switch_btn" android:gravity="center" android:text="5" android:textColor="@color/text_primary" android:textSize="13sp" android:layout_marginEnd="3dp" />
+            <TextView android:id="@+id/ctrl_wind_6" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:background="@drawable/bg_switch_btn" android:gravity="center" android:text="6" android:textColor="@color/text_primary" android:textSize="13sp" android:layout_marginEnd="3dp" />
+            <TextView android:id="@+id/ctrl_wind_7" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:background="@drawable/bg_switch_btn" android:gravity="center" android:text="7" android:textColor="@color/text_primary" android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- 出风 + 循环 + 模式 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="3" android:orientation="vertical" android:layout_marginEnd="@dimen/spacing_md">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="出风" android:textColor="@color/text_secondary" android:textSize="13sp" android:layout_marginBottom="@dimen/spacing_sm" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <TextView android:id="@+id/ctrl_mode_face" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:background="@drawable/bg_switch_btn" android:gravity="center" android:text="吹面" android:textColor="@color/text_primary" android:textSize="13sp" android:layout_marginEnd="3dp" />
+                    <TextView android:id="@+id/ctrl_mode_foot" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:background="@drawable/bg_switch_btn" android:gravity="center" android:text="吹脚" android:textColor="@color/text_primary" android:textSize="13sp" android:layout_marginEnd="3dp" />
+                    <TextView android:id="@+id/ctrl_mode_defrost" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:background="@drawable/bg_switch_btn" android:gravity="center" android:text="除雾" android:textColor="@color/text_primary" android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="2" android:orientation="vertical" android:layout_marginEnd="@dimen/spacing_md">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="循环" android:textColor="@color/text_secondary" android:textSize="13sp" android:layout_marginBottom="@dimen/spacing_sm" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <TextView android:id="@+id/ctrl_cycle_inner" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:background="@drawable/bg_switch_btn" android:gravity="center" android:text="内循环" android:textColor="@color/text_primary" android:textSize="13sp" android:layout_marginEnd="3dp" />
+                    <TextView android:id="@+id/ctrl_cycle_outer" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:background="@drawable/bg_switch_btn" android:gravity="center" android:text="外循环" android:textColor="@color/text_primary" android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="2" android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="模式" android:textColor="@color/text_secondary" android:textSize="13sp" android:layout_marginBottom="@dimen/spacing_sm" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <TextView android:id="@+id/ctrl_auto" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:background="@drawable/bg_switch_btn" android:gravity="center" android:text="自动" android:textColor="@color/text_primary" android:textSize="13sp" android:layout_marginEnd="3dp" />
+                    <TextView android:id="@+id/ctrl_manual" android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:background="@drawable/bg_switch_btn" android:gravity="center" android:text="手动" android:textColor="@color/text_primary" android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 车辆控制区 (45%) -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="45"
+        android:background="@drawable/bg_card"
+        android:orientation="vertical"
+        android:padding="@dimen/card_padding">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="车辆控制"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="@dimen/spacing_xl" />
+
+        <!-- 控制按钮网格 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_marginBottom="@dimen/spacing_xl">
+
+            <LinearLayout
+                android:id="@+id/ctrl_lock_btn"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:background="@drawable/bg_card"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:layout_marginEnd="@dimen/spacing_lg">
+                <TextView
+                    android:id="@+id/ctrl_lock_icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔒"
+                    android:textSize="32sp" />
+                <TextView
+                    android:id="@+id/ctrl_lock_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="锁车"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:layout_marginTop="@dimen/spacing_sm" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/ctrl_trunk_btn"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:background="@drawable/bg_card"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:layout_marginEnd="@dimen/spacing_lg">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📦"
+                    android:textSize="32sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="后备箱"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:layout_marginTop="@dimen/spacing_sm" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/ctrl_window_btn"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:background="@drawable/bg_card"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🪟"
+                    android:textSize="32sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="车窗"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:layout_marginTop="@dimen/spacing_sm" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 状态显示 -->
+        <TextView
+            android:id="@+id/ctrl_lock_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔒 已锁车"
+            android:textColor="@color/status_good"
+            android:textSize="15sp"
+            android:layout_marginBottom="@dimen/spacing_sm" />
+
+        <TextView
+            android:id="@+id/ctrl_door_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🚪 全部关闭"
+            android:textColor="@color/status_good"
+            android:textSize="15sp" />
+    </LinearLayout>
+</LinearLayout>

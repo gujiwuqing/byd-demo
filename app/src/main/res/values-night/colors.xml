@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_primary">#FF0D1117</color>
+    <color name="bg_surface">#FF161B22</color>
+    <color name="bg_surface_variant">#FF1C2333</color>
+    <color name="bg_nav_bar">#FF161B22</color>
+    <color name="bg_top_bar">#FF0D1117</color>
+    <color name="bg_overlay">#80000000</color>
+    <color name="accent">#FF00D4FF</color>
+    <color name="accent_dim">#3300D4FF</color>
+    <color name="text_primary">#FFF0F6FC</color>
+    <color name="text_secondary">#FF8B949E</color>
+    <color name="text_tertiary">#FF484F58</color>
+    <color name="text_on_accent">#FF000000</color>
+    <color name="border">#FF30363D</color>
+    <color name="divider">#FF30363D</color>
+    <color name="icon_tint">#FF8B949E</color>
+    <color name="status_good">#FF34C759</color>
+    <color name="status_fair">#FFFFCC00</color>
+    <color name="status_poor">#FFFF9500</color>
+    <color name="status_bad">#FFFF3B30</color>
+    <color name="battery_high">#FF34C759</color>
+    <color name="battery_mid">#FFFF9500</color>
+    <color name="battery_low">#FFFF3B30</color>
+    <color name="door_open">#FFFF3B30</color>
+    <color name="door_closed">#FF34C759</color>
+    <color name="gear_active">#FF00D4FF</color>
+    <color name="gear_inactive">#FF484F58</color>
+    <color name="vehicle_body">#FF30363D</color>
+    <color name="vehicle_body_stroke">#FF484F58</color>
+    <color name="vehicle_window">#FF1C2333</color>
+    <color name="vehicle_wheel">#FF8B949E</color>
+</resources>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_mini_card"
+    android:orientation="vertical"
+    android:padding="@dimen/status_mini_card_padding">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/air_quality"
+        android:textColor="@color/text_secondary"
+        android:textSize="@dimen/aq_label_size"
+        android:layout_marginBottom="@dimen/spacing_sm" />
+
+    <!-- 室外 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="@dimen/spacing_xs">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/aq_outside"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+        <TextView
+            android:id="@+id/aq_outside_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/aq_good"
+            android:textColor="@color/status_fair"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/aq_outside_dot"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginStart="@dimen/spacing_xs"
+            android:background="@color/status_fair" />
+    </LinearLayout>
+
+    <!-- 室内 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/aq_inside"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+        <TextView
+            android:id="@+id/aq_inside_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/aq_excellent"
+            android:textColor="@color/status_good"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/aq_inside_dot"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginStart="@dimen/spacing_xs"
+            android:background="@color/status_good" />
+    </LinearLayout>
+</LinearLayout>

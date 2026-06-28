@@ -1,0 +1,3 @@
+-keep class android.hardware.bydauto.** { *; }
+-keep class android.hardware.IBYDAutoListener { *; }
+-keep class com.bydlauncher.api.** { *; }

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_primary"
+    android:orientation="vertical">
+
+    <include
+        layout="@layout/view_top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/top_bar_height" />
+
+    <FrameLayout
+        android:id="@+id/content_frame"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <include layout="@layout/page_status" />
+        <include layout="@layout/page_map" />
+        <include layout="@layout/page_controls" />
+        <include layout="@layout/page_apps" />
+        <include layout="@layout/page_settings" />
+        <include layout="@layout/page_placeholder" />
+    </FrameLayout>
+
+    <include
+        layout="@layout/view_nav_bar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/nav_bar_height" />
+</LinearLayout>

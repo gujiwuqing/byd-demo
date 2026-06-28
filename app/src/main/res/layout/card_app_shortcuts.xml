@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/shortcuts_card"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_mini_card"
+    android:orientation="horizontal"
+    android:padding="@dimen/status_mini_card_padding"
+    android:gravity="center">
+
+    <ImageView
+        android:id="@+id/shortcut_app_1"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:scaleType="fitCenter"
+        android:layout_marginEnd="@dimen/spacing_sm" />
+
+    <ImageView
+        android:id="@+id/shortcut_app_2"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:scaleType="fitCenter"
+        android:layout_marginEnd="@dimen/spacing_sm" />
+
+    <ImageView
+        android:id="@+id/shortcut_app_3"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:scaleType="fitCenter"
+        android:layout_marginEnd="@dimen/spacing_sm" />
+
+    <TextView
+        android:id="@+id/shortcut_add"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/bg_ac_quick"
+        android:gravity="center"
+        android:text="+"
+        android:textColor="@color/text_secondary"
+        android:textSize="20sp" />
+</LinearLayout>
