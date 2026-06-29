@@ -16,6 +16,8 @@ public class BydVehicleManager {
     private final BydBodyworkApi bodyworkApi;
     private final BydStatisticApi statisticApi;
     private final BydDoorLockApi doorLockApi;
+    private final BydTireApi tireApi;
+    private final BydDriveApi driveApi;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private VehicleStatusListener listener;
@@ -32,10 +34,14 @@ public class BydVehicleManager {
         this.bodyworkApi = new BydBodyworkApi(appContext);
         this.statisticApi = new BydStatisticApi(appContext);
         this.doorLockApi = new BydDoorLockApi(appContext);
-        Log.i(TAG, "Initialized - AC:" + acApi.isAvailable()
+        this.tireApi = new BydTireApi(appContext);
+        this.driveApi = new BydDriveApi(appContext);
+        Log.i(TAG, "Initialized - AC:" + acApi.isRealDevice()
                 + " Body:" + bodyworkApi.isAvailable()
                 + " Stat:" + statisticApi.isAvailable()
-                + " Lock:" + doorLockApi.isAvailable());
+                + " Lock:" + doorLockApi.isAvailable()
+                + " Tire:" + tireApi.isRealDevice()
+                + " Drive:" + driveApi.isRealDevice());
     }
 
     public static synchronized BydVehicleManager getInstance(Context context) {
@@ -49,6 +55,8 @@ public class BydVehicleManager {
     public BydBodyworkApi getBodyworkApi() { return bodyworkApi; }
     public BydStatisticApi getStatisticApi() { return statisticApi; }
     public BydDoorLockApi getDoorLockApi() { return doorLockApi; }
+    public BydTireApi getTireApi() { return tireApi; }
+    public BydDriveApi getDriveApi() { return driveApi; }
 
     public void setListener(VehicleStatusListener listener) {
         this.listener = listener;
@@ -80,6 +88,7 @@ public class BydVehicleManager {
     public VehicleStatus readCurrentStatus() {
         VehicleStatus s = new VehicleStatus();
         try {
+            // ========== 车身数据 (BydBodyworkApi) ==========
             if (bodyworkApi.isAvailable()) {
                 s.batteryPercent = bodyworkApi.getBatteryCapacity();
                 s.powerLevel = bodyworkApi.getPowerLevel();
@@ -91,7 +100,16 @@ public class BydVehicleManager {
                 s.doorRightRearOpen = bodyworkApi.isDoorOpen(BydBodyworkApi.DOOR_RIGHT_REAR);
                 s.trunkOpen = bodyworkApi.isDoorOpen(BydBodyworkApi.DOOR_TRUNK);
                 s.hoodOpen = bodyworkApi.isDoorOpen(BydBodyworkApi.DOOR_HOOD);
+
+                // 车窗状态
+                s.windowFL = bodyworkApi.getWindowFL();
+                s.windowFR = bodyworkApi.getWindowFR();
+                s.windowRL = bodyworkApi.getWindowRL();
+                s.windowRR = bodyworkApi.getWindowRR();
+                s.sunroofOpen = bodyworkApi.getSunroofState() == BydBodyworkApi.STATE_OPEN;
             }
+
+            // ========== 空调数据 (BydAcApi) ==========
             if (acApi.isAvailable()) {
                 s.acOn = acApi.isOn();
                 s.acTemp = acApi.getMainTemp();
@@ -101,52 +119,96 @@ public class BydVehicleManager {
                 s.acCycleMode = acApi.getCycleMode();
                 s.acControlMode = acApi.getControlMode();
             }
+
+            // ========== 统计数据 (BydStatisticApi) ==========
             if (statisticApi.isAvailable()) {
                 s.elecPercent = statisticApi.getElecPercentage();
                 s.evMileage = statisticApi.getEVMileage();
                 s.totalMileage = statisticApi.getTotalMileage();
             }
+
+            // ========== 胎压胎温 (BydTireApi) ==========
+            if (tireApi.isAvailable()) {
+                s.tirePressureFL = tireApi.getPressureFL();
+                s.tirePressureFR = tireApi.getPressureFR();
+                s.tirePressureRL = tireApi.getPressureRL();
+                s.tirePressureRR = tireApi.getPressureRR();
+                s.tireTempFL = tireApi.getTempFL();
+                s.tireTempFR = tireApi.getTempFR();
+                s.tireTempRL = tireApi.getTempRL();
+                s.tireTempRR = tireApi.getTempRR();
+            }
+
+            // ========== 行驶状态 (BydDriveApi) ==========
+            if (driveApi.isAvailable()) {
+                s.speed = driveApi.getSpeed();
+                s.gear = driveApi.getGear();
+                s.powerKw = driveApi.getPowerKw();
+                s.fuelPercent = driveApi.getFuelPercent();
+                s.fuelAmount = driveApi.getFuelAmount();
+                s.totalRange = driveApi.getTotalRange();
+                s.hevMileage = driveApi.getHevMileage();
+                s.currentElecConsumption = driveApi.getCurrentElecConsumption();
+                s.currentFuelConsumption = driveApi.getCurrentFuelConsumption();
+                s.avgElecConsumption = driveApi.getAvgElecConsumption();
+                s.avgFuelConsumption = driveApi.getAvgFuelConsumption();
+                s.tripDistance = driveApi.getTripDistance();
+                s.tripTime = driveApi.getTripTime();
+                s.tripElec = driveApi.getTripElecConsumption();
+                s.tripFuel = driveApi.getTripFuelConsumption();
+                s.smartChargePercent = driveApi.getSmartChargePercent();
+                s.recoveryMode = driveApi.getRecoveryMode();
+            }
+
         } catch (Exception e) {
             Log.e(TAG, "Error reading vehicle status", e);
         }
 
-        // 模拟模式下补充额外数据
-        if (!acApi.isRealDevice()) {
-            fillSimulationData(s);
+        // 当 DriveApi 或 TireApi 不可用时，补充模拟数据
+        if (!driveApi.isRealDevice()) {
+            fillDriveSimulationData(s);
+        }
+        if (!tireApi.isRealDevice()) {
+            fillTireSimulationData(s);
         }
 
         return s;
     }
 
-    private void fillSimulationData(VehicleStatus s) {
-        s.fuelPercent = 37;
-        s.fuelAmount = 21.0;
-        s.totalRange = 396;
-        s.hevMileage = 18563.0;
-        s.currentElecConsumption = 16.0;
-        s.currentFuelConsumption = 5.7;
-        s.avgElecConsumption = 25.4;
-        s.avgFuelConsumption = 0;
+    /**
+     * 补充行驶状态模拟数据（仅在 DriveApi 不可用时调用）
+     */
+    private void fillDriveSimulationData(VehicleStatus s) {
         s.speed = 0;
         s.gear = 0;
         s.powerKw = 0;
-        s.outsideTemp = 38;
-
-        s.tirePressureFL = 250;
-        s.tirePressureFR = 252;
-        s.tirePressureRL = 250;
-        s.tirePressureRR = 250;
-        s.tireTempFL = 31;
-        s.tireTempFR = 31;
-        s.tireTempRL = 30;
-        s.tireTempRR = 33;
-
-        s.tripDistance = 0;
-        s.tripTime = "00:00";
+        if (s.fuelPercent < 0) s.fuelPercent = 37;
+        if (s.fuelAmount < 0) s.fuelAmount = 21.0;
+        if (s.totalRange < 0) s.totalRange = 396;
+        if (s.hevMileage < 0) s.hevMileage = 18563.0;
+        if (s.currentElecConsumption < 0) s.currentElecConsumption = 16.0;
+        if (s.currentFuelConsumption < 0) s.currentFuelConsumption = 5.7;
+        if (s.avgElecConsumption < 0) s.avgElecConsumption = 25.4;
+        if (s.avgFuelConsumption < 0) s.avgFuelConsumption = 0;
+        if (s.tripDistance <= 0) s.tripDistance = 0;
+        if (s.tripTime == null || s.tripTime.equals("00:00")) s.tripTime = "00:00";
         s.tripElec = 0;
         s.tripFuel = 0;
-
         s.smartChargePercent = 25;
         s.recoveryMode = "最大回收";
+    }
+
+    /**
+     * 补充胎压胎温模拟数据（仅在 TireApi 不可用时调用）
+     */
+    private void fillTireSimulationData(VehicleStatus s) {
+        if (s.tirePressureFL < 0) s.tirePressureFL = 250;
+        if (s.tirePressureFR < 0) s.tirePressureFR = 252;
+        if (s.tirePressureRL < 0) s.tirePressureRL = 250;
+        if (s.tirePressureRR < 0) s.tirePressureRR = 250;
+        if (s.tireTempFL < 0) s.tireTempFL = 31;
+        if (s.tireTempFR < 0) s.tireTempFR = 31;
+        if (s.tireTempRL < 0) s.tireTempRL = 30;
+        if (s.tireTempRR < 0) s.tireTempRR = 33;
     }
 }

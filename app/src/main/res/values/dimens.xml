@@ -1,72 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="top_bar_height">32dp</dimen>
-    <dimen name="top_bar_text">12sp</dimen>
-    <dimen name="top_bar_icon">14sp</dimen>
-    <dimen name="top_bar_padding_h">16dp</dimen>
-    <dimen name="nav_bar_height">56dp</dimen>
-    <dimen name="nav_tab_icon">18sp</dimen>
-    <dimen name="nav_tab_text">11sp</dimen>
-    <dimen name="nav_tab_padding">6dp</dimen>
-    <dimen name="nav_shortcut_icon">20dp</dimen>
-    <dimen name="nav_ac_text">14sp</dimen>
-    <dimen name="nav_ac_btn">28dp</dimen>
-    <dimen name="page_padding">16dp</dimen>
-    <dimen name="card_radius">14dp</dimen>
-    <dimen name="card_padding">16dp</dimen>
-    <dimen name="card_elevation">2dp</dimen>
-    <dimen name="clock_time_size">36sp</dimen>
-    <dimen name="clock_date_size">14sp</dimen>
-    <dimen name="speed_size">48sp</dimen>
-    <dimen name="battery_text_size">22sp</dimen>
-    <dimen name="gear_text_size">16sp</dimen>
-    <dimen name="tire_text_size">12sp</dimen>
-    <dimen name="tire_unit_size">9sp</dimen>
-    <dimen name="music_cover_size">56dp</dimen>
-    <dimen name="music_title_size">15sp</dimen>
-    <dimen name="music_artist_size">13sp</dimen>
-    <dimen name="music_control_size">24dp</dimen>
-    <dimen name="music_control_play_size">32dp</dimen>
-    <dimen name="aq_label_size">13sp</dimen>
-    <dimen name="aq_value_size">13sp</dimen>
-    <dimen name="shortcut_icon_size">40dp</dimen>
-    <dimen name="shortcut_add_size">40dp</dimen>
-    <dimen name="spacing_xs">4dp</dimen>
-    <dimen name="spacing_sm">8dp</dimen>
-    <dimen name="spacing_md">12dp</dimen>
-    <dimen name="spacing_lg">16dp</dimen>
-    <dimen name="spacing_xl">24dp</dimen>
-    <dimen name="app_icon_size">48dp</dimen>
-    <dimen name="app_name_size">12sp</dimen>
+    <!-- 顶部栏 -->
+    <dimen name="top_bar_height">28dp</dimen>
+    <dimen name="top_bar_text">11sp</dimen>
+    <dimen name="top_bar_icon">12sp</dimen>
+    <dimen name="top_bar_padding_h">20dp</dimen>
 
-    <!-- Settings 页 -->
-    <dimen name="settings_title_size">28sp</dimen>
-    <dimen name="settings_section_title_size">14sp</dimen>
-    <dimen name="settings_item_title_size">15sp</dimen>
-    <dimen name="settings_item_desc_size">13sp</dimen>
-    <dimen name="settings_icon_size">24dp</dimen>
-    <dimen name="settings_icon_text_size">20sp</dimen>
-    <dimen name="settings_item_min_height">64dp</dimen>
-    <dimen name="settings_item_padding_v">12dp</dimen>
-    <dimen name="settings_segment_height">32dp</dimen>
-    <dimen name="settings_segment_padding_h">14dp</dimen>
-    <dimen name="settings_segment_text_size">13sp</dimen>
-    <dimen name="settings_switch_track_width">48dp</dimen>
-    <dimen name="settings_switch_track_height">24dp</dimen>
-    <dimen name="settings_switch_thumb_size">20dp</dimen>
-    <dimen name="settings_divider_indent">52dp</dimen>
+    <!-- 底部导航栏 -->
+    <dimen name="nav_bar_height">56dp</dimen>
+    <dimen name="nav_tab_icon">20sp</dimen>
+    <dimen name="nav_tab_text">11sp</dimen>
+    <dimen name="nav_shortcut_icon">18dp</dimen>
+    <dimen name="nav_ac_text">15sp</dimen>
+    <dimen name="nav_ac_btn">30dp</dimen>
+    <dimen name="nav_btn_padding">4dp</dimen>
+
+    <!-- 卡片/面板 -->
+    <dimen name="card_radius">12dp</dimen>
+    <dimen name="card_padding">14dp</dimen>
+    <dimen name="card_padding_sm">10dp</dimen>
+    <dimen name="panel_radius">16dp</dimen>
+    <dimen name="panel_padding">20dp</dimen>
 
     <!-- Status 页 -->
-    <dimen name="status_speed_size">56sp</dimen>
-    <dimen name="status_speed_unit_size">16sp</dimen>
-    <dimen name="status_tire_value_size">14sp</dimen>
-    <dimen name="status_tire_unit_size">10sp</dimen>
-    <dimen name="status_gear_size">16sp</dimen>
-    <dimen name="status_mini_card_height">110dp</dimen>
-    <dimen name="status_mini_card_padding">12dp</dimen>
-    <dimen name="status_card_title_size">12sp</dimen>
-    <dimen name="status_card_widget_speed">36sp</dimen>
-    <dimen name="status_card_battery_size">36sp</dimen>
-    <dimen name="status_card_tire_size">18sp</dimen>
-    <dimen name="status_bottom_bar_height">48dp</dimen>
+    <dimen name="speed_size">72sp</dimen>
+    <dimen name="battery_text_size">20sp</dimen>
+    <dimen name="data_value_size">16sp</dimen>
+    <dimen name="data_label_size">10sp</dimen>
+    <dimen name="gear_text_size">17sp</dimen>
+    <dimen name="tire_pressure_size">13sp</dimen>
+    <dimen name="tire_temp_size">10sp</dimen>
+
+    <!-- 画中画 -->
+    <dimen name="pip_clock_size">48sp</dimen>
+    <dimen name="pip_date_size">14sp</dimen>
+    <dimen name="pip_app_icon_size">28sp</dimen>
+    <dimen name="pip_app_btn_w">72dp</dimen>
+    <dimen name="pip_app_btn_h">64dp</dimen>
+
+    <!-- 弹窗 -->
+    <dimen name="dialog_radius">16dp</dimen>
+    <dimen name="dialog_padding">22dp</dimen>
+    <dimen name="dialog_btn_h">40dp</dimen>
+
+    <!-- 通用间距 -->
+    <dimen name="spacing_xs">3dp</dimen>
+    <dimen name="spacing_sm">6dp</dimen>
+    <dimen name="spacing_md">10dp</dimen>
+    <dimen name="spacing_lg">14dp</dimen>
+    <dimen name="spacing_xl">20dp</dimen>
+
+    <!-- 页面边距 -->
+    <dimen name="page_padding_h">16dp</dimen>
+    <dimen name="page_padding_v">10dp</dimen>
+    <dimen name="page_padding">16dp</dimen>
+
+    <!-- 旧布局兼容 -->
+    <dimen name="app_icon_size">48dp</dimen>
+    <dimen name="app_name_size">11sp</dimen>
+    <dimen name="aq_label_size">12sp</dimen>
+    <dimen name="aq_value_size">12sp</dimen>
+    <dimen name="music_title_size">14sp</dimen>
+    <dimen name="music_artist_size">12sp</dimen>
+    <dimen name="music_cover_size">48dp</dimen>
+    <dimen name="music_control_size">22dp</dimen>
+    <dimen name="music_control_play_size">28dp</dimen>
+    <dimen name="shortcut_icon_size">40dp</dimen>
+    <dimen name="shortcut_add_size">40dp</dimen>
+    <dimen name="status_mini_card_padding">10dp</dimen>
+
+    <!-- Settings 页 -->
+    <dimen name="settings_title_size">20sp</dimen>
+    <dimen name="settings_section_title_size">11sp</dimen>
+    <dimen name="settings_item_title_size">15sp</dimen>
+    <dimen name="settings_item_desc_size">12sp</dimen>
+    <dimen name="settings_item_min_height">48dp</dimen>
+    <dimen name="settings_icon_size">20dp</dimen>
+    <dimen name="settings_icon_text_size">16sp</dimen>
+    <dimen name="settings_divider_indent">16dp</dimen>
+    <dimen name="settings_segment_height">36dp</dimen>
+    <dimen name="settings_segment_padding_h">14dp</dimen>
+    <dimen name="settings_segment_text_size">13sp</dimen>
+    <dimen name="settings_switch_track_width">44dp</dimen>
+    <dimen name="settings_switch_track_height">24dp</dimen>
+    <dimen name="settings_switch_thumb_size">20dp</dimen>
 </resources>

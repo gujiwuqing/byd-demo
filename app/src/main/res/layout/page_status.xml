@@ -3,159 +3,240 @@
     android:id="@+id/page_status"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal">
+    android:background="@color/bg_primary"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/page_padding_h"
+    android:paddingEnd="@dimen/page_padding_h"
+    android:paddingTop="@dimen/page_padding_v"
+    android:paddingBottom="@dimen/page_padding_v">
 
-    <!-- 左侧：车辆信息（35%） -->
+    <!-- ===== 左侧仪表盘 35% ===== -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="35"
         android:orientation="vertical"
-        android:paddingStart="20dp"
-        android:paddingEnd="12dp"
-        android:paddingTop="8dp"
-        android:paddingBottom="4dp">
+        android:layout_marginEnd="10dp">
 
-        <!-- 第1行：电量 + 续航 + 油量 横排紧凑 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="2dp">
-
-            <TextView android:id="@+id/tv_battery" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="89%" android:textColor="@color/accent" android:textSize="20sp" android:textStyle="bold" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="  " />
-            <TextView android:id="@+id/tv_ev_range" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="90km" android:textColor="@color/text_primary" android:textSize="14sp" />
-
-            <View android:layout_width="16dp" android:layout_height="0dp" />
-
-            <TextView android:id="@+id/tv_fuel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="37%" android:textColor="@color/status_fair" android:textSize="20sp" android:textStyle="bold" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="  " />
-            <TextView android:id="@+id/tv_fuel_amount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="21.0L" android:textColor="@color/text_secondary" android:textSize="14sp" />
-
-            <View android:layout_width="16dp" android:layout_height="0dp" />
-
-            <TextView android:id="@+id/tv_total_range" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="396km" android:textColor="@color/text_primary" android:textSize="14sp" />
-        </LinearLayout>
-
-        <!-- 电量进度条 -->
-        <ProgressBar android:id="@+id/progress_battery" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="3dp" android:layout_marginBottom="6dp" android:max="100" android:progress="89" android:progressDrawable="@drawable/progress_bar_battery" />
-
-        <!-- 第2行：速度（视觉焦点）+ 挡位 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <!-- 挡位 PRND -->
-            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="0dp">
-                <TextView android:id="@+id/gear_p" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="P" android:textSize="20sp" android:textColor="@color/gear_active" android:textStyle="bold" android:layout_marginEnd="16dp" />
-                <TextView android:id="@+id/gear_r" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="R" android:textSize="20sp" android:textColor="@color/gear_inactive" android:textStyle="bold" android:layout_marginEnd="16dp" />
-                <TextView android:id="@+id/gear_n" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="N" android:textSize="20sp" android:textColor="@color/gear_inactive" android:textStyle="bold" android:layout_marginEnd="16dp" />
-                <TextView android:id="@+id/gear_d" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="D" android:textSize="20sp" android:textColor="@color/gear_inactive" android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- 速度大字 -->
-            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center_vertical">
-                <TextView android:id="@+id/tv_speed" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="80sp" android:textStyle="bold" android:fontFamily="sans-serif-thin" android:includeFontPadding="false" />
-            </LinearLayout>
-
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="km/h" android:textColor="@color/text_tertiary" android:textSize="13sp" android:layout_marginTop="-4dp" />
-
-            <!-- 室外温度 + 功率 -->
-            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center">
-                <TextView android:id="@+id/tv_outside_temp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="38°C" android:textColor="@color/text_secondary" android:textSize="14sp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="    " />
-                <TextView android:id="@+id/tv_power_kw" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.0Kw" android:textColor="@color/accent" android:textSize="14sp" android:textStyle="bold" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- 第3行：能耗 + 胎压 横排 -->
+        <!-- 顶行：电量 + 油量 + 续航 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="4dp">
+            android:layout_marginBottom="6dp">
 
-            <!-- 能耗 -->
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginEnd="8dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="50km能耗" android:textColor="@color/text_tertiary" android:textSize="11sp" />
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
-                    <TextView android:id="@+id/tv_elec_consumption" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="16.0度" android:textColor="@color/text_primary" android:textSize="13sp" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="  " />
-                    <TextView android:id="@+id/tv_fuel_consumption" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="当前：5.7" android:textColor="@color/text_secondary" android:textSize="12sp" />
+            <!-- 电量块 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="@dimen/card_padding_sm"
+                android:layout_marginEnd="4dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="电量" style="@style/DataLabel" android:layout_marginBottom="1dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+                    <TextView android:id="@+id/tv_battery" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="89%" android:textColor="@color/accent" android:textSize="18sp" android:textStyle="bold" />
+                    <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+                    <TextView android:id="@+id/tv_ev_range" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="90km" android:textColor="@color/text_secondary" android:textSize="11sp" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp">
-                    <TextView android:id="@+id/tv_smart_charge" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="智保25%" android:textColor="@color/accent" android:textSize="12sp" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="  " />
-                    <TextView android:id="@+id/tv_recovery_mode" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="最大回收" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                <ProgressBar android:id="@+id/progress_battery" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="3dp" android:layout_marginTop="4dp" android:max="100" android:progress="89" android:progressDrawable="@drawable/progress_bar_battery" />
+            </LinearLayout>
+
+            <!-- 油量块 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="@dimen/card_padding_sm"
+                android:layout_marginEnd="4dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="油量" style="@style/DataLabel" android:layout_marginBottom="1dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+                    <TextView android:id="@+id/tv_fuel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="37%" android:textColor="@color/status_fair" android:textSize="18sp" android:textStyle="bold" />
+                    <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+                    <TextView android:id="@+id/tv_fuel_amount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="21L" android:textColor="@color/text_secondary" android:textSize="11sp" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- 胎压 2x2 网格 -->
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="2dp">
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                        <TextView android:id="@+id/tv_tire_fl_pressure" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="250" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
-                        <TextView android:id="@+id/tv_tire_fl_temp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="31°C" android:textColor="@color/text_tertiary" android:textSize="10sp" />
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                        <TextView android:id="@+id/tv_tire_fr_pressure" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="252" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
-                        <TextView android:id="@+id/tv_tire_fr_temp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="31°C" android:textColor="@color/text_tertiary" android:textSize="10sp" />
-                    </LinearLayout>
-                </LinearLayout>
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                        <TextView android:id="@+id/tv_tire_rl_pressure" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="250" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
-                        <TextView android:id="@+id/tv_tire_rl_temp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="30°C" android:textColor="@color/text_tertiary" android:textSize="10sp" />
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                        <TextView android:id="@+id/tv_tire_rr_pressure" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="250" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
-                        <TextView android:id="@+id/tv_tire_rr_temp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="33°C" android:textColor="@color/text_tertiary" android:textSize="10sp" />
-                    </LinearLayout>
-                </LinearLayout>
+            <!-- 续航块 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="@dimen/card_padding_sm">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="总续航" style="@style/DataLabel" android:layout_marginBottom="1dp" />
+                <TextView android:id="@+id/tv_total_range" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="396km" android:textColor="@color/text_primary" android:textSize="18sp" android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- 第4行：行程 + 里程 -->
+        <!-- 中央核心：速度仪表 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_card_accent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="@dimen/card_padding"
+            android:layout_marginBottom="6dp">
+
+            <!-- PRND 挡位 -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="2dp">
+                <TextView android:id="@+id/gear_p" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="P" android:textSize="@dimen/gear_text_size" android:textColor="@color/accent" android:textStyle="bold" android:letterSpacing="0.1" android:layout_marginEnd="14dp" />
+                <TextView android:id="@+id/gear_r" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="R" android:textSize="@dimen/gear_text_size" android:textColor="@color/gear_inactive" android:textStyle="bold" android:letterSpacing="0.1" android:layout_marginEnd="14dp" />
+                <TextView android:id="@+id/gear_n" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="N" android:textSize="@dimen/gear_text_size" android:textColor="@color/gear_inactive" android:textStyle="bold" android:letterSpacing="0.1" android:layout_marginEnd="14dp" />
+                <TextView android:id="@+id/gear_d" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="D" android:textSize="@dimen/gear_text_size" android:textColor="@color/gear_inactive" android:textStyle="bold" android:letterSpacing="0.1" />
+            </LinearLayout>
+
+            <!-- 速度超大字 -->
+            <TextView
+                android:id="@+id/tv_speed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/speed_size"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-thin"
+                android:includeFontPadding="false"
+                android:lineSpacingMultiplier="0.85" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="km/h"
+                android:textColor="@color/text_tertiary"
+                android:textSize="11sp"
+                android:letterSpacing="0.12"
+                android:layout_marginTop="-2dp"
+                android:layout_marginBottom="6dp" />
+
+            <!-- 温度 + 功率 横排 -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center">
+                <TextView android:id="@+id/tv_outside_temp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="38°C" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                <View android:layout_width="1dp" android:layout_height="12dp" android:background="@color/divider" android:layout_marginStart="10dp" android:layout_marginEnd="10dp" />
+                <TextView android:id="@+id/tv_power_kw" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.0 kW" android:textColor="@color/accent" android:textSize="12sp" android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 底部：能耗 + 胎压 + 行程 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
-            <TextView android:id="@+id/tv_trip_distance" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.0km" android:textColor="@color/text_primary" android:textSize="12sp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="  ⏱" android:textColor="@color/text_tertiary" android:textSize="11sp" />
-            <TextView android:id="@+id/tv_trip_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="00:00" android:textColor="@color/text_primary" android:textSize="12sp" />
+            <!-- 能耗 + 智保 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="@dimen/card_padding_sm"
+                android:layout_marginEnd="4dp">
 
-            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="50km能耗" style="@style/DataLabel" android:layout_marginBottom="2dp" />
+                <TextView android:id="@+id/tv_elec_consumption" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="16.0度" android:textColor="@color/text_primary" android:textSize="13sp" android:textStyle="bold" />
+                <TextView android:id="@+id/tv_fuel_consumption" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="当前 5.7" android:textColor="@color/text_secondary" android:textSize="10sp" android:layout_marginBottom="4dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <TextView android:id="@+id/tv_smart_charge" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="智保25%" android:textColor="@color/accent" android:textSize="10sp" />
+                    <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+                    <TextView android:id="@+id/tv_recovery_mode" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="最大回收" android:textColor="@color/text_tertiary" android:textSize="10sp" />
+                </LinearLayout>
+            </LinearLayout>
 
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="总" android:textColor="@color/text_tertiary" android:textSize="11sp" />
-            <TextView android:id="@+id/tv_total_mileage" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="73465.9km" android:textColor="@color/text_secondary" android:textSize="12sp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="  HEV " android:textColor="@color/text_tertiary" android:textSize="11sp" />
-            <TextView android:id="@+id/tv_hev_mileage" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="18563.0km" android:textColor="@color/text_secondary" android:textSize="12sp" />
+            <!-- 胎压 2x2 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="@dimen/card_padding_sm"
+                android:layout_marginEnd="4dp">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="胎压 / 胎温" style="@style/DataLabel" android:layout_marginBottom="4dp" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="2dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center">
+                        <TextView android:id="@+id/tv_tire_fl_pressure" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="250" android:textColor="@color/text_primary" android:textSize="@dimen/tire_pressure_size" android:textStyle="bold" />
+                        <TextView android:id="@+id/tv_tire_fl_temp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="31°" android:textColor="@color/text_tertiary" android:textSize="@dimen/tire_temp_size" />
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center">
+                        <TextView android:id="@+id/tv_tire_fr_pressure" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="252" android:textColor="@color/text_primary" android:textSize="@dimen/tire_pressure_size" android:textStyle="bold" />
+                        <TextView android:id="@+id/tv_tire_fr_temp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="31°" android:textColor="@color/text_tertiary" android:textSize="@dimen/tire_temp_size" />
+                    </LinearLayout>
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center">
+                        <TextView android:id="@+id/tv_tire_rl_pressure" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="250" android:textColor="@color/text_primary" android:textSize="@dimen/tire_pressure_size" android:textStyle="bold" />
+                        <TextView android:id="@+id/tv_tire_rl_temp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="30°" android:textColor="@color/text_tertiary" android:textSize="@dimen/tire_temp_size" />
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center">
+                        <TextView android:id="@+id/tv_tire_rr_pressure" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="250" android:textColor="@color/text_primary" android:textSize="@dimen/tire_pressure_size" android:textStyle="bold" />
+                        <TextView android:id="@+id/tv_tire_rr_temp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="33°" android:textColor="@color/text_tertiary" android:textSize="@dimen/tire_temp_size" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 行程 + 里程 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="@dimen/card_padding_sm">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="行程" style="@style/DataLabel" android:layout_marginBottom="2dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="1dp">
+                    <TextView android:id="@+id/tv_trip_distance" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.0km" android:textColor="@color/text_primary" android:textSize="12sp" android:textStyle="bold" />
+                    <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+                    <TextView android:id="@+id/tv_trip_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="00:00" android:textColor="@color/text_secondary" android:textSize="11sp" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" android:layout_marginTop="4dp" android:layout_marginBottom="4dp" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="总" android:textColor="@color/text_tertiary" android:textSize="9sp" android:textAllCaps="true" />
+                    <TextView android:id="@+id/tv_total_mileage" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="73465km" android:textColor="@color/text_secondary" android:textSize="11sp" android:layout_marginStart="2dp" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="HEV" android:textColor="@color/accent" android:textSize="9sp" />
+                    <TextView android:id="@+id/tv_hev_mileage" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="18563km" android:textColor="@color/text_secondary" android:textSize="11sp" android:layout_marginStart="2dp" />
+                </LinearLayout>
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 右侧：画中画区域（65%） -->
+    <!-- ===== 右侧画中画 65% ===== -->
     <FrameLayout
         android:id="@+id/pip_area"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="65">
 
-        <!-- 默认背景 -->
+        <!-- 默认：时钟 + APP 快捷 -->
         <LinearLayout
             android:id="@+id/pip_default"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/bg_surface_variant"
+            android:background="@drawable/bg_card"
             android:orientation="vertical"
             android:gravity="center"
-            android:padding="24dp">
+            android:padding="20dp">
 
-            <!-- 日期时间（大字） -->
+            <!-- 时钟 -->
             <TextClock
                 android:id="@+id/pip_time"
                 android:layout_width="wrap_content"
@@ -163,50 +244,67 @@
                 android:format24Hour="HH:mm"
                 android:format12Hour="hh:mm"
                 android:textColor="@color/text_primary"
-                android:textSize="52sp"
+                android:textSize="@dimen/pip_clock_size"
+                android:fontFamily="sans-serif-thin"
                 android:textStyle="bold"
-                android:fontFamily="sans-serif-light"
-                android:layout_marginBottom="4dp" />
+                android:letterSpacing="-0.02"
+                android:layout_marginBottom="2dp" />
 
             <TextClock
                 android:id="@+id/pip_date"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:format24Hour="MM月dd日 EEEE"
-                android:format12Hour="MM月dd日 EEEE"
+                android:format24Hour="MM月dd日  EEEE"
+                android:format12Hour="MM月dd日  EEEE"
                 android:textColor="@color/text_secondary"
-                android:textSize="16sp"
-                android:layout_marginBottom="40dp" />
+                android:textSize="@dimen/pip_date_size"
+                android:letterSpacing="0.04"
+                android:layout_marginBottom="28dp" />
 
-            <!-- 快捷应用入口 -->
+            <!-- APP 快捷入口 -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center">
 
-                <LinearLayout android:id="@+id/pip_map" android:layout_width="80dp" android:layout_height="72dp" android:background="@color/bg_surface" android:gravity="center" android:orientation="vertical" android:padding="8dp" android:layout_marginEnd="12dp">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🗺" android:textSize="26sp" />
+                <LinearLayout android:id="@+id/pip_map"
+                    android:layout_width="@dimen/pip_app_btn_w" android:layout_height="@dimen/pip_app_btn_h"
+                    android:background="@drawable/bg_pip_app" android:gravity="center" android:orientation="vertical"
+                    android:padding="8dp" android:layout_marginEnd="8dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🗺" android:textSize="@dimen/pip_app_icon_size" />
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="地图" android:textColor="@color/text_secondary" android:textSize="11sp" android:layout_marginTop="4dp" />
                 </LinearLayout>
 
-                <LinearLayout android:id="@+id/pip_music" android:layout_width="80dp" android:layout_height="72dp" android:background="@color/bg_surface" android:gravity="center" android:orientation="vertical" android:padding="8dp" android:layout_marginEnd="12dp">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🎵" android:textSize="26sp" />
+                <LinearLayout android:id="@+id/pip_music"
+                    android:layout_width="@dimen/pip_app_btn_w" android:layout_height="@dimen/pip_app_btn_h"
+                    android:background="@drawable/bg_pip_app" android:gravity="center" android:orientation="vertical"
+                    android:padding="8dp" android:layout_marginEnd="8dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🎵" android:textSize="@dimen/pip_app_icon_size" />
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="音乐" android:textColor="@color/text_secondary" android:textSize="11sp" android:layout_marginTop="4dp" />
                 </LinearLayout>
 
-                <LinearLayout android:id="@+id/pip_video" android:layout_width="80dp" android:layout_height="72dp" android:background="@color/bg_surface" android:gravity="center" android:orientation="vertical" android:padding="8dp" android:layout_marginEnd="12dp">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📺" android:textSize="26sp" />
+                <LinearLayout android:id="@+id/pip_video"
+                    android:layout_width="@dimen/pip_app_btn_w" android:layout_height="@dimen/pip_app_btn_h"
+                    android:background="@drawable/bg_pip_app" android:gravity="center" android:orientation="vertical"
+                    android:padding="8dp" android:layout_marginEnd="8dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📺" android:textSize="@dimen/pip_app_icon_size" />
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="视频" android:textColor="@color/text_secondary" android:textSize="11sp" android:layout_marginTop="4dp" />
                 </LinearLayout>
 
-                <LinearLayout android:id="@+id/pip_phone" android:layout_width="80dp" android:layout_height="72dp" android:background="@color/bg_surface" android:gravity="center" android:orientation="vertical" android:padding="8dp" android:layout_marginEnd="12dp">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📞" android:textSize="26sp" />
+                <LinearLayout android:id="@+id/pip_phone"
+                    android:layout_width="@dimen/pip_app_btn_w" android:layout_height="@dimen/pip_app_btn_h"
+                    android:background="@drawable/bg_pip_app" android:gravity="center" android:orientation="vertical"
+                    android:padding="8dp" android:layout_marginEnd="8dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📞" android:textSize="@dimen/pip_app_icon_size" />
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="电话" android:textColor="@color/text_secondary" android:textSize="11sp" android:layout_marginTop="4dp" />
                 </LinearLayout>
 
-                <LinearLayout android:id="@+id/pip_more_apps" android:layout_width="80dp" android:layout_height="72dp" android:background="@color/bg_surface" android:gravity="center" android:orientation="vertical" android:padding="8dp">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⊞" android:textSize="26sp" />
+                <LinearLayout android:id="@+id/pip_more_apps"
+                    android:layout_width="@dimen/pip_app_btn_w" android:layout_height="@dimen/pip_app_btn_h"
+                    android:background="@drawable/bg_pip_app" android:gravity="center" android:orientation="vertical"
+                    android:padding="8dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⊞" android:textSize="@dimen/pip_app_icon_size" android:textColor="@color/text_secondary" />
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="更多" android:textColor="@color/text_secondary" android:textSize="11sp" android:layout_marginTop="4dp" />
                 </LinearLayout>
             </LinearLayout>

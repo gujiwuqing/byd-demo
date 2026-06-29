@@ -3,30 +3,44 @@
     android:id="@+id/top_bar"
     android:layout_width="match_parent"
     android:layout_height="@dimen/top_bar_height"
-    android:background="@color/bg_surface_variant"
+    android:background="@color/bg_top_bar"
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingStart="@dimen/top_bar_padding_h"
     android:paddingEnd="@dimen/top_bar_padding_h">
 
+    <!-- 左：系统图标 -->
     <TextView
         android:id="@+id/top_sys_icons"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="🔋 📶 🔵 📍"
+        android:text="🔋 📶 🔵"
         android:textSize="@dimen/top_bar_icon"
-        android:textColor="@color/text_secondary" />
+        android:textColor="@color/text_tertiary" />
 
     <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
 
+    <!-- 中：APP 名 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="迪UI"
+        android:textSize="11sp"
+        android:textColor="@color/accent"
+        android:textStyle="bold"
+        android:letterSpacing="0.08" />
+
+    <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+    <!-- 右：媒体 + 时间 -->
     <TextView
         android:id="@+id/top_media_source"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="♫"
         android:textSize="@dimen/top_bar_text"
-        android:textColor="@color/text_secondary"
-        android:layout_marginEnd="@dimen/spacing_sm" />
+        android:textColor="@color/text_tertiary"
+        android:layout_marginEnd="6dp" />
 
     <TextClock
         android:layout_width="wrap_content"
@@ -34,6 +48,7 @@
         android:format24Hour="HH:mm"
         android:format12Hour="hh:mm"
         android:textSize="@dimen/top_bar_text"
-        android:textColor="@color/text_primary"
-        android:textStyle="bold" />
+        android:textColor="@color/text_secondary"
+        android:textStyle="bold"
+        android:letterSpacing="0.04" />
 </LinearLayout>

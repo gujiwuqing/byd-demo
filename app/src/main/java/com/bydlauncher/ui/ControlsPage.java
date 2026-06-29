@@ -7,28 +7,24 @@ import androidx.core.content.ContextCompat;
 
 import com.bydlauncher.R;
 import com.bydlauncher.api.BydAcApi;
-import com.bydlauncher.api.BydBodyworkApi;
 import com.bydlauncher.model.VehicleStatus;
 
 public class ControlsPage {
 
     private final View rootView;
     private final BydAcApi acApi;
-    private final BydBodyworkApi bodyworkApi;
 
     private final TextView btnAcPower, tvAcTemp, tvAcStatus;
     private final TextView[] windBtns;
     private final TextView btnModeFace, btnModeFoot, btnModeDefrost;
     private final TextView btnCycleInner, btnCycleOuter;
     private final TextView btnAuto, btnManual;
-    private final TextView lockIcon, lockText, lockStatus, doorStatus;
 
     private int currentTemp = 25;
 
-    public ControlsPage(View rootView, BydAcApi acApi, BydBodyworkApi bodyworkApi) {
+    public ControlsPage(View rootView, BydAcApi acApi) {
         this.rootView = rootView;
         this.acApi = acApi;
-        this.bodyworkApi = bodyworkApi;
 
         btnAcPower = rootView.findViewById(R.id.ctrl_ac_power);
         tvAcTemp = rootView.findViewById(R.id.ctrl_ac_temp);
@@ -48,11 +44,6 @@ public class ControlsPage {
         btnCycleOuter = rootView.findViewById(R.id.ctrl_cycle_outer);
         btnAuto = rootView.findViewById(R.id.ctrl_auto);
         btnManual = rootView.findViewById(R.id.ctrl_manual);
-
-        lockIcon = rootView.findViewById(R.id.ctrl_lock_icon);
-        lockText = rootView.findViewById(R.id.ctrl_lock_text);
-        lockStatus = rootView.findViewById(R.id.ctrl_lock_status);
-        doorStatus = rootView.findViewById(R.id.ctrl_door_status);
 
         initClickListeners();
     }
@@ -88,8 +79,6 @@ public class ControlsPage {
 
         btnAuto.setOnClickListener(v -> { acApi.setControlMode(BydAcApi.MODE_AUTO); highlightControl(BydAcApi.MODE_AUTO); });
         btnManual.setOnClickListener(v -> { acApi.setControlMode(BydAcApi.MODE_MANUAL); highlightControl(BydAcApi.MODE_MANUAL); });
-
-        rootView.findViewById(R.id.ctrl_lock_btn).setOnClickListener(v -> bodyworkApi.toggleLock());
     }
 
     public void updateStatus(VehicleStatus s) {
@@ -112,33 +101,6 @@ public class ControlsPage {
         highlightWindMode(s.acWindMode);
         highlightCycle(s.acCycleMode);
         highlightControl(s.acControlMode);
-
-        if (s.isLocked) {
-            lockIcon.setText("🔒");
-            lockText.setText("已锁车");
-            lockStatus.setText("🔒 已锁车");
-            lockStatus.setTextColor(ContextCompat.getColor(rootView.getContext(), R.color.status_good));
-        } else {
-            lockIcon.setText("🔓");
-            lockText.setText("已解锁");
-            lockStatus.setText("🔓 已解锁");
-            lockStatus.setTextColor(ContextCompat.getColor(rootView.getContext(), R.color.status_fair));
-        }
-
-        if (s.hasAnyDoorOpen()) {
-            StringBuilder doors = new StringBuilder("🚪 ");
-            if (s.doorLeftFrontOpen) doors.append("左前 ");
-            if (s.doorRightFrontOpen) doors.append("右前 ");
-            if (s.doorLeftRearOpen) doors.append("左后 ");
-            if (s.doorRightRearOpen) doors.append("右后 ");
-            if (s.trunkOpen) doors.append("后备箱 ");
-            if (s.hoodOpen) doors.append("引擎盖 ");
-            doorStatus.setText(doors.toString().trim());
-            doorStatus.setTextColor(ContextCompat.getColor(rootView.getContext(), R.color.door_open));
-        } else {
-            doorStatus.setText("🚪 全部关闭");
-            doorStatus.setTextColor(ContextCompat.getColor(rootView.getContext(), R.color.status_good));
-        }
     }
 
     private void highlightWind(int level) {

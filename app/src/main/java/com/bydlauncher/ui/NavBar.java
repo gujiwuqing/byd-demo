@@ -19,14 +19,20 @@ public class NavBar {
     private final View[] tabs;
     private final TextView acTemp, acWindLevel, acPower;
     private final TextView cycleText;
+    private final BydBodyworkApi bodyworkApi;
     private TabListener listener;
     private int currentTab = 0;
     private int currentAcTemp = 25;
 
+    // 面板引用（Activity 视图层级中的内嵌面板）
+    private View overlayMask;
+    private View panelWindow;
+    private View panelSeat;
+
     public NavBar(View rootView, BydAcApi acApi, BydBodyworkApi bodyworkApi) {
         this.rootView = rootView;
+        this.bodyworkApi = bodyworkApi;
 
-        // 4 个标签页（主页/控制/应用/设置）
         tabs = new View[]{
                 rootView.findViewById(R.id.tab_status),
                 rootView.findViewById(R.id.tab_controls),
@@ -44,7 +50,6 @@ public class NavBar {
             tabs[i].setOnClickListener(v -> selectTab(index));
         }
 
-        // AC 温度控制
         rootView.findViewById(R.id.nav_ac_down).setOnClickListener(v -> {
             currentAcTemp = Math.max(17, currentAcTemp - 1);
             acApi.setMainTemp(currentAcTemp);
@@ -56,17 +61,59 @@ public class NavBar {
             acTemp.setText(currentAcTemp + "°");
         });
 
-        // AC 开关
         acPower.setOnClickListener(v -> acApi.toggle());
-
-        // 快捷控制按钮
         rootView.findViewById(R.id.nav_btn_cycle).setOnClickListener(v -> acApi.toggleCycleMode());
 
-        // 车窗控制弹窗
-        WindowControlDialog windowDialog = new WindowControlDialog(rootView.getContext(), bodyworkApi);
-        rootView.findViewById(R.id.nav_btn_window).setOnClickListener(v -> windowDialog.show());
+        rootView.findViewById(R.id.nav_btn_window).setOnClickListener(v -> showPanel(true));
+        rootView.findViewById(R.id.nav_btn_seat).setOnClickListener(v -> showPanel(false));
 
         selectTab(0);
+    }
+
+    /** 由 MainActivity 在 setContentView 后注入面板引用 */
+    public void setPanels(View mask, View window, View seat) {
+        this.overlayMask = mask;
+        this.panelWindow = window;
+        this.panelSeat = seat;
+
+        // 设置面板宽度为屏幕的 62%
+        int panelWidth = (int) (mask.getContext().getResources().getDisplayMetrics().widthPixels * 0.62f);
+        android.view.ViewGroup.LayoutParams wpLp = window.getLayoutParams();
+        wpLp.width = panelWidth;
+        window.setLayoutParams(wpLp);
+        android.view.ViewGroup.LayoutParams spLp = seat.getLayoutParams();
+        spLp.width = panelWidth;
+        seat.setLayoutParams(spLp);
+
+        // 点遮罩关闭所有面板
+        mask.setOnClickListener(v -> closeAllPanels());
+
+        // 绑定面板内的关闭按钮
+        View winClose = window.findViewById(R.id.win_close_dialog);
+        if (winClose != null) winClose.setOnClickListener(v -> closeAllPanels());
+
+        View seatClose = seat.findViewById(R.id.seat_close_dialog);
+        if (seatClose != null) seatClose.setOnClickListener(v -> closeAllPanels());
+
+        // 初始化车窗面板逻辑
+        WindowPanelController.bind(window, bodyworkApi);
+
+        // 初始化座椅面板逻辑
+        SeatPanelController.bind(seat);
+    }
+
+    private void showPanel(boolean isWindow) {
+        if (overlayMask == null) return;
+        overlayMask.setVisibility(View.VISIBLE);
+        panelWindow.setVisibility(isWindow ? View.VISIBLE : View.GONE);
+        panelSeat.setVisibility(isWindow ? View.GONE : View.VISIBLE);
+    }
+
+    public void closeAllPanels() {
+        if (overlayMask == null) return;
+        overlayMask.setVisibility(View.GONE);
+        panelWindow.setVisibility(View.GONE);
+        panelSeat.setVisibility(View.GONE);
     }
 
     public void setTabListener(TabListener listener) {

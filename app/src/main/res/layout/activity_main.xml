@@ -1,32 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_primary"
-    android:orientation="vertical">
+    android:background="@color/bg_primary">
 
-    <!-- 顶部状态栏 -->
+    <!-- 主内容：顶部栏 + 内容区 + 底部栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <include
+            layout="@layout/view_top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/top_bar_height" />
+
+        <FrameLayout
+            android:id="@+id/content_frame"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <include layout="@layout/page_status" />
+            <include layout="@layout/page_controls" />
+            <include layout="@layout/page_apps" />
+            <include layout="@layout/page_settings" />
+        </FrameLayout>
+
+        <include
+            layout="@layout/view_nav_bar"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/nav_bar_height" />
+    </LinearLayout>
+
+    <!-- 全屏遮罩层（所有弹窗共用） -->
+    <View
+        android:id="@+id/overlay_mask"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:visibility="gone" />
+
+    <!-- 车窗控制面板 -->
     <include
-        layout="@layout/view_top_bar"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/top_bar_height" />
+        layout="@layout/panel_window_control"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone" />
 
-    <!-- 内容区 -->
-    <FrameLayout
-        android:id="@+id/content_frame"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-
-        <include layout="@layout/page_status" />
-        <include layout="@layout/page_controls" />
-        <include layout="@layout/page_apps" />
-        <include layout="@layout/page_settings" />
-    </FrameLayout>
-
-    <!-- 底部导航栏 -->
+    <!-- 座椅控制面板 -->
     <include
-        layout="@layout/view_nav_bar"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/nav_bar_height" />
-</LinearLayout>
+        layout="@layout/panel_seat_control"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone" />
+
+</FrameLayout>

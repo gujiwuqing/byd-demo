@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="AppTheme" parent="Theme.MaterialComponents.NoActionBar">
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowBackground">@color/bg_primary</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
@@ -10,23 +10,82 @@
         <item name="colorPrimary">@color/accent</item>
         <item name="colorAccent">@color/accent</item>
     </style>
-    <style name="CardStyle">
-        <item name="android:background">@drawable/bg_card</item>
-        <item name="android:padding">@dimen/card_padding</item>
+
+    <!-- 数据标签（小字灰色）-->
+    <style name="DataLabel">
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textSize">@dimen/data_label_size</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.06</item>
     </style>
+
+    <!-- 数据数值（中等白色）-->
+    <style name="DataValue">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">@dimen/data_value_size</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- 强调数值（蓝色）-->
+    <style name="DataValueAccent">
+        <item name="android:textColor">@color/accent</item>
+        <item name="android:textSize">@dimen/data_value_size</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- 导航标签按钮样式 -->
     <style name="NavTabText">
         <item name="android:textSize">@dimen/nav_tab_text</item>
-        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textColor">@color/nav_text</item>
+        <item name="android:letterSpacing">0.02</item>
     </style>
+
     <style name="NavTabIcon">
         <item name="android:textSize">@dimen/nav_tab_icon</item>
     </style>
+
+    <!-- 空调快捷按钮 -->
     <style name="AcQuickButton">
         <item name="android:layout_width">@dimen/nav_ac_btn</item>
         <item name="android:layout_height">@dimen/nav_ac_btn</item>
         <item name="android:background">@drawable/bg_ac_quick</item>
         <item name="android:gravity">center</item>
         <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- 弹窗标题 -->
+    <style name="DialogTitle">
+        <item name="android:textColor">@color/text_primary</item>
         <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.02</item>
+    </style>
+
+    <!-- 控制按钮（空调面板等）-->
+    <style name="ControlButton">
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">@drawable/bg_switch_btn</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+        <item name="android:paddingStart">4dp</item>
+        <item name="android:paddingEnd">4dp</item>
+    </style>
+
+    <!-- Alert Dialog 深色主题 -->
+    <style name="AppAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="colorSurface">@color/bg_dialog</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorPrimary">@color/accent</item>
+        <item name="android:colorBackground">@color/bg_dialog</item>
+        <item name="shapeAppearanceMediumComponent">@style/AppAlertDialogShape</item>
+    </style>
+
+    <style name="AppAlertDialogShape" parent="ShapeAppearance.MaterialComponents.MediumComponent">
+        <item name="cornerSize">16dp</item>
     </style>
 </resources>

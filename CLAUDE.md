@@ -5,65 +5,89 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build & Install
 
 ```bash
-./gradlew assembleDebug                          # 构建 debug APK
-# APK 输出: app/build/outputs/apk/debug/app-debug.apk
+./gradlew assembleDebug
+# APK: app/build/outputs/apk/debug/app-debug.apk
 
-adb install -r app/build/outputs/apk/debug/app-debug.apk  # 安装到设备
-adb connect 192.168.10.10:5555                   # WiFi 连接车机
-adb logcat -s AndroidRuntime:E                   # 查看崩溃日志
-adb shell cmd package set-home-activity com.bydlauncher/.MainActivity  # 设为默认桌面
+adb connect 192.168.10.10:5555                    # WiFi 连接车机（固定 IP）
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb logcat -s AndroidRuntime:E                    # 查看崩溃日志
+adb shell screencap -p /sdcard/s.png && adb pull /sdcard/s.png  # 截图调试
+adb shell cmd package set-home-activity com.bydlauncher/.MainActivity
 ```
 
 无测试套件。无 lint 配置。验证改动靠构建 + 安装到设备/模拟器手动测试。
 
 ## Architecture
 
-单 Activity（`MainActivity`）+ 多 View 页面切换架构，目标设备是 BYD 12-13 英寸横屏车机。参考 Kinex Launcher 设计。
+APP 名称：**迪UI**。单 Activity（`MainActivity`）+ 多 View 页面切换架构，目标设备是 BYD 12-13 英寸横屏车机。设计参考 Kinex Launcher 和 BYD 原生 DiLink 界面。
 
-### UI 层（三层屏幕结构）
-
-```
-┌─ TopBar (32dp) ─────────────────────────────────┐
-├─ Content FrameLayout ───────────────────────────┤
-│  5 个 View 页面通过 NavBar 标签切换（显隐控制）：  │
-│  StatusPage / MapPage / ControlsPage /           │
-│  AppsPage / SettingsPage                         │
-├─ NavBar (56dp, 三段式) ─────────────────────────┤
-│  [App shortcuts] | [5 tab buttons] | [AC temp±] │
-└──────────────────────────────────────────────────┘
-```
-
-每个页面是独立的 Java 类（在 `ui/` 包下），持有自己的 View 引用并处理自身逻辑。MainActivity 只负责协调：初始化、标签切换、转发 VehicleStatus 更新到各页面。
-
-### API 层（全部通过反射访问 BYD 系统类）
+### 屏幕三层结构
 
 ```
-BydVehicleManager (单例, 2秒轮询)
- ├── BydAcApi         → android.hardware.bydauto.ac.BYDAutoAcDevice
- ├── BydBodyworkApi   → android.hardware.bydauto.bodywork.BYDAutoBodyworkDevice
- ├── BydStatisticApi  → android.hardware.bydauto.statistic.BYDAutoStatisticDevice
- └── BydDoorLockApi   → android.hardware.bydauto.doorlock.BYDAutoDoorLockDevice
+┌─ TopBar (28dp) ─────────────────────────────────────────────┐
+├─ FrameLayout content_frame ─────────────────────────────────┤
+│  4 个标签页 View（显隐切换）：                               │
+│  page_status / page_controls / page_apps / page_settings    │
+├─ NavBar (52dp, 三段式) ──────────────────────────────────────┤
+│  [❄AC温度±🌀] | [🔄循环 🪟车窗 💺座椅] | [主页/控制/应用/设置] │
+└──────────────────────────────────────────────────────────────┘
+
+FrameLayout 根容器还叠加了：
+  overlay_mask    — 全屏半透明遮罩（#80000000）
+  panel_window    — 车窗控制面板（activity 内嵌，非 Dialog）
+  panel_seat      — 座椅控制面板（activity 内嵌，非 Dialog）
 ```
 
-- `ReflectionHelper` 统一处理 `Class.forName` + `Method.invoke`，所有调用都有 try-catch
-- `BydPermissionContext`（ContextWrapper）拦截 `BYDAUTO_*` 权限检查，使非系统签名 APK 也能访问 API
-- **模拟模式**：非 BYD 设备上 `Class.forName` 失败时，各 API 类自动进入模拟模式（`simulation = true`），返回硬编码数据并维护可交互的内存状态
+**关键架构决策**：弹窗面板不使用 Android Dialog（Launcher 进程的 Dialog.FLAG_DIM_BEHIND 作用在壁纸层，无法遮罩 APP 内容），改为在 activity_main.xml 的根 FrameLayout 中直接叠加面板 View + 遮罩层，通过 `NavBar.setPanels()` 注入引用后控制显隐。
+
+### UI 类职责（`ui/` 包）
+
+| 类 | 职责 |
+|----|------|
+| `StatusPage` | Status 仪表盘：速度/挡位/电量/油量/胎压/能耗/行程 |
+| `NavBar` | 底部导航栏：标签切换 + AC 快捷 + 弹窗面板管理 |
+| `WindowPanelController` | 车窗面板逻辑（静态绑定，绑定 panel_window_control 的 View） |
+| `SeatPanelController` | 座椅面板逻辑（静态绑定，绑定 panel_seat_control 的 View） |
+| `ControlsPage` | Controls 标签页：完整空调控制 + 车身控制 |
+| `VehicleDiagramView` | 自定义 View，Canvas 绘制车辆俯视图 + 车门高亮 |
+| `MusicCardView` | MediaSession 读取系统正在播放的媒体 |
+| `SettingsPage` | 主题/时钟格式/温度单位/胎压单位/默认桌面 |
+
+`WindowControlDialog` 和 `SeatControlDialog` 是废弃的旧 Dialog 实现，保留但不再使用，可以删除。
+
+### API 层
+
+```
+BydVehicleManager（单例，2 秒轮询）
+ ├── BydAcApi         → BYDAutoAcDevice（空调）
+ ├── BydBodyworkApi   → BYDAutoBodyworkDevice（车身/锁/车门）
+ ├── BydStatisticApi  → BYDAutoStatisticDevice（里程/能耗）
+ ├── BydTireApi       → BYDAutoTyreDevice（胎压/胎温，尝试多个候选类名）
+ ├── BydDriveApi      → BYDAutoGearboxDevice 等（速度/挡位，尝试多个候选类名）
+ └── BydDoorLockApi   → BYDAutoDoorLockDevice
+```
+
+- `BydApiExplorer`：真车调试工具类，在 logcat 中扫描并列出所有可用的 BYD 系统类，用于发现未记录的 API
+- `BydTireApi` / `BydDriveApi`：尝试多个候选类名（不同车型/固件版本类名不同），成功加载哪个就用哪个
+- **模拟模式**：非 BYD 设备上 `Class.forName` 失败 → `simulation = true` → 返回硬编码数据，所有控制操作只修改内存状态
+- `BydPermissionContext`（ContextWrapper）：拦截 `BYDAUTO_*` 权限检查，使非系统签名 APK 可访问 API
 
 ### 主题系统
 
-`ThemeManager` 管理浅色/深色切换，使用 Android 原生 `values/colors.xml` + `values-night/colors.xml` 双套颜色资源，通过 `AppCompatDelegate.setDefaultNightMode()` 切换。主题名 `AppTheme` 继承自 `Theme.MaterialComponents.DayNight.NoActionBar`。
+深色 OLED + Glassmorphism 风格。`ThemeManager` 管理浅/深切换，通过 `AppCompatDelegate.setDefaultNightMode()` + Android 原生 `values/colors.xml` + `values-night/colors.xml` 实现。`SettingsPage` 额外持久化时钟格式、温度单位、胎压单位到 SharedPreferences（key 见 `SettingsPage` 的静态常量），供其他页面通过静态方法读取。
 
 ## Key Conventions
 
-- **颜色命名**：使用语义化名称（`accent`、`bg_surface`、`text_primary`、`border`），不使用具体色值名（如 ~~`accent_blue`~~、~~`bg_card`~~）。两套主题中同名颜色不同值。
-- **布局文件命名**：`page_*.xml`（标签页）、`card_*.xml`（卡片组件）、`view_*.xml`（固定栏）、`item_*.xml`（列表项）
-- **ProGuard**：保留 `android.hardware.bydauto.**` 和 `com.bydlauncher.api.**`，反射调用的类不能被混淆
-- **targetSdk 28**：刻意不升级到 29+，避免 BYD 车机上的权限和存储兼容问题
-- `VehicleDiagramView` 是自定义 View，用 Canvas 在 `onDraw` 中绘制车辆俯视图，不依赖外部图片资源
+- **颜色命名**：语义化（`accent`、`bg_surface`、`text_primary`），两套主题同名不同值。禁止使用旧名如 `accent_blue`、`bg_card_pressed`、`border_subtle`
+- **布局命名**：`page_*.xml` 标签页、`panel_*.xml` 内嵌弹窗面板、`dialog_*.xml` 旧 Dialog（废弃）、`card_*.xml` 卡片、`view_*.xml` 固定栏
+- **面板 vs Dialog**：新增弹窗功能必须用 `panel_*.xml` + Activity 内嵌方式，不用 Android Dialog
+- **targetSdk 28**：刻意不升级，避免 BYD 车机权限问题
+- **ProGuard**：保留 `android.hardware.bydauto.**` 和 `com.bydlauncher.api.**`
 
 ## BYD API Notes
 
-- 车机约 30 天自动清除第三方应用权限
+- 车机 ADB WiFi IP：`192.168.10.10:5555`；USB 安装目录：`Third Party Apps 55`，密码 `BYD6125F`
+- 约 30 天自动清除第三方应用权限，需重装
 - 返回值 65535 = 功能不可用，-10011 = 未注册
-- 全景摄像头 API 权限检查在服务端，`BydPermissionContext` 无法绕过
-- USB 安装需放入 `Third Party Apps 55` 文件夹，密码 `BYD6125F`
+- `BydApiExplorer.explore(context)` 可在真车 logcat 中列出所有可用 API 类（用于发现车窗/座椅控制的 featureId）
+- 详细真车接入步骤见 `docs/真车API接入指南.md`

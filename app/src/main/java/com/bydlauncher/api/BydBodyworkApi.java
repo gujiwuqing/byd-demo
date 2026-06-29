@@ -34,6 +34,14 @@ public class BydBodyworkApi {
     private int simPowerLevel = POWER_READY;
     private boolean simLocked = true;
 
+    // 车窗模拟状态 (0=关, 1=开)
+    private int simWindowFL = 0;
+    private int simWindowFR = 0;
+    private int simWindowRL = 0;
+    private int simWindowRR = 0;
+    private boolean simTrunkOpen = false;
+    private boolean simHoodOpen = false;
+
     public BydBodyworkApi(Context context) {
         this.device = ReflectionHelper.getDeviceInstance(CLASS_NAME, context);
         this.simulation = (device == null);
@@ -105,5 +113,90 @@ public class BydBodyworkApi {
     public int getSunroofState() {
         if (simulation) return STATE_CLOSED;
         return ReflectionHelper.invokeIntMethod(device, "getSunroofState");
+    }
+
+    // ========== 车窗控制 ==========
+
+    /**
+     * 设置车窗状态
+     * @param area 车窗位置 (DOOR_LEFT_FRONT, DOOR_RIGHT_FRONT, DOOR_LEFT_REAR, DOOR_RIGHT_REAR)
+     * @param state STATE_CLOSED 或 STATE_OPEN
+     */
+    public void setWindowState(int area, int state) {
+        if (simulation) {
+            switch (area) {
+                case DOOR_LEFT_FRONT: simWindowFL = state; break;
+                case DOOR_RIGHT_FRONT: simWindowFR = state; break;
+                case DOOR_LEFT_REAR: simWindowRL = state; break;
+                case DOOR_RIGHT_REAR: simWindowRR = state; break;
+            }
+            return;
+        }
+        // 尝试多种可能的方法名
+        int result = ReflectionHelper.invokeVoidMethod(device, "setWindowState",
+                new Class<?>[]{int.class, int.class}, new Object[]{area, state});
+        if (result == -1) {
+            result = ReflectionHelper.invokeVoidMethod(device, "setWindow",
+                    new Class<?>[]{int.class, int.class}, new Object[]{area, state});
+        }
+        if (result == -1) {
+            result = ReflectionHelper.invokeVoidMethod(device, "controlWindow",
+                    new Class<?>[]{int.class, int.class}, new Object[]{area, state});
+        }
+    }
+
+    public void openWindow(int area) {
+        setWindowState(area, STATE_OPEN);
+    }
+
+    public void closeWindow(int area) {
+        setWindowState(area, STATE_CLOSED);
+    }
+
+    public int getWindowFL() { return simulation ? simWindowFL : getWindowState(DOOR_LEFT_FRONT); }
+    public int getWindowFR() { return simulation ? simWindowFR : getWindowState(DOOR_RIGHT_FRONT); }
+    public int getWindowRL() { return simulation ? simWindowRL : getWindowState(DOOR_LEFT_REAR); }
+    public int getWindowRR() { return simulation ? simWindowRR : getWindowState(DOOR_RIGHT_REAR); }
+
+    // ========== 后备箱控制 ==========
+
+    public void openTrunk() {
+        if (simulation) { simTrunkOpen = true; return; }
+        ReflectionHelper.invokeVoidMethod(device, "openTrunk",
+                new Class<?>[]{}, new Object[]{});
+    }
+
+    public void closeTrunk() {
+        if (simulation) { simTrunkOpen = false; return; }
+        ReflectionHelper.invokeVoidMethod(device, "closeTrunk",
+                new Class<?>[]{}, new Object[]{});
+    }
+
+    public boolean isTrunkOpen() {
+        if (simulation) return simTrunkOpen;
+        return getDoorState(DOOR_TRUNK) == STATE_OPEN;
+    }
+
+    // ========== 引擎盖控制 ==========
+
+    public void openHood() {
+        if (simulation) { simHoodOpen = true; return; }
+        ReflectionHelper.invokeVoidMethod(device, "openHood",
+                new Class<?>[]{}, new Object[]{});
+    }
+
+    public void closeHood() {
+        if (simulation) { simHoodOpen = false; return; }
+        ReflectionHelper.invokeVoidMethod(device, "closeHood",
+                new Class<?>[]{}, new Object[]{});
+    }
+
+    public boolean isHoodOpen() {
+        if (simulation) return simHoodOpen;
+        return getDoorState(DOOR_HOOD) == STATE_OPEN;
+    }
+
+    public boolean isRealDevice() {
+        return device != null;
     }
 }

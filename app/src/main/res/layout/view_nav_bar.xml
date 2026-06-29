@@ -6,51 +6,96 @@
     android:background="@drawable/bg_nav_bar"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="@dimen/spacing_sm"
-    android:paddingEnd="@dimen/spacing_sm">
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp">
 
-    <!-- 左段：空调温度控制 -->
+    <!-- 左侧：标签页导航（主导航优先，靠近驾驶位） -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="25"
+        android:layout_weight="28"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <LinearLayout android:id="@+id/tab_status"
+            android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+            android:background="@drawable/bg_nav_tab" android:gravity="center" android:orientation="vertical"
+            android:layout_marginEnd="3dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🏠" android:textSize="@dimen/nav_tab_icon" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="主页" android:textColor="@color/nav_text" style="@style/NavTabText" />
+        </LinearLayout>
+
+        <LinearLayout android:id="@+id/tab_controls"
+            android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+            android:background="@drawable/bg_nav_tab" android:gravity="center" android:orientation="vertical"
+            android:layout_marginEnd="3dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="❄" android:textSize="@dimen/nav_tab_icon" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="空调" android:textColor="@color/nav_text" style="@style/NavTabText" />
+        </LinearLayout>
+
+        <LinearLayout android:id="@+id/tab_apps"
+            android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+            android:background="@drawable/bg_nav_tab" android:gravity="center" android:orientation="vertical"
+            android:layout_marginEnd="3dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⊞" android:textSize="@dimen/nav_tab_icon" android:textColor="@color/nav_text" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="应用" android:textColor="@color/nav_text" style="@style/NavTabText" />
+        </LinearLayout>
+
+        <LinearLayout android:id="@+id/tab_settings"
+            android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+            android:background="@drawable/bg_nav_tab" android:gravity="center" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⚙" android:textSize="@dimen/nav_tab_icon" android:textColor="@color/nav_text" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="设置" android:textColor="@color/nav_text" style="@style/NavTabText" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 分隔线 -->
+    <View android:layout_width="1dp" android:layout_height="24dp" android:background="@color/border" android:layout_marginStart="6dp" android:layout_marginEnd="6dp" />
+
+    <!-- 中间：空调快捷控制（最常用，居中易触达） -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="40"
         android:gravity="center"
         android:orientation="horizontal">
 
         <TextView
             android:id="@+id/nav_ac_power"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:background="@drawable/bg_switch_btn"
+            android:layout_height="@dimen/nav_ac_btn"
+            android:background="@drawable/bg_ac_btn"
             android:gravity="center"
             android:paddingStart="10dp"
             android:paddingEnd="10dp"
-            android:text="❄️ AC"
+            android:text="❄ AC"
             android:textColor="@color/accent"
             android:textSize="12sp"
-            android:layout_marginEnd="@dimen/spacing_sm" />
+            android:textStyle="bold"
+            android:layout_marginEnd="8dp" />
 
         <TextView
             android:id="@+id/nav_ac_down"
             style="@style/AcQuickButton"
             android:text="−"
-            android:layout_marginEnd="@dimen/spacing_xs" />
+            android:layout_marginEnd="4dp" />
 
         <TextView
             android:id="@+id/nav_ac_temp"
-            android:layout_width="wrap_content"
+            android:layout_width="44dp"
             android:layout_height="wrap_content"
+            android:gravity="center"
             android:text="25°"
             android:textColor="@color/text_primary"
-            android:textSize="16sp"
+            android:textSize="@dimen/nav_ac_text"
             android:textStyle="bold"
-            android:layout_marginEnd="@dimen/spacing_xs" />
+            android:layout_marginEnd="4dp" />
 
         <TextView
             android:id="@+id/nav_ac_up"
             style="@style/AcQuickButton"
             android:text="+"
-            android:layout_marginEnd="@dimen/spacing_sm" />
+            android:layout_marginEnd="10dp" />
 
         <TextView
             android:id="@+id/nav_ac_wind_icon"
@@ -58,125 +103,50 @@
             android:layout_height="wrap_content"
             android:text="🌀"
             android:textSize="13sp"
-            android:layout_marginEnd="2dp" />
+            android:layout_marginEnd="3dp" />
 
         <TextView
             android:id="@+id/nav_ac_wind_level"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="3"
-            android:textColor="@color/text_primary"
-            android:textSize="13sp" />
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
-    <View android:layout_width="1dp" android:layout_height="28dp" android:background="@color/divider" android:layout_marginStart="@dimen/spacing_xs" android:layout_marginEnd="@dimen/spacing_xs" />
+    <!-- 分隔线 -->
+    <View android:layout_width="1dp" android:layout_height="24dp" android:background="@color/border" android:layout_marginStart="6dp" android:layout_marginEnd="6dp" />
 
-    <!-- 中段：快捷控制按钮 -->
+    <!-- 右侧：快捷功能按钮 -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="45"
+        android:layout_weight="24"
         android:gravity="center"
         android:orientation="horizontal">
 
-        <LinearLayout
-            android:id="@+id/nav_btn_cycle"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_nav_tab"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:layout_marginEnd="@dimen/spacing_xs">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔄" android:textSize="15sp" />
-            <TextView android:id="@+id/nav_cycle_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="内循环" android:textColor="@color/nav_text" android:textSize="10sp" />
+        <LinearLayout android:id="@+id/nav_btn_cycle"
+            android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+            android:background="@drawable/bg_nav_tab" android:gravity="center" android:orientation="vertical"
+            android:layout_marginEnd="3dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔄" android:textSize="@dimen/nav_tab_icon" />
+            <TextView android:id="@+id/nav_cycle_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="内循环" android:textColor="@color/nav_text" style="@style/NavTabText" />
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/nav_btn_window"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_nav_tab"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:layout_marginEnd="@dimen/spacing_xs">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🪟" android:textSize="15sp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="车窗" android:textColor="@color/nav_text" android:textSize="10sp" />
+        <LinearLayout android:id="@+id/nav_btn_window"
+            android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+            android:background="@drawable/bg_nav_tab" android:gravity="center" android:orientation="vertical"
+            android:layout_marginEnd="3dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🪟" android:textSize="@dimen/nav_tab_icon" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="车窗" android:textColor="@color/nav_text" style="@style/NavTabText" />
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/nav_btn_seat"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_nav_tab"
-            android:gravity="center"
-            android:orientation="vertical">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="💺" android:textSize="15sp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="座椅" android:textColor="@color/nav_text" android:textSize="10sp" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <View android:layout_width="1dp" android:layout_height="28dp" android:background="@color/divider" android:layout_marginStart="@dimen/spacing_xs" android:layout_marginEnd="@dimen/spacing_xs" />
-
-    <!-- 右段：标签页 + 系统 -->
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="30"
-        android:gravity="center"
-        android:orientation="horizontal">
-
-        <LinearLayout
-            android:id="@+id/tab_status"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_nav_tab"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:layout_marginEnd="2dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🏠" android:textSize="14sp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="主页" android:textColor="@color/nav_text" android:textSize="10sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/tab_controls"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_nav_tab"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:layout_marginEnd="2dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🎛" android:textSize="14sp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="控制" android:textColor="@color/nav_text" android:textSize="10sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/tab_apps"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_nav_tab"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:layout_marginEnd="2dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⊞" android:textSize="14sp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="应用" android:textColor="@color/nav_text" android:textSize="10sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/tab_settings"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_nav_tab"
-            android:gravity="center"
-            android:orientation="vertical">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⚙" android:textSize="14sp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="设置" android:textColor="@color/nav_text" android:textSize="10sp" />
+        <LinearLayout android:id="@+id/nav_btn_seat"
+            android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+            android:background="@drawable/bg_nav_tab" android:gravity="center" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="💺" android:textSize="@dimen/nav_tab_icon" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="座椅" android:textColor="@color/nav_text" style="@style/NavTabText" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

@@ -56,6 +56,16 @@ public class VehicleStatus {
     public boolean trunkOpen = false;
     public boolean hoodOpen = false;
 
+    // 车窗状态 (0=关, 1=开)
+    public int windowFL = 0;
+    public int windowFR = 0;
+    public int windowRL = 0;
+    public int windowRR = 0;
+    public boolean windowLocked = false;
+
+    // 天窗
+    public boolean sunroofOpen = false;
+
     // 空调
     public boolean acOn = false;
     public int acTemp = 25;

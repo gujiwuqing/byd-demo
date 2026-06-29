@@ -1,45 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 浅色主题 - 参考BYD原生柔和色调 -->
-    <color name="bg_primary">#FFE8ECE4</color>
-    <color name="bg_surface">#20000000</color>
-    <color name="bg_surface_variant">#10000000</color>
-    <color name="bg_nav_bar">#CC2A2E26</color>
-    <color name="bg_top_bar">#40000000</color>
-    <color name="bg_overlay">#33000000</color>
+    <!-- 背景层级 - 午夜蓝黑 OLED -->
+    <color name="bg_primary">#FF080C14</color>
+    <color name="bg_secondary">#FF0D1221</color>
+    <color name="bg_surface">#14FFFFFF</color>
+    <color name="bg_surface_variant">#0AFFFFFF</color>
+    <color name="bg_surface_elevated">#1EFFFFFF</color>
+    <color name="bg_overlay">#99000000</color>
 
-    <color name="accent">#FF0A84FF</color>
-    <color name="accent_dim">#330A84FF</color>
+    <!-- 导航/弹窗 -->
+    <color name="bg_nav_bar">#E6080C14</color>
+    <color name="bg_top_bar">#CC080C14</color>
+    <color name="bg_dialog">#FF0E1520</color>
 
-    <color name="text_primary">#FF1A1A1A</color>
-    <color name="text_secondary">#FF5A5E56</color>
-    <color name="text_tertiary">#FF8A8E86</color>
-    <color name="text_on_accent">#FFFFFFFF</color>
-
-    <color name="border">#18000000</color>
-    <color name="divider">#20FFFFFF</color>
-    <color name="icon_tint">#FF5A5E56</color>
+    <!-- 主强调色 - 电光蓝 -->
+    <color name="accent">#FF00C8F0</color>
+    <color name="accent_dim">#2600C8F0</color>
+    <color name="accent_glow">#4D00C8F0</color>
+    <color name="accent_secondary">#FF3D8BFF</color>
 
     <!-- 功能色 -->
-    <color name="status_good">#FF34C759</color>
-    <color name="status_fair">#FFFFCC00</color>
-    <color name="status_poor">#FFFF9500</color>
-    <color name="status_bad">#FFFF3B30</color>
-    <color name="battery_high">#FF34C759</color>
-    <color name="battery_mid">#FFFF9500</color>
-    <color name="battery_low">#FFFF3B30</color>
-    <color name="door_open">#FFFF3B30</color>
-    <color name="door_closed">#FF34C759</color>
-    <color name="gear_active">#FF1A1A1A</color>
-    <color name="gear_inactive">#FFB0B4AC</color>
+    <color name="status_good">#FF00E87A</color>
+    <color name="status_fair">#FFFFB800</color>
+    <color name="status_poor">#FFFF7A00</color>
+    <color name="status_bad">#FFFF3B5C</color>
+
+    <!-- 电量色阶 -->
+    <color name="battery_high">#FF00E87A</color>
+    <color name="battery_mid">#FFFFB800</color>
+    <color name="battery_low">#FFFF3B5C</color>
+
+    <!-- 车门/锁 -->
+    <color name="door_open">#FFFF3B5C</color>
+    <color name="door_closed">#FF00E87A</color>
+
+    <!-- 文字层级 -->
+    <color name="text_primary">#FFF0F4FF</color>
+    <color name="text_secondary">#99B0BCCC</color>
+    <color name="text_tertiary">#5580909A</color>
+    <color name="text_on_accent">#FF000000</color>
+
+    <!-- 边框/描边 -->
+    <color name="border">#1AFFFFFF</color>
+    <color name="border_accent">#4000C8F0</color>
+    <color name="divider">#14FFFFFF</color>
+
+    <!-- 挡位 -->
+    <color name="gear_active">#FF00C8F0</color>
+    <color name="gear_inactive">#3FFFFFFF</color>
+
+    <!-- 导航文字 -->
+    <color name="nav_text">#80B0BCCC</color>
+    <color name="nav_text_active">#FFF0F4FF</color>
 
     <!-- 车辆图 -->
-    <color name="vehicle_body">#FFD1D5DB</color>
-    <color name="vehicle_body_stroke">#FF9CA3AF</color>
-    <color name="vehicle_window">#FFE5E7EB</color>
-    <color name="vehicle_wheel">#FF6B7280</color>
-
-    <!-- 导航栏文字 -->
-    <color name="nav_text">#CCFFFFFF</color>
-    <color name="nav_text_active">#FFFFFFFF</color>
+    <color name="vehicle_body">#1EFFFFFF</color>
+    <color name="vehicle_body_stroke">#3FFFFFFF</color>
+    <color name="vehicle_window">#14FFFFFF</color>
+    <color name="vehicle_wheel">#3FFFFFFF</color>
 </resources>

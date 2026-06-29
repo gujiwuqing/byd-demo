@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/panel_window"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_dialog_card"
+    android:background="@drawable/bg_panel"
     android:orientation="vertical"
     android:padding="20dp">
 
@@ -183,22 +184,15 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- 中间：车辆示意图占位 -->
-                <FrameLayout
+                <!-- 中间：车辆示意图 -->
+                <com.bydlauncher.ui.VehicleDiagramView
+                    android:id="@+id/win_vehicle_diagram"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:layout_marginStart="8dp"
                     android:layout_marginEnd="8dp"
-                    android:minHeight="160dp">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:text="[车辆俯视]"
-                        android:textColor="@color/text_tertiary"
-                        android:textSize="12sp" />
-                </FrameLayout>
+                    android:minHeight="160dp" />
 
                 <!-- 右列：右前 + 右后 -->
                 <LinearLayout
