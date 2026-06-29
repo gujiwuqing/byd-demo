@@ -32,3 +32,7 @@ app/build/
 # Android SDK
 *.apk
 *.aab
+*.keystore
+*.jks
+app/release.keystore
+byd-release.keystore

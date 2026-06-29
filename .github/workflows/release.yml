@@ -1,39 +1,86 @@
-name: Release Build
+name: Build & Release
 
 on:
   push:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION_CODE=$(echo "$VERSION" | awk -F. '{print $1 * 10000 + $2 * 100 + $3}')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
+
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
           java-version: '17'
+          distribution: 'temurin'
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-      - name: Build signed APK
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > app/release.keystore
+          echo "SIGNING_AVAILABLE=true" >> $GITHUB_ENV
+        continue-on-error: true
+
+      - name: Build Release APK
+        if: env.SIGNING_AVAILABLE == 'true'
+        run: ./gradlew assembleRelease -PversionName=${{ steps.version.outputs.VERSION }} -PversionCode=${{ steps.version.outputs.VERSION_CODE }}
         env:
-          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEYSTORE_PATH: app/release.keystore
           KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
 
-      - name: Upload APK to Release
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug -PversionName=${{ steps.version.outputs.VERSION }} -PversionCode=${{ steps.version.outputs.VERSION_CODE }}
+
+      - name: Rename Release APK
+        if: env.SIGNING_AVAILABLE == 'true'
+        run: |
+          mv app/build/outputs/apk/release/app-release.apk \
+            app/build/outputs/apk/release/DiUI-v${{ steps.version.outputs.VERSION }}.apk
+
+      - name: Rename Debug APK
+        run: |
+          mv app/build/outputs/apk/debug/app-debug.apk \
+            app/build/outputs/apk/debug/DiUI-v${{ steps.version.outputs.VERSION }}-debug.apk
+
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/release/app-release.apk
+          name: DiUI v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## 迪UI v${{ steps.version.outputs.VERSION }}
+
+            ### 下载安装
+            - **签名版 APK**：`DiUI-v${{ steps.version.outputs.VERSION }}.apk`（推荐，可覆盖安装）
+            - **调试版 APK**：`DiUI-v${{ steps.version.outputs.VERSION }}-debug.apk`（仅用于测试）
+
+            > 调试版 APK 签名与正式版不同，不能覆盖安装正式版。
+
+            ### 更新内容
+            请查看下方自动生成的 commit 记录。
+          files: |
+            app/build/outputs/apk/release/DiUI-v${{ steps.version.outputs.VERSION }}.apk
+            app/build/outputs/apk/debug/DiUI-v${{ steps.version.outputs.VERSION }}-debug.apk
+          draft: false
+          prerelease: false
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
