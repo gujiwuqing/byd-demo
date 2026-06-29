@@ -9,6 +9,7 @@ import android.widget.TextView;
 
 import androidx.core.content.ContextCompat;
 
+import com.bydlauncher.LogActivity;
 import com.bydlauncher.R;
 import com.bydlauncher.theme.ThemeManager;
 
@@ -71,6 +72,7 @@ public class SettingsPage {
         initPressureButtons();
         initSimStatus(isSimulation);
         initDefaultLauncher();
+        initLogViewer();
     }
 
     // ── 主题 ──
@@ -186,6 +188,16 @@ public class SettingsPage {
         rootView.findViewById(R.id.settings_set_default).setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_MAIN);
             intent.addCategory(Intent.CATEGORY_HOME);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        });
+    }
+
+    // ── 日志查看器 ──
+
+    private void initLogViewer() {
+        rootView.findViewById(R.id.settings_view_log).setOnClickListener(v -> {
+            Intent intent = new Intent(context, LogActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(intent);
         });

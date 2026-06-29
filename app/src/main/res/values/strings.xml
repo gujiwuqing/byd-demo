@@ -108,6 +108,8 @@
     <string name="settings_about">关于</string>
     <string name="settings_version">版本</string>
     <string name="settings_version_value">1.0.0</string>
+    <string name="settings_view_log">查看日志</string>
+    <string name="settings_view_log_desc">查看 BYD API 加载状态和错误信息</string>
     <string name="settings_reference">设计参考</string>
     <string name="settings_reference_value">Kinex Launcher</string>
     <string name="settings_target_device">目标设备</string>
@@ -123,4 +125,7 @@
     <string name="perm_btn_settings">去设置</string>
     <string name="perm_btn_cancel">稍后再说</string>
     <string name="perm_btn_ok">确定</string>
+
+    <!-- 日志页 -->
+    <string name="log_title">日志</string>
 </resources>
