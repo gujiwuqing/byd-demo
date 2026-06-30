@@ -1,6 +1,10 @@
 package com.bydlauncher.ui;
 
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -68,11 +72,7 @@ public class UnboundedPage {
             return false;
         });
 
-        mapArea.setOnClickListener(v -> {
-            if (appSlotManager != null) {
-                appSlotManager.launch(AppSlotManager.SLOT_NAV);
-            }
-        });
+        mapArea.setOnClickListener(v -> launchFloatingMap());
 
         setupDragZone();
         setupMiniNavbar();
@@ -205,6 +205,49 @@ public class UnboundedPage {
     }
 
     public View getView() { return rootView; }
+
+    /**
+     * 启动悬浮导航应用。
+     * 策略：先启动导航 App，1.5 秒后把桌面（Launcher）拉回前台。
+     * 作为 Launcher，我们的 Activity 会自动成为 Home，导航 App 的
+     * TYPE_APPLICATION_OVERLAY 悬浮窗会浮在桌面上方——即嘟嘟桌面的实现方式。
+     */
+    private void launchFloatingMap() {
+        if (appSlotManager == null) return;
+
+        String navPkg = appSlotManager.getPackageName(AppSlotManager.SLOT_NAV);
+        if (navPkg == null || !appSlotManager.isInstalled(navPkg)) {
+            mapHint.setText(R.string.unbounded_no_nav);
+            return;
+        }
+
+        // 针对高德悬浮版（com.autonavi.amapauto）使用已知的入口 Activity
+        Intent intent;
+        if ("com.autonavi.amapauto".equals(navPkg)) {
+            intent = new Intent();
+            intent.setComponent(new ComponentName(navPkg,
+                    "com.autonavi.auto.remote.fill.UsbFillActivity"));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        } else {
+            intent = context.getPackageManager().getLaunchIntentForPackage(navPkg);
+            if (intent == null) return;
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        }
+
+        context.startActivity(intent);
+
+        // 1.5 秒后把桌面（Launcher）拉回前台：
+        // 导航 App 已创建悬浮窗（TYPE_APPLICATION_OVERLAY），
+        // 桌面回到前台后，悬浮窗会浮在桌面上方，实现"地图在右侧"的效果。
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            Intent homeIntent = new Intent(Intent.ACTION_MAIN);
+            homeIntent.addCategory(Intent.CATEGORY_HOME);
+            homeIntent.setPackage(context.getPackageName());
+            homeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(homeIntent);
+        }, 1500);
+    }
 
     private void showAcPopup() {
         if (acApi == null) return;
