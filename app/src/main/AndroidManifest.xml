@@ -51,7 +51,6 @@
 
         <activity
             android:name=".HomeStubActivity"
-            android:enabled="false"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:launchMode="singleTask"
             android:screenOrientation="landscape"

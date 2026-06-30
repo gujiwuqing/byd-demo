@@ -263,18 +263,16 @@ public class SettingsPage {
 
     private void initDefaultLauncher() {
         rootView.findViewById(R.id.settings_set_default).setOnClickListener(v -> {
-            android.content.ComponentName stub = new android.content.ComponentName(
-                    context, "com.bydlauncher.HomeStubActivity");
-            int currentState = context.getPackageManager().getComponentEnabledSetting(stub);
-            if (currentState != android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
-                context.getPackageManager().setComponentEnabledSetting(stub,
-                        android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                        android.content.pm.PackageManager.DONT_KILL_APP);
+            try {
+                Intent intent = new Intent(android.provider.Settings.ACTION_HOME_SETTINGS);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+            } catch (Exception e) {
+                Intent intent = new Intent(Intent.ACTION_MAIN);
+                intent.addCategory(Intent.CATEGORY_HOME);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
             }
-            Intent intent = new Intent(Intent.ACTION_MAIN);
-            intent.addCategory(Intent.CATEGORY_HOME);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(intent);
         });
     }
 
