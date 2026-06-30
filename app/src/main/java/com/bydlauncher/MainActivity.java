@@ -60,7 +60,6 @@ public class MainActivity extends AppCompatActivity
     private UnboundedPage unboundedPage;
     private AppSlotManager appSlotManager;
     private boolean isUnboundedMode = false;
-    private boolean temporaryStandardVisit = false;
     private BydEnvironmentDetector.Environment detectedEnv;
 
     @Override
@@ -144,37 +143,28 @@ public class MainActivity extends AppCompatActivity
                 }
                 @Override
                 public void switchToStandardSettings() {
-                    // 临时切到标准模式看设置，不修改持久化的布局模式
-                    temporaryStandardVisit = true;
-                    isUnboundedMode = false;
-
-                    standardContainer.setVisibility(View.VISIBLE);
-                    standardContainer.setAlpha(0f);
-                    standardContainer.animate().alpha(1f).setDuration(300)
-                            .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                            .start();
-                    unboundedContainer.animate().alpha(0f).setDuration(300)
-                            .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                            .withEndAction(() -> unboundedContainer.setVisibility(View.GONE))
-                            .start();
-
-                    navBar.selectTab(3);
+                    showStandardContainerForSettings();
                 }
             });
             unboundedPage.setAcApi(vehicleManager.getAcApi());
             unboundedPage.setAppSlotManager(appSlotManager);
         }
 
-        // 设置页布局模式回调
+        // 设置页布局模式回调（唯一的模式切换入口）
         settingsPage.setOnLayoutModeChangedListener(isUnbounded -> {
-            temporaryStandardVisit = false;
             if (isUnbounded) {
-                switchToUnbounded();
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                        .edit().putString("layout_mode", "unbounded").apply();
+                // 立即切换到无界模式
+                isUnboundedMode = true;
+                unboundedContainer.setVisibility(View.VISIBLE);
+                standardContainer.setVisibility(View.GONE);
+                unboundedContainer.setAlpha(1f);
             } else {
-                // 如果已经在标准容器中（临时访问），只需确保状态正确
-                isUnboundedMode = false;
                 getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                         .edit().putString("layout_mode", "standard").apply();
+                isUnboundedMode = false;
+                // 已在标准容器中，无需切换视图
             }
         });
         settingsPage.setAppSlotManager(appSlotManager);
@@ -445,15 +435,24 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onTabSelected(int tabIndex) {
-        // 从无界模式临时访问设置页后，点击主页/控制/应用 tab 时回到无界模式
-        if (temporaryStandardVisit && tabIndex != 3) {
-            temporaryStandardVisit = false;
-            switchToUnbounded();
-            return;
+        if (tabIndex == 0) {
+            // 回主页：根据持久化的 layout_mode 决定显示哪个模式
+            String mode = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                    .getString("layout_mode", "standard");
+            if ("unbounded".equals(mode)) {
+                isUnboundedMode = true;
+                unboundedContainer.setVisibility(View.VISIBLE);
+                unboundedContainer.setAlpha(1f);
+                standardContainer.setVisibility(View.GONE);
+                return;
+            }
         }
-        currentTab = tabIndex;
-        for (int i = 0; i < pages.length; i++) {
-            pages[i].setVisibility(i == tabIndex ? View.VISIBLE : View.GONE);
+        // 标准模式下正常切换 tab（包括从无界模式临时看设置时切其他 tab）
+        if (unboundedContainer.getVisibility() == View.GONE || tabIndex == 3) {
+            currentTab = tabIndex;
+            for (int i = 0; i < pages.length; i++) {
+                pages[i].setVisibility(i == tabIndex ? View.VISIBLE : View.GONE);
+            }
         }
     }
 
@@ -480,7 +479,6 @@ public class MainActivity extends AppCompatActivity
     public void switchToUnbounded() {
         if (isUnboundedMode) return;
         isUnboundedMode = true;
-        temporaryStandardVisit = false;
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                 .edit().putString("layout_mode", "unbounded").apply();
 
@@ -520,14 +518,17 @@ public class MainActivity extends AppCompatActivity
         unboundedContainer.setVisibility(View.VISIBLE);
     }
 
+    private void showStandardContainerForSettings() {
+        standardContainer.setVisibility(View.VISIBLE);
+        standardContainer.setAlpha(1f);
+        unboundedContainer.setVisibility(View.GONE);
+        isUnboundedMode = false;
+        navBar.selectTab(3);
+    }
+
     @Override
     public void onBackPressed() {
-        if (temporaryStandardVisit) {
-            temporaryStandardVisit = false;
-            switchToUnbounded();
-        } else if (isUnboundedMode) {
-            // 无界模式下按返回键不切换模式
-        } else if (currentTab != 0) {
+        if (currentTab != 0) {
             navBar.selectTab(0);
         }
     }
