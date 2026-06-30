@@ -88,34 +88,44 @@ public class AdbKeyManager {
     }
 
     /**
-     * 将 Java RSAPublicKey 编码为 ADB 的 mincrypt RSAPublicKey 格式
+     * 将 Java RSAPublicKey 编码为 ADB 的 mincrypt RSAPublicKey 格式：
+     * len(4) + n0inv(4) + n[256] + rr[256] + exponent(4) = 524 bytes
      */
     private static byte[] encodeAdbPublicKey(RSAPublicKey key) {
         BigInteger n = key.getModulus();
         BigInteger e = key.getPublicExponent();
 
+        // n → 小端序 256 字节
         byte[] nBytes = n.toByteArray();
-        int offset = (nBytes.length > 256 && nBytes[0] == 0) ? 1 : 0;
-        int nLen = nBytes.length - offset;
-
+        int nSrcOff = (nBytes.length > 256 && nBytes[0] == 0) ? 1 : 0;
+        int nLen = nBytes.length - nSrcOff;
         byte[] nLE = new byte[256];
         for (int i = 0; i < nLen && i < 256; i++) {
             nLE[i] = nBytes[nBytes.length - 1 - i];
         }
 
+        // n0inv = -(n^-1) mod 2^32
         BigInteger n0 = n.and(BigInteger.valueOf(0xFFFFFFFFL));
         BigInteger n0inv = BigInteger.valueOf(0x100000000L).subtract(
                 n0.modInverse(BigInteger.valueOf(0x100000000L)));
         long n0invVal = n0inv.longValue() & 0xFFFFFFFFL;
 
-        byte[] result = new byte[4 + 4 + 256 + 4 + 16];
-        putLE32(result, 0, 64);
-        putLE32(result, 4, (int) n0invVal);
-        System.arraycopy(nLE, 0, result, 8, 256);
-        putLE32(result, 264, e.intValue());
+        // rr = 2^4096 mod n（Montgomery R² 参数，R = 2^2048）
+        BigInteger rr = BigInteger.valueOf(2).modPow(BigInteger.valueOf(4096), n);
+        byte[] rrBytes = rr.toByteArray();
+        int rrSrcOff = (rrBytes.length > 256 && rrBytes[0] == 0) ? 1 : 0;
+        int rrLen = rrBytes.length - rrSrcOff;
+        byte[] rrLE = new byte[256];
+        for (int i = 0; i < rrLen && i < 256; i++) {
+            rrLE[i] = rrBytes[rrBytes.length - 1 - i];
+        }
 
-        byte[] suffix = "bydlauncher@byd\0".getBytes();
-        System.arraycopy(suffix, 0, result, 268, Math.min(suffix.length, 16));
+        byte[] result = new byte[4 + 4 + 256 + 256 + 4]; // 524 bytes
+        putLE32(result, 0, 64);              // len = 64 个 uint32
+        putLE32(result, 4, (int) n0invVal); // n0inv
+        System.arraycopy(nLE, 0, result, 8, 256);    // modulus n
+        System.arraycopy(rrLE, 0, result, 264, 256); // R² mod n
+        putLE32(result, 520, e.intValue()); // exponent (65537)
 
         return result;
     }

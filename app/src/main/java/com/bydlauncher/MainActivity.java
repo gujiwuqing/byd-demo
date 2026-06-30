@@ -1,6 +1,5 @@
 package com.bydlauncher;
 
-import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -275,33 +274,16 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void enableHomeLauncher() {
-        // 先启用 HomeStubActivity，让系统知道有新的桌面候选
-        ComponentName stub = new ComponentName(this, HomeStubActivity.class);
-        int currentState = getPackageManager().getComponentEnabledSetting(stub);
-        if (currentState != PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
-            getPackageManager().setComponentEnabledSetting(stub,
-                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                    PackageManager.DONT_KILL_APP);
-        }
-        // 直接打开系统桌面选择设置页（物理设备/车机上更可靠）
         try {
             Intent intent = new Intent(Settings.ACTION_HOME_SETTINGS);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
         } catch (Exception e) {
-            // 部分车机不支持 ACTION_HOME_SETTINGS，降级发送 HOME intent
             Intent homeIntent = new Intent(Intent.ACTION_MAIN);
             homeIntent.addCategory(Intent.CATEGORY_HOME);
             homeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(homeIntent);
         }
-    }
-
-    private void disableHomeLauncher() {
-        ComponentName stub = new ComponentName(this, HomeStubActivity.class);
-        getPackageManager().setComponentEnabledSetting(stub,
-                PackageManager.COMPONENT_ENABLED_STATE_DEFAULT,
-                PackageManager.DONT_KILL_APP);
     }
 
     private void showDefaultLauncherDialog() {
