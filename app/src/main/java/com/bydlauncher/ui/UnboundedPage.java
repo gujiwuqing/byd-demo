@@ -32,6 +32,7 @@ public class UnboundedPage {
     private ModeSwitch modeSwitch;
     private AppSlotManager appSlotManager;
     private com.bydlauncher.api.BydAcApi acApi;
+    private com.bydlauncher.model.VehicleStatus lastStatus;
     private boolean cardsVisible = true;
 
     private int[] cardOrder = {0, 1, 2};
@@ -109,6 +110,7 @@ public class UnboundedPage {
     }
 
     public void updateStatus(VehicleStatus status) {
+        this.lastStatus = status;
         aggregateCard.updateStatus(status);
     }
 
@@ -206,96 +208,6 @@ public class UnboundedPage {
 
     private void showAcPopup() {
         if (acApi == null) return;
-
-        android.widget.LinearLayout layout = new android.widget.LinearLayout(context);
-        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
-        layout.setGravity(android.view.Gravity.CENTER);
-        layout.setPadding(dp(24), dp(16), dp(24), dp(16));
-
-        // 空调开关状态
-        boolean isOn = acApi.isOn();
-        int temp = acApi.getMainTemp();
-
-        // 温度显示
-        TextView tvTemp = new TextView(context);
-        tvTemp.setText(temp + "°C");
-        tvTemp.setTextSize(32);
-        tvTemp.setTextColor(context.getResources().getColor(R.color.text_primary));
-        tvTemp.setGravity(android.view.Gravity.CENTER);
-        tvTemp.setTypeface(null, android.graphics.Typeface.BOLD);
-        layout.addView(tvTemp);
-
-        // 温度调节按钮行
-        android.widget.LinearLayout tempRow = new android.widget.LinearLayout(context);
-        tempRow.setGravity(android.view.Gravity.CENTER);
-        tempRow.setPadding(0, dp(12), 0, dp(12));
-
-        TextView btnMinus = new TextView(context);
-        btnMinus.setText("  −  ");
-        btnMinus.setTextSize(22);
-        btnMinus.setTextColor(context.getResources().getColor(R.color.accent));
-        btnMinus.setBackgroundResource(R.drawable.bg_card_glass);
-        btnMinus.setPadding(dp(16), dp(8), dp(16), dp(8));
-        tempRow.addView(btnMinus);
-
-        View spacer = new View(context);
-        spacer.setLayoutParams(new android.widget.LinearLayout.LayoutParams(dp(24), 0));
-        tempRow.addView(spacer);
-
-        TextView btnPlus = new TextView(context);
-        btnPlus.setText("  +  ");
-        btnPlus.setTextSize(22);
-        btnPlus.setTextColor(context.getResources().getColor(R.color.accent));
-        btnPlus.setBackgroundResource(R.drawable.bg_card_glass);
-        btnPlus.setPadding(dp(16), dp(8), dp(16), dp(8));
-        tempRow.addView(btnPlus);
-
-        layout.addView(tempRow);
-
-        // 开关按钮
-        TextView btnToggle = new TextView(context);
-        btnToggle.setText(isOn ? "关闭空调" : "开启空调");
-        btnToggle.setTextSize(14);
-        btnToggle.setTextColor(context.getResources().getColor(isOn ? R.color.status_fair : R.color.accent));
-        btnToggle.setGravity(android.view.Gravity.CENTER);
-        btnToggle.setPadding(0, dp(8), 0, 0);
-        layout.addView(btnToggle);
-
-        androidx.appcompat.app.AlertDialog dialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(context, R.style.AppAlertDialog)
-                .setTitle("❄ 空调控制")
-                .setView(layout)
-                .setPositiveButton("关闭", null)
-                .create();
-
-        final int[] currentTemp = {temp};
-
-        btnMinus.setOnClickListener(v -> {
-            currentTemp[0] = Math.max(17, currentTemp[0] - 1);
-            tvTemp.setText(currentTemp[0] + "°C");
-            acApi.setMainTemp(currentTemp[0]);
-        });
-
-        btnPlus.setOnClickListener(v -> {
-            currentTemp[0] = Math.min(33, currentTemp[0] + 1);
-            tvTemp.setText(currentTemp[0] + "°C");
-            acApi.setMainTemp(currentTemp[0]);
-        });
-
-        btnToggle.setOnClickListener(v -> {
-            acApi.toggle();
-            boolean nowOn = acApi.isOn();
-            btnToggle.setText(nowOn ? "关闭空调" : "开启空调");
-            btnToggle.setTextColor(context.getResources().getColor(nowOn ? R.color.status_fair : R.color.accent));
-        });
-
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            dialog.getWindow().setDimAmount(0.6f);
-        }
-        dialog.show();
-    }
-
-    private int dp(int value) {
-        return Math.round(value * context.getResources().getDisplayMetrics().density);
+        AcPanelDialog.show(context, acApi, lastStatus);
     }
 }
