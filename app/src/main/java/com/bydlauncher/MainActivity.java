@@ -161,6 +161,7 @@ public class MainActivity extends AppCompatActivity
                     navBar.selectTab(3);
                 }
             });
+            unboundedPage.setAcApi(vehicleManager.getAcApi());
             unboundedPage.setAppSlotManager(appSlotManager);
         }
 
