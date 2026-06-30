@@ -346,13 +346,13 @@ public class MainActivity extends AppCompatActivity
         // 키를 초기화하여 ADB 인증 다이얼로그가 반드시 표시되도록 한다
         AdbKeyManager.clearKeys(this);
         AdbHelper.grantPermissions(this, (success, granted, failed, signature) -> runOnUiThread(() -> {
-            if (!granted.isEmpty()) {
+            // ADB 认证是否成功：只要 callback 带有任何结果（granted/failed/signature 任一非空），
+            // 说明认证通过了，pm grant 失败（权限未在 manifest 声明）不影响认证结果
+            boolean authSucceeded = !granted.isEmpty() || !failed.isEmpty() || !signature.isEmpty();
+            if (authSucceeded) {
                 new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                    int grantedCount = BydPermissionHelper.getGrantedCount(this);
-                    int total = BydPermissionHelper.getAllPermissions().length;
-
-                    Log.i(TAG, "授权验证: " + grantedCount + "/" + total
-                            + " (signature级别: " + signature.size() + ")");
+                    Log.i(TAG, "ADB 认证成功: granted=" + granted.size()
+                            + " failed=" + failed.size() + " signature=" + signature.size());
 
                     getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                             .edit()
@@ -361,13 +361,10 @@ public class MainActivity extends AppCompatActivity
                             .apply();
 
                     String msg;
-                    if (grantedCount == total) {
-                        msg = "权限授权完成 (" + grantedCount + "/" + total + ")";
-                    } else if (!signature.isEmpty()) {
-                        msg = "已授权 " + grantedCount + "/" + total
-                                + "，" + signature.size() + " 个需要平台签名（不影响基本功能）";
+                    if (!granted.isEmpty()) {
+                        msg = "ADB授权成功，已授权 " + granted.size() + " 个权限";
                     } else {
-                        msg = "已授权 " + grantedCount + "/" + total;
+                        msg = "ADB授权成功，车辆API通过系统服务访问";
                     }
                     android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_LONG).show();
 
@@ -385,6 +382,7 @@ public class MainActivity extends AppCompatActivity
                     }
                 }, 500);
             } else {
+                // 所有列表为空 = ADB 连接或认证本身失败（不是 pm grant 失败）
                 android.widget.Toast.makeText(this,
                         getString(R.string.perm_byd_adb_fail),
                         android.widget.Toast.LENGTH_LONG).show();
