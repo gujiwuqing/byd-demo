@@ -51,6 +51,13 @@ public class BydVehicleManager {
         return instance;
     }
 
+    public static synchronized void resetInstance() {
+        if (instance != null) {
+            instance.stopPolling();
+        }
+        instance = null;
+    }
+
     public BydAcApi getAcApi() { return acApi; }
     public BydBodyworkApi getBodyworkApi() { return bodyworkApi; }
     public BydStatisticApi getStatisticApi() { return statisticApi; }

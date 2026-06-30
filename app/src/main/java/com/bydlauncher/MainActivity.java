@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
+import com.bydlauncher.api.AdbHelper;
 import com.bydlauncher.api.BydApiExplorer;
 import com.bydlauncher.api.BydPermissionHelper;
 import com.bydlauncher.api.BydVehicleManager;
@@ -172,19 +173,60 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void showBydPermissionDialog() {
+        if (AdbHelper.isAdbAvailable()) {
+            showAdbAuthDialog();
+        } else {
+            showDimDialog(new MaterialAlertDialogBuilder(this, R.style.AppAlertDialog)
+                    .setTitle(R.string.perm_byd_title)
+                    .setMessage(R.string.perm_byd_message)
+                    .setPositiveButton(R.string.perm_btn_settings, (d, w) -> {
+                        try {
+                            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                            intent.setData(Uri.parse("package:" + getPackageName()));
+                            startActivity(intent);
+                        } catch (Exception e) {
+                            // 忽略
+                        }
+                    })
+                    .setNegativeButton(R.string.perm_btn_cancel, null));
+        }
+    }
+
+    private void showAdbAuthDialog() {
         showDimDialog(new MaterialAlertDialogBuilder(this, R.style.AppAlertDialog)
                 .setTitle(R.string.perm_byd_title)
-                .setMessage(R.string.perm_byd_message)
-                .setPositiveButton(R.string.perm_btn_settings, (d, w) -> {
-                    try {
-                        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                        intent.setData(Uri.parse("package:" + getPackageName()));
-                        startActivity(intent);
-                    } catch (Exception e) {
-                        // 忽略
-                    }
-                })
-                .setNegativeButton(R.string.perm_btn_cancel, null));
+                .setMessage(R.string.perm_byd_adb_message)
+                .setPositiveButton(R.string.perm_btn_auth, (d, w) -> startAdbGrant())
+                .setNegativeButton(R.string.perm_btn_cancel, null)
+                .setCancelable(false));
+    }
+
+    private void startAdbGrant() {
+        AdbHelper.grantPermissions(this, (success, granted, failed) -> runOnUiThread(() -> {
+            if (success || !granted.isEmpty()) {
+                android.widget.Toast.makeText(this,
+                        getString(R.string.perm_byd_adb_success),
+                        android.widget.Toast.LENGTH_LONG).show();
+
+                // 重新初始化车辆管理器
+                BydVehicleManager.resetInstance();
+                vehicleManager = BydVehicleManager.getInstance(this);
+                vehicleManager.setListener(this);
+                vehicleManager.startPolling();
+
+                // 更新模拟模式状态
+                boolean isSimulation = !vehicleManager.getAcApi().isRealDevice()
+                        || !vehicleManager.getDriveApi().isRealDevice()
+                        || !vehicleManager.getTireApi().isRealDevice();
+                if (settingsPage != null) {
+                    settingsPage.updateSimulationState(isSimulation);
+                }
+            } else {
+                android.widget.Toast.makeText(this,
+                        getString(R.string.perm_byd_adb_fail),
+                        android.widget.Toast.LENGTH_LONG).show();
+            }
+        }));
     }
 
     /**

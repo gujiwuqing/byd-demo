@@ -173,6 +173,10 @@ public class SettingsPage {
     // ── 模拟模式 ──
 
     private void initSimStatus(boolean isSimulation) {
+        updateSimulationState(isSimulation);
+    }
+
+    public void updateSimulationState(boolean isSimulation) {
         if (isSimulation) {
             simStatus.setText(R.string.settings_sim_on);
             simStatus.setTextColor(ContextCompat.getColor(context, R.color.status_fair));

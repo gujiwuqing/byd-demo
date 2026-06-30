@@ -75,6 +75,10 @@ public class BydPermissionHelper {
         Log.i(TAG, "==================================");
     }
 
+    public static String[] getAllPermissions() {
+        return BYD_PERMISSIONS;
+    }
+
     public static boolean hasAllPermissions(Context context) {
         PackageManager pm = context.getPackageManager();
         String packageName = context.getPackageName();

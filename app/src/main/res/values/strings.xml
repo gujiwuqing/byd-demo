@@ -118,6 +118,11 @@
     <!-- 权限提示 -->
     <string name="perm_byd_title">车辆权限</string>
     <string name="perm_byd_message">检测到部分车辆接口不可用。\n请在系统设置中允许本应用访问车辆数据，以获得完整功能。</string>
+    <string name="perm_byd_adb_message">即将请求车辆数据权限。\n系统会弹出 ADB 授权对话框，请点击"允许"。</string>
+    <string name="perm_byd_adb_success">权限授权成功，正在重新加载车辆数据…</string>
+    <string name="perm_byd_adb_fail">部分权限授权失败，请检查 ADB 是否已开启。</string>
+    <string name="perm_byd_adb_unavailable">本地 ADB 不可用，请确保车机已开启 ADB 调试。</string>
+    <string name="perm_btn_auth">授权</string>
     <string name="perm_overlay_title">悬浮窗权限</string>
     <string name="perm_overlay_message">需要悬浮窗权限以显示车窗控制弹窗。\n请在弹出的系统设置中允许"显示在其他应用上层"。</string>
     <string name="perm_launcher_title">默认桌面</string>

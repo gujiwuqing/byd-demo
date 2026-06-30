@@ -218,13 +218,58 @@ public void probeWindowFeatureIds() {
 
 ---
 
-## 八、常见问题
+## 八、权限自动授权机制
+
+迪UI 内置了本地 ADB 自动授权功能，原理如下：
+
+```
+应用启动 → 检查 BYD 权限 → 权限缺失
+         → 检测本地 ADB（127.0.0.1:5555）是否可用
+         → 弹出授权对话框 → 用户点击"授权"
+         → 连接本机 ADB 守护进程
+         → 系统弹出标准 ADB 授权弹窗（RSA 密钥确认）
+         → 用户点击"允许"
+         → 应用通过 ADB shell 执行 pm grant 命令
+         → 所有 BYDAUTO_* 权限自动授权
+         → 重新初始化车辆管理器 → 获取真实车辆数据
+```
+
+### 相关文件
+
+| 文件 | 职责 |
+|------|------|
+| `api/AdbHelper.java` | 本地 ADB 客户端，实现 ADB 协议、认证、shell 命令执行 |
+| `api/AdbKeyManager.java` | RSA 密钥管理，生成/存储/签名，编码为 ADB mincrypt 格式 |
+| `api/BydPermissionHelper.java` | 权限诊断，检查授权状态，输出缺失权限 |
+
+### 首次授权流程
+
+1. 首次运行时，`AdbKeyManager` 生成 2048 位 RSA 密钥对并持久化到 SharedPreferences
+2. 连接本机 ADB 后发送公钥，系统弹出"允许 USB 调试？"对话框
+3. 用户点击"允许"后，密钥被保存在车机的 `~/.android/adb_keys` 中
+4. 后续启动不再弹出授权弹窗，直接连接
+
+### 注意事项
+
+- 如果 `pm grant` 报错 "not a changeable permission type"，说明该权限为 `signature` 级别，需要平台签名
+- 约 30 天后 BYD 车机自动清除第三方应用权限，需重新授权（ADB 密钥不会丢失，只需重新执行 pm grant）
+- 如果 ADB 未开启，应用会退回到手动授权模式（提示用户去系统设置）
+
+---
+
+## 九、常见问题
 
 **Q: logcat 显示 simulation mode，真车上也这样？**  
 A: 说明 `Class.forName("android.hardware.bydauto.ac.BYDAutoAcDevice")` 失败，可能是权限问题。检查 `BydPermissionContext` 是否正确包裹 context。
 
 **Q: logcat 出现 SecurityException: UID xxx does not have permission to access content://com.byd.vehicle.data.provider/data？**  
-A: 这是 BYD 车机权限未授权导致的。BYD SDK 内部通过 ContentProvider 进行跨进程 IPC 调用，`BydPermissionContext` 无法拦截远程权限检查。需要通过 adb 手动授权：
+A: 这是 BYD 车机权限未授权导致的。BYD SDK 内部通过 ContentProvider 进行跨进程 IPC 调用，`BydPermissionContext` 无法拦截远程权限检查。
+
+**自动授权（推荐）**：迪UI 已内置本地 ADB 自动授权功能。应用启动后检测到权限缺失时，会弹出授权对话框，用户点击"授权"按钮，系统会弹出 ADB 调试授权弹窗，点击"允许"后应用自动执行所有权限授权。
+
+> 前提条件：车机已开启 ADB 调试（见上方"开启车机 ADB"章节）
+
+**手动授权**：如果自动授权不可用，可通过 adb 手动授权：
 
 ```bash
 # 连接车机
@@ -275,7 +320,7 @@ A: BYD 车机会定期清除第三方应用权限，需重新执行上述 `pm gr
 
 ---
 
-## 九、参考资料
+## 十、参考资料
 
 - [wheregoes/byd-apps](https://github.com/wheregoes/byd-apps) — 社区 API 文档（featureId 参考）
 - [ahmada3mar/BYD](https://github.com/ahmada3mar/BYD) — ADB 开启工具
