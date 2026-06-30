@@ -7,13 +7,15 @@ import android.util.Log;
 
 import com.bydlauncher.model.VehicleStatus;
 
+import java.util.Map;
+
 public class BydVehicleManager {
 
     private static final String TAG = "BydVehicleManager";
     private static BydVehicleManager instance;
 
     // 用户手动设置的模拟模式开关（true=模拟模式，false=真车模式）
-    private static boolean forceSimMode = true;
+    private static boolean forceSimMode = false;
 
     private final BydAcApi acApi;
     private final BydBodyworkApi bodyworkApi;
@@ -21,11 +23,16 @@ public class BydVehicleManager {
     private final BydDoorLockApi doorLockApi;
     private final BydTireApi tireApi;
     private final BydDriveApi driveApi;
+    private final AutoserviceClient autoserviceClient;
+    private final com.bydlauncher.helper.HelperClient helperClient;
+    private BydListenerManager listenerManager;
+    private PollState currentPollState = PollState.PARKED;
+    private int consecutiveFailures = 0;
+    private static final int MAX_BACKOFF_INTERVAL = 60000;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private VehicleStatusListener listener;
     private boolean polling = false;
-    private static final long POLL_INTERVAL = 2000;
 
     public interface VehicleStatusListener {
         void onStatusUpdated(VehicleStatus status);
@@ -39,6 +46,29 @@ public class BydVehicleManager {
         this.doorLockApi = new BydDoorLockApi(appContext);
         this.tireApi = new BydTireApi(appContext);
         this.driveApi = new BydDriveApi(appContext);
+        this.autoserviceClient = new AutoserviceClient(appContext);
+        this.helperClient = new com.bydlauncher.helper.HelperClient();
+        if (!helperClient.isAvailable() && AdbHelper.isAdbAvailable()) {
+            AdbHelper.startHelperDaemon(appContext, () -> helperClient.checkAvailability());
+        }
+
+        this.listenerManager = new BydListenerManager(new VehicleStatus());
+        listenerManager.setCallback(() -> {
+            if (listener != null) {
+                handler.post(() -> listener.onStatusUpdated(listenerManager.getSharedStatus()));
+            }
+        });
+
+        if (!forceSimMode) {
+            Object bodyworkDev = ReflectionHelper.getDeviceInstance(
+                    "android.hardware.bydauto.bodywork.BYDAutoBodyworkDevice", appContext);
+            listenerManager.registerBodyworkListener(bodyworkDev);
+
+            Object acDev = ReflectionHelper.getDeviceInstance(
+                    "android.hardware.bydauto.ac.BYDAutoAcDevice", appContext);
+            listenerManager.registerAcListener(acDev);
+        }
+
         Log.i(TAG, "Initialized - AC:" + acApi.isRealDevice()
                 + " Body:" + bodyworkApi.isAvailable()
                 + " Stat:" + statisticApi.isAvailable()
@@ -61,6 +91,23 @@ public class BydVehicleManager {
         instance = null;
     }
 
+    public static BydEnvironmentDetector.Environment detectAndConfigure(Context context) {
+        BydEnvironmentDetector.Environment env = BydEnvironmentDetector.detect(context);
+        switch (env) {
+            case REAL_DEVICE:
+                setForceSimulation(false);
+                break;
+            case PERMISSION_NEEDED:
+                setForceSimulation(false);
+                break;
+            case SIMULATOR:
+                setForceSimulation(true);
+                break;
+        }
+        Log.i(TAG, "Environment detected: " + env + ", simulation=" + forceSimMode);
+        return env;
+    }
+
     public static void setForceSimulation(boolean force) {
         forceSimMode = force;
     }
@@ -75,6 +122,7 @@ public class BydVehicleManager {
     public BydDoorLockApi getDoorLockApi() { return doorLockApi; }
     public BydTireApi getTireApi() { return tireApi; }
     public BydDriveApi getDriveApi() { return driveApi; }
+    public AutoserviceClient getAutoserviceClient() { return autoserviceClient; }
 
     public void setListener(VehicleStatusListener listener) {
         this.listener = listener;
@@ -96,10 +144,29 @@ public class BydVehicleManager {
         public void run() {
             if (!polling) return;
             VehicleStatus status = readCurrentStatus();
+
+            boolean dataValid = (status.speed >= 0 || status.batteryPercent >= 0);
+            if (!dataValid) {
+                consecutiveFailures++;
+            } else {
+                consecutiveFailures = 0;
+            }
+
+            currentPollState = PollState.classify(
+                    status.speed, status.gear, status.chargeGunState, dataValid);
+
             if (listener != null) {
                 listener.onStatusUpdated(status);
             }
-            handler.postDelayed(this, POLL_INTERVAL);
+
+            long interval = currentPollState.intervalMs;
+            if (consecutiveFailures > 0) {
+                interval = Math.min(
+                        (long) (interval * Math.pow(1.5, consecutiveFailures)),
+                        MAX_BACKOFF_INTERVAL);
+            }
+
+            handler.postDelayed(this, interval);
         }
     };
 
@@ -190,6 +257,17 @@ public class BydVehicleManager {
             fillTireSimulationData(s);
         }
 
+        // ========== 补充数据（HelperClient 优先 → AutoserviceClient 降级）==========
+        try {
+            if (helperClient.isAvailable()) {
+                fillExtrasFromHelper(s);
+            } else if (autoserviceClient.isAvailable()) {
+                fillExtrasFromAutoservice(s);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Extra data fetch failed", e);
+        }
+
         return s;
     }
 
@@ -228,5 +306,63 @@ public class BydVehicleManager {
         if (s.tireTempFR < 0) s.tireTempFR = 31;
         if (s.tireTempRL < 0) s.tireTempRL = 30;
         if (s.tireTempRR < 0) s.tireTempRR = 33;
+    }
+
+    private void fillExtrasFromHelper(VehicleStatus s) {
+        int tempMax = helperClient.getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_BATT_TEMP_MAX);
+        if (!FidRegistry.isSentinel(tempMax) && tempMax >= 0) s.batteryTempMax = tempMax - 40;
+
+        int tempMin = helperClient.getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_BATT_TEMP_MIN);
+        if (!FidRegistry.isSentinel(tempMin) && tempMin >= 0) s.batteryTempMin = tempMin - 40;
+
+        int cellMax = helperClient.getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_CELL_VOLT_MAX);
+        if (!FidRegistry.isSentinel(cellMax) && cellMax > 0) s.cellVoltageMax = cellMax;
+
+        int cellMin = helperClient.getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_CELL_VOLT_MIN);
+        if (!FidRegistry.isSentinel(cellMin) && cellMin > 0) s.cellVoltageMin = cellMin;
+
+        int soh = helperClient.getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_SOH);
+        if (!FidRegistry.isSentinel(soh) && soh >= 0) s.soh = soh;
+
+        float v12 = helperClient.getFloat(FidRegistry.DEV_BODYWORK, FidRegistry.FID_12V_VOLTAGE);
+        if (!FidRegistry.isSentinelFloat(v12) && v12 > 0) s.voltage12v = v12;
+
+        int chargeGun = helperClient.getInt(FidRegistry.DEV_CHARGE, FidRegistry.FID_CHARGE_GUN);
+        if (!FidRegistry.isSentinel(chargeGun)) s.chargeGunState = chargeGun;
+
+        int powerState = helperClient.getInt(FidRegistry.DEV_POWER, FidRegistry.FID_POWER_STATE);
+        if (!FidRegistry.isSentinel(powerState)) s.powerState = powerState;
+
+        int driveMode = helperClient.getInt(FidRegistry.DEV_DRIVE_MODE, FidRegistry.FID_DRIVE_MODE);
+        if (!FidRegistry.isSentinel(driveMode)) s.driveMode = driveMode;
+
+        int motorPower = helperClient.getInt(FidRegistry.DEV_MOTOR, FidRegistry.FID_MOTOR_POWER);
+        if (!FidRegistry.isSentinel(motorPower)) s.motorPowerKw = motorPower;
+    }
+
+    private void fillExtrasFromAutoservice(VehicleStatus s) {
+        Map<String, Object> batteryExtras = autoserviceClient.readBatteryExtras();
+        if (batteryExtras.containsKey("batteryTempMax"))
+            s.batteryTempMax = (int) batteryExtras.get("batteryTempMax");
+        if (batteryExtras.containsKey("batteryTempMin"))
+            s.batteryTempMin = (int) batteryExtras.get("batteryTempMin");
+        if (batteryExtras.containsKey("cellVoltageMax"))
+            s.cellVoltageMax = (int) batteryExtras.get("cellVoltageMax");
+        if (batteryExtras.containsKey("cellVoltageMin"))
+            s.cellVoltageMin = (int) batteryExtras.get("cellVoltageMin");
+        if (batteryExtras.containsKey("soh"))
+            s.soh = (int) batteryExtras.get("soh");
+
+        Map<String, Object> vehicleExtras = autoserviceClient.readVehicleExtras();
+        if (vehicleExtras.containsKey("voltage12v"))
+            s.voltage12v = (double) vehicleExtras.get("voltage12v");
+        if (vehicleExtras.containsKey("chargeGunState"))
+            s.chargeGunState = (int) vehicleExtras.get("chargeGunState");
+        if (vehicleExtras.containsKey("powerState"))
+            s.powerState = (int) vehicleExtras.get("powerState");
+        if (vehicleExtras.containsKey("driveMode"))
+            s.driveMode = (int) vehicleExtras.get("driveMode");
+        if (vehicleExtras.containsKey("motorPowerKw"))
+            s.motorPowerKw = (int) vehicleExtras.get("motorPowerKw");
     }
 }

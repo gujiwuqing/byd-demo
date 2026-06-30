@@ -18,6 +18,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import com.bydlauncher.api.AdbHelper;
 import com.bydlauncher.api.BydApiExplorer;
+import com.bydlauncher.api.BydEnvironmentDetector;
 import com.bydlauncher.api.BydPermissionHelper;
 import com.bydlauncher.api.BydVehicleManager;
 import com.bydlauncher.model.VehicleStatus;
@@ -37,6 +38,7 @@ public class MainActivity extends AppCompatActivity
     private static final String PREFS_NAME = "byd_launcher_prefs";
     private static final String KEY_FIRST_LAUNCH = "first_launch";
     private static final String KEY_ADB_GRANTED = "adb_granted";
+    private static final long[] RETRY_DELAYS = {2000, 3000, 5000, 8000, 10000};
 
     private BydVehicleManager vehicleManager;
 
@@ -49,6 +51,7 @@ public class MainActivity extends AppCompatActivity
 
     private View[] pages;
     private int currentTab = 0;
+    private BydEnvironmentDetector.Environment detectedEnv;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,10 +62,19 @@ public class MainActivity extends AppCompatActivity
         hideSystemUI();
         setContentView(R.layout.activity_main);
 
-        // 读取用户手动设置的模拟模式开关（默认开启）
-        boolean forceSim = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                .getBoolean("sim_mode", true);
-        BydVehicleManager.setForceSimulation(forceSim);
+        // 自动检测车机环境（用户手动设置优先）
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean hasManualOverride = prefs.contains("sim_mode_manual");
+
+        if (hasManualOverride) {
+            boolean forceSim = prefs.getBoolean("sim_mode_manual", true);
+            BydVehicleManager.setForceSimulation(forceSim);
+            this.detectedEnv = forceSim ? BydEnvironmentDetector.Environment.SIMULATOR
+                    : BydEnvironmentDetector.Environment.REAL_DEVICE;
+            Log.i(TAG, "Using manual override: simulation=" + forceSim);
+        } else {
+            this.detectedEnv = BydVehicleManager.detectAndConfigure(this);
+        }
 
         vehicleManager = BydVehicleManager.getInstance(this);
         vehicleManager.setListener(this);
@@ -97,7 +109,7 @@ public class MainActivity extends AppCompatActivity
         appsPage = new AppsPage(pageAppsView);
 
         // 模拟模式使用用户手动设置的值（默认开启）
-        boolean isSimulation = forceSim;
+        boolean isSimulation = BydVehicleManager.isForceSimulation();
         settingsPage = new SettingsPage(pageSettingsView, isSimulation);
         settingsPage.setOnAdbAuthorizeListener(() -> {
             // 重置已授权标记，重新触发授权流程
@@ -122,22 +134,19 @@ public class MainActivity extends AppCompatActivity
             showOverlayPermissionDialog(firstLaunch);
         }
 
-        // 检查 BYD 车辆 API 权限（仅在真实车机上检查）
-        boolean hasAnyRealApi = vehicleManager.getAcApi().isRealDevice()
-                || vehicleManager.getBodyworkApi().isAvailable()
-                || vehicleManager.getStatisticApi().isAvailable();
-
-        // 如果 ADB 已授权过，跳过弹窗
+        // 检查 BYD 车辆 API 权限
         if (adbAlreadyGranted) {
             Log.i(TAG, "ADB permissions already granted, skipping check");
-        } else if (hasAnyRealApi) {
-            boolean hasMissingApi = !vehicleManager.getAcApi().isRealDevice()
-                    || !vehicleManager.getDriveApi().isRealDevice()
-                    || !vehicleManager.getTireApi().isRealDevice();
-            if (hasMissingApi) {
+        } else if (detectedEnv == BydEnvironmentDetector.Environment.PERMISSION_NEEDED) {
+            if (fromBoot) {
+                scheduleAdbCheckWithRetry(5, 0);
+            } else {
+                showBydPermissionDialog();
+            }
+        } else if (detectedEnv == BydEnvironmentDetector.Environment.REAL_DEVICE) {
+            if (!BydPermissionHelper.hasAllPermissions(this)) {
                 if (fromBoot) {
-                    // 开机后 ADB 服务可能还未就绪，延迟重试检测
-                    scheduleAdbCheckWithRetry(3, 2000);
+                    scheduleAdbCheckWithRetry(5, 0);
                 } else {
                     showBydPermissionDialog();
                 }
@@ -156,21 +165,22 @@ public class MainActivity extends AppCompatActivity
     /**
      * 延迟重试检测 ADB 可用性（开机后 ADB 服务需要时间初始化）
      */
-    private void scheduleAdbCheckWithRetry(int maxRetries, long delayMs) {
+    private void scheduleAdbCheckWithRetry(int retriesLeft, int retryIndex) {
+        long delay = retryIndex < RETRY_DELAYS.length ? RETRY_DELAYS[retryIndex] : 10000;
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (isFinishing() || isDestroyed()) return;
 
             if (AdbHelper.isAdbAvailable()) {
                 Log.i(TAG, "ADB detected after delay");
                 showAdbAuthDialog();
-            } else if (maxRetries > 1) {
-                Log.i(TAG, "ADB not ready, retrying... (" + (maxRetries - 1) + " left)");
-                scheduleAdbCheckWithRetry(maxRetries - 1, delayMs);
+            } else if (retriesLeft > 1) {
+                Log.i(TAG, "ADB not ready, retrying... (" + (retriesLeft - 1) + " left)");
+                scheduleAdbCheckWithRetry(retriesLeft - 1, retryIndex + 1);
             } else {
                 Log.w(TAG, "ADB not available after all retries, showing manual dialog");
                 showBydPermissionDialog();
             }
-        }, delayMs);
+        }, delay);
     }
 
     /**
@@ -178,6 +188,9 @@ public class MainActivity extends AppCompatActivity
      */
     private void reinitializeWithSimMode(boolean forceSim) {
         Log.i(TAG, "Switching to " + (forceSim ? "simulation" : "real") + " mode");
+
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .edit().putBoolean("sim_mode_manual", forceSim).apply();
 
         BydVehicleManager.setForceSimulation(forceSim);
         BydVehicleManager.resetInstance();
@@ -265,35 +278,45 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void startAdbGrant() {
-        AdbHelper.grantPermissions(this, (success, granted, failed) -> runOnUiThread(() -> {
-            if (success || !granted.isEmpty()) {
-                // 保存 ADB 已授权标记，下次启动不再弹窗
-                getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                        .edit().putBoolean(KEY_ADB_GRANTED, true).apply();
+        AdbHelper.grantPermissions(this, (success, granted, failed, signature) -> runOnUiThread(() -> {
+            if (!granted.isEmpty()) {
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    int grantedCount = BydPermissionHelper.getGrantedCount(this);
+                    int total = BydPermissionHelper.getAllPermissions().length;
 
-                android.widget.Toast.makeText(this,
-                        getString(R.string.perm_byd_adb_success),
-                        android.widget.Toast.LENGTH_LONG).show();
+                    Log.i(TAG, "授权验证: " + grantedCount + "/" + total
+                            + " (signature级别: " + signature.size() + ")");
 
-                // ADB 授权成功，切换到真车模式
-                getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                        .edit().putBoolean("sim_mode", false).apply();
-                BydVehicleManager.setForceSimulation(false);
+                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                            .edit()
+                            .putBoolean(KEY_ADB_GRANTED, true)
+                            .remove("sim_mode_manual")
+                            .apply();
 
-                // 重新初始化车辆管理器
-                BydVehicleManager.resetInstance();
-                vehicleManager = BydVehicleManager.getInstance(this);
-                vehicleManager.setListener(this);
-                vehicleManager.startPolling();
+                    String msg;
+                    if (grantedCount == total) {
+                        msg = "权限授权完成 (" + grantedCount + "/" + total + ")";
+                    } else if (!signature.isEmpty()) {
+                        msg = "已授权 " + grantedCount + "/" + total
+                                + "，" + signature.size() + " 个需要平台签名（不影响基本功能）";
+                    } else {
+                        msg = "已授权 " + grantedCount + "/" + total;
+                    }
+                    android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_LONG).show();
 
-                // ControlsPage 持有旧的 acApi 引用，需要重建
-                View pageControlsView = findViewById(R.id.page_controls);
-                controlsPage = new ControlsPage(pageControlsView, vehicleManager.getAcApi());
+                    BydVehicleManager.setForceSimulation(false);
+                    BydVehicleManager.resetInstance();
+                    vehicleManager = BydVehicleManager.getInstance(this);
+                    vehicleManager.setListener(this);
+                    vehicleManager.startPolling();
 
-                // 更新设置页的开关状态
-                if (settingsPage != null) {
-                    settingsPage.updateSimulationState(false);
-                }
+                    View pageControlsView = findViewById(R.id.page_controls);
+                    controlsPage = new ControlsPage(pageControlsView, vehicleManager.getAcApi());
+
+                    if (settingsPage != null) {
+                        settingsPage.updateSimulationState(false);
+                    }
+                }, 500);
             } else {
                 android.widget.Toast.makeText(this,
                         getString(R.string.perm_byd_adb_fail),

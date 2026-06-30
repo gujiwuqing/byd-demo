@@ -151,4 +151,115 @@ public class BydApiExplorer {
             Log.w(TAG, "类不存在: " + className);
         }
     }
+
+    private static final String[] KNOWN_DEVICE_CLASSES = {
+            "android.hardware.bydauto.ac.BYDAutoAcDevice",
+            "android.hardware.bydauto.bodywork.BYDAutoBodyworkDevice",
+            "android.hardware.bydauto.doorlock.BYDAutoDoorLockDevice",
+            "android.hardware.bydauto.statistic.BYDAutoStatisticDevice",
+            "android.hardware.bydauto.vehicle.BYDAutoVehicleInfoDevice",
+            "android.hardware.bydauto.drive.BYDAutoDriveDevice",
+            "android.hardware.bydauto.tyre.BYDAutoTyreDevice",
+            "android.hardware.bydauto.pm25.BYDAutoPm25Device",
+            "android.hardware.bydauto.energy.BYDAutoEnergyDevice",
+            "android.hardware.bydauto.power.BYDAutoPowerDevice",
+            "android.hardware.bydauto.motor.BYDAutoMotorDevice",
+            "android.hardware.bydauto.panorama.BYDAutoPanoramaDevice",
+            "android.hardware.bydauto.gearbox.BYDAutoGearboxDevice",
+    };
+
+    public interface ProbeProgressListener {
+        void onProgress(int current, int total, String message);
+        void onComplete(String filePath);
+    }
+
+    public static void runFullProbe(android.content.Context context, ProbeProgressListener progressListener) {
+        new Thread(() -> {
+            StringBuilder report = new StringBuilder();
+            report.append("=== BYD API Probe Report ===\n");
+            report.append("Time: ").append(new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                    java.util.Locale.getDefault()).format(new java.util.Date())).append("\n\n");
+
+            int total = KNOWN_DEVICE_CLASSES.length;
+            for (int i = 0; i < total; i++) {
+                String className = KNOWN_DEVICE_CLASSES[i];
+                String shortName = className.substring(className.lastIndexOf('.') + 1);
+
+                if (progressListener != null) {
+                    int idx = i;
+                    progressListener.onProgress(idx + 1, total, "扫描 " + shortName);
+                }
+
+                report.append("--- ").append(shortName).append(" ---\n");
+
+                try {
+                    Class<?> clazz = Class.forName(className);
+                    report.append("  状态: 可用\n");
+
+                    java.lang.reflect.Method[] methods = clazz.getMethods();
+                    report.append("  方法 (").append(methods.length).append("):\n");
+                    for (java.lang.reflect.Method m : methods) {
+                        if (m.getDeclaringClass() == Object.class) continue;
+                        StringBuilder sig = new StringBuilder();
+                        sig.append("    ").append(m.getReturnType().getSimpleName())
+                                .append(" ").append(m.getName()).append("(");
+                        Class<?>[] params = m.getParameterTypes();
+                        for (int j = 0; j < params.length; j++) {
+                            if (j > 0) sig.append(", ");
+                            sig.append(params[j].getSimpleName());
+                        }
+                        sig.append(")\n");
+                        report.append(sig);
+                    }
+
+                    Object device = ReflectionHelper.getDeviceInstance(className, context);
+                    if (device != null) {
+                        report.append("  无参 getter 返回值:\n");
+                        for (java.lang.reflect.Method m : methods) {
+                            if (m.getDeclaringClass() == Object.class) continue;
+                            if (m.getParameterCount() != 0) continue;
+                            String name = m.getName();
+                            if (!name.startsWith("get") && !name.startsWith("is")
+                                    && !name.startsWith("has")) continue;
+                            try {
+                                Object result = m.invoke(device);
+                                report.append("    ").append(name).append("() = ").append(result).append("\n");
+                            } catch (Exception e) {
+                                report.append("    ").append(name).append("() = ERROR: ")
+                                        .append(e.getCause() != null ? e.getCause().getMessage() : e.getMessage())
+                                        .append("\n");
+                            }
+                        }
+                    } else {
+                        report.append("  getInstance 失败（权限不足）\n");
+                    }
+
+                } catch (ClassNotFoundException e) {
+                    report.append("  状态: 不可用（类不存在）\n");
+                }
+                report.append("\n");
+            }
+
+            String fileName = "bydui_probe_" + System.currentTimeMillis() + ".txt";
+            String filePath = android.os.Environment.getExternalStorageDirectory() + "/" + fileName;
+            try {
+                java.io.FileWriter writer = new java.io.FileWriter(filePath);
+                writer.write(report.toString());
+                writer.close();
+                Log.i(TAG, "Probe report saved to " + filePath);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to save probe report", e);
+                filePath = "保存失败: " + e.getMessage();
+            }
+
+            for (String line : report.toString().split("\n")) {
+                Log.i(TAG, line);
+            }
+
+            if (progressListener != null) {
+                String finalPath = filePath;
+                progressListener.onComplete(finalPath);
+            }
+        }, "api-probe").start();
+    }
 }

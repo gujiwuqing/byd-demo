@@ -41,7 +41,7 @@ public class AdbHelper {
     private static final int MAX_PAYLOAD = 4096;
 
     public interface GrantCallback {
-        void onResult(boolean success, List<String> granted, List<String> failed);
+        void onResult(boolean success, List<String> granted, List<String> failed, List<String> signature);
     }
 
     public static void grantPermissions(Context context, GrantCallback callback) {
@@ -54,7 +54,7 @@ public class AdbHelper {
                 socket = connect();
                 if (socket == null) {
                     Log.e(TAG, "无法连接本地 ADB（ADB 可能未开启）");
-                    callback.onResult(false, granted, failed);
+                    callback.onResult(false, granted, failed, new ArrayList<>());
                     return;
                 }
 
@@ -63,12 +63,13 @@ public class AdbHelper {
 
                 if (!authenticate(in, out, context)) {
                     Log.e(TAG, "ADB 认证失败");
-                    callback.onResult(false, granted, failed);
+                    callback.onResult(false, granted, failed, new ArrayList<>());
                     return;
                 }
 
                 Log.i(TAG, "ADB 认证成功，开始授权...");
 
+                List<String> signature = new ArrayList<>();
                 for (String perm : BydPermissionHelper.getAllPermissions()) {
                     String shortName = perm.substring("android.permission.BYDAUTO_".length());
                     String cmd = "pm grant " + context.getPackageName() + " " + perm;
@@ -76,18 +77,21 @@ public class AdbHelper {
                     if (result != null && !result.contains("Exception") && !result.contains("Error")) {
                         Log.i(TAG, "  ✓ " + shortName);
                         granted.add(shortName);
+                    } else if (result != null && result.contains("not a changeable permission type")) {
+                        Log.w(TAG, "  ⚠ " + shortName + ": signature 级别权限");
+                        signature.add(shortName);
                     } else {
                         Log.w(TAG, "  ✗ " + shortName + (result != null ? ": " + result.trim() : ""));
                         failed.add(shortName);
                     }
                 }
 
-                Log.i(TAG, "授权完成: 成功 " + granted.size() + ", 失败 " + failed.size());
-                callback.onResult(failed.isEmpty(), granted, failed);
+                Log.i(TAG, "授权完成: 成功 " + granted.size() + ", signature " + signature.size() + ", 失败 " + failed.size());
+                callback.onResult(failed.isEmpty(), granted, failed, signature);
 
             } catch (Exception e) {
                 Log.e(TAG, "ADB 授权异常", e);
-                callback.onResult(false, granted, failed);
+                callback.onResult(false, granted, failed, new ArrayList<>());
             } finally {
                 if (socket != null) {
                     try { socket.close(); } catch (IOException ignored) {}
@@ -103,6 +107,47 @@ public class AdbHelper {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public static void startHelperDaemon(Context context, Runnable onStarted) {
+        new Thread(() -> {
+            Socket socket = null;
+            try {
+                socket = connect();
+                if (socket == null) {
+                    Log.e(TAG, "Cannot start helper: ADB unavailable");
+                    return;
+                }
+
+                InputStream in = socket.getInputStream();
+                OutputStream out = socket.getOutputStream();
+
+                if (!authenticate(in, out, context)) {
+                    Log.e(TAG, "Cannot start helper: ADB auth failed");
+                    return;
+                }
+
+                String apkPath = context.getApplicationInfo().sourceDir;
+                String cmd = "CLASSPATH=" + apkPath
+                        + " nohup app_process /system/bin"
+                        + " com.bydlauncher.helper.HelperDaemon"
+                        + " > /dev/null 2>&1 &";
+
+                String result = execShell(in, out, cmd);
+                Log.i(TAG, "HelperDaemon start result: " + result);
+
+                Thread.sleep(1000);
+
+                if (onStarted != null) onStarted.run();
+
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to start HelperDaemon", e);
+            } finally {
+                if (socket != null) {
+                    try { socket.close(); } catch (IOException ignored) {}
+                }
+            }
+        }, "helper-start").start();
     }
 
     private static Socket connect() throws IOException {

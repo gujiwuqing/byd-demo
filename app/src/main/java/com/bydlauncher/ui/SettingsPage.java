@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat;
 
 import com.bydlauncher.LogActivity;
 import com.bydlauncher.R;
+import com.bydlauncher.api.BydApiExplorer;
 import com.bydlauncher.theme.ThemeManager;
 
 public class SettingsPage {
@@ -90,6 +91,7 @@ public class SettingsPage {
         initDefaultLauncher();
         initLogViewer();
         initAdbAuthorize();
+        initApiProbe();
     }
 
     public void setOnSimModeChangedListener(OnSimModeChangedListener listener) {
@@ -268,6 +270,39 @@ public class SettingsPage {
                 adbAuthorizeListener.onAdbAuthorize();
             }
         });
+    }
+
+    // ── API 探测 ──
+
+    private void initApiProbe() {
+        View btnApiProbe = rootView.findViewById(R.id.btn_api_probe);
+        if (btnApiProbe != null) {
+            btnApiProbe.setOnClickListener(v -> {
+                android.widget.Toast.makeText(context, "正在扫描 API...", android.widget.Toast.LENGTH_SHORT).show();
+                BydApiExplorer.runFullProbe(context, new BydApiExplorer.ProbeProgressListener() {
+                    @Override
+                    public void onProgress(int current, int total, String message) {
+                        ((android.app.Activity) context).runOnUiThread(() -> {
+                            if (btnApiProbe instanceof android.widget.Button) {
+                                ((android.widget.Button) btnApiProbe).setText(message + " (" + current + "/" + total + ")");
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onComplete(String filePath) {
+                        ((android.app.Activity) context).runOnUiThread(() -> {
+                            if (btnApiProbe instanceof android.widget.Button) {
+                                ((android.widget.Button) btnApiProbe).setText("API 探测");
+                            }
+                            android.widget.Toast.makeText(context,
+                                    "探测完成，报告: " + filePath,
+                                    android.widget.Toast.LENGTH_LONG).show();
+                        });
+                    }
+                });
+            });
+        }
     }
 
     // ── 工具方法 ──
