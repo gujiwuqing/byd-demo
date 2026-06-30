@@ -1,11 +1,14 @@
 package com.bydlauncher.ui;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
+
+import com.bydlauncher.R;
 
 public class ArcTempView extends View {
 
@@ -13,6 +16,7 @@ public class ArcTempView extends View {
     private static final int TEMP_MAX = 33;
     private static final float START_ANGLE = 180f;
     private static final float SWEEP_ANGLE = 180f;
+    private static final float DEFAULT_ASPECT_RATIO = 0.55f;
 
     private final Paint bgArcPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint progressArcPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -24,18 +28,25 @@ public class ArcTempView extends View {
 
     private int currentTemp = 22;
     private boolean acOn = true;
+    private float aspectRatio = DEFAULT_ASPECT_RATIO;
 
     public ArcTempView(Context context) {
         super(context);
-        init();
+        init(null);
     }
 
     public ArcTempView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init();
+        init(attrs);
     }
 
-    private void init() {
+    private void init(AttributeSet attrs) {
+        if (attrs != null) {
+            TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.ArcTempView);
+            aspectRatio = a.getFloat(R.styleable.ArcTempView_arcAspectRatio, DEFAULT_ASPECT_RATIO);
+            a.recycle();
+        }
+
         float density = getResources().getDisplayMetrics().density;
 
         bgArcPaint.setStyle(Paint.Style.STROKE);
@@ -121,6 +132,6 @@ public class ArcTempView extends View {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int width = MeasureSpec.getSize(widthMeasureSpec);
-        setMeasuredDimension(width, (int)(width * 0.55f));
+        setMeasuredDimension(width, (int)(width * aspectRatio));
     }
 }

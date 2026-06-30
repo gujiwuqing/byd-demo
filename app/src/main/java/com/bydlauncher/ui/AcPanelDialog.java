@@ -1,6 +1,10 @@
 package com.bydlauncher.ui;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.util.DisplayMetrics;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -56,7 +60,7 @@ public class AcPanelDialog {
         LinearLayout windRow = view.findViewById(R.id.ac_wind_row);
         TextView windLabel = view.findViewById(R.id.ac_wind_label);
         int initWind = (status != null) ? status.acWindLevel : acApi.getWindLevel();
-        buildWindDots(context, windRow, initWind, windLabel, acApi);
+        buildWindButtons(context, windRow, initWind, windLabel, acApi);
 
         TextView modeFace = view.findViewById(R.id.ac_mode_face);
         TextView modeFoot = view.findViewById(R.id.ac_mode_foot);
@@ -106,15 +110,22 @@ public class AcPanelDialog {
         });
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(context, R.style.AppAlertDialog)
-                .setTitle("❄  空调控制")
                 .setView(view)
-                .setPositiveButton("关闭", null)
                 .create();
 
         if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             dialog.getWindow().setDimAmount(0.6f);
+
+            DisplayMetrics dm = context.getResources().getDisplayMetrics();
+            int dialogWidth = (int)(dm.widthPixels * 0.65);
+            dialog.getWindow().setLayout(dialogWidth,
+                    android.view.WindowManager.LayoutParams.WRAP_CONTENT);
         }
+
+        view.findViewById(R.id.dialog_ac_close).setOnClickListener(v -> dialog.dismiss());
+
         dialog.show();
     }
 
@@ -122,71 +133,62 @@ public class AcPanelDialog {
         if (on) {
             btn.setText("❄  已开启");
             btn.setTextColor(ContextCompat.getColor(ctx, R.color.accent));
-            btn.setBackgroundResource(R.drawable.bg_btn_ac_selected);
+            btn.setSelected(true);
         } else {
             btn.setText("○  已关闭");
             btn.setTextColor(ContextCompat.getColor(ctx, R.color.text_tertiary));
-            btn.setBackgroundResource(R.drawable.bg_card_glass);
+            btn.setSelected(false);
         }
     }
 
-    private static void buildWindDots(Context ctx, LinearLayout row, int initLevel,
-                                       TextView label, BydAcApi acApi) {
+    private static void buildWindButtons(Context ctx, LinearLayout row, int initLevel,
+                                          TextView label, BydAcApi acApi) {
         int count = 8;
-        View[] dots = new View[count];
+        TextView[] buttons = new TextView[count];
         float density = ctx.getResources().getDisplayMetrics().density;
 
         for (int i = 0; i < count; i++) {
-            View dot = new View(ctx);
+            TextView btn = new TextView(ctx);
+            btn.setGravity(Gravity.CENTER);
+            btn.setText(String.valueOf(i));
+            btn.setTextSize(12);
+            btn.setBackgroundResource(R.drawable.bg_switch_btn);
+
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0,
-                    (int)(12 * density), 1f);
-            lp.setMargins((int)(3 * density), 0, (int)(3 * density), 0);
-            dot.setLayoutParams(lp);
-            updateDot(dot, i == initLevel, ctx);
-            dots[i] = dot;
+                    (int)(36 * density), 1f);
+            lp.setMargins((int)(2 * density), 0, (int)(2 * density), 0);
+            btn.setLayoutParams(lp);
+
+            updateBtnHighlight(btn, i == initLevel, ctx);
+            buttons[i] = btn;
+
             final int level = i;
-            dot.setOnClickListener(v -> {
+            btn.setOnClickListener(v -> {
                 acApi.setWindLevel(level);
-                for (int j = 0; j < count; j++) updateDot(dots[j], j == level, ctx);
+                for (int j = 0; j < count; j++) updateBtnHighlight(buttons[j], j == level, ctx);
                 label.setText(level == 0 ? "自动" : level + "级");
             });
-            row.addView(dot);
+            row.addView(btn);
         }
         label.setText(initLevel == 0 ? "自动" : initLevel + "级");
     }
 
-    private static void updateDot(View dot, boolean selected, Context ctx) {
-        float density = ctx.getResources().getDisplayMetrics().density;
-        int size = selected ? (int)(14 * density) : (int)(10 * density);
-        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) dot.getLayoutParams();
-        lp.height = size;
-        dot.setLayoutParams(lp);
-
-        android.graphics.drawable.GradientDrawable shape = new android.graphics.drawable.GradientDrawable();
-        shape.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-        shape.setColor(selected ? 0xFF00C8F0 : 0x33FFFFFF);
-        dot.setBackground(shape);
+    private static void updateBtnHighlight(TextView btn, boolean selected, Context ctx) {
+        btn.setSelected(selected);
+        btn.setTextColor(selected
+                ? ContextCompat.getColor(ctx, R.color.accent)
+                : ContextCompat.getColor(ctx, R.color.text_secondary));
     }
 
     private static void highlightWindMode(TextView face, TextView foot, TextView defrost,
                                            int mode, Context ctx) {
-        highlightBtn(face, mode == BydAcApi.WIND_MODE_FACE, ctx);
-        highlightBtn(foot, mode == BydAcApi.WIND_MODE_FOOT, ctx);
-        highlightBtn(defrost, mode == BydAcApi.WIND_MODE_DEFROST, ctx);
+        updateBtnHighlight(face, mode == BydAcApi.WIND_MODE_FACE, ctx);
+        updateBtnHighlight(foot, mode == BydAcApi.WIND_MODE_FOOT, ctx);
+        updateBtnHighlight(defrost, mode == BydAcApi.WIND_MODE_DEFROST, ctx);
     }
 
     private static void highlightTwo(TextView a, TextView b, boolean aSelected, Context ctx) {
-        highlightBtn(a, aSelected, ctx);
-        highlightBtn(b, !aSelected, ctx);
-    }
-
-    private static void highlightBtn(TextView btn, boolean selected, Context ctx) {
-        if (selected) {
-            btn.setTextColor(ContextCompat.getColor(ctx, R.color.accent));
-            btn.setBackgroundResource(R.drawable.bg_btn_ac_selected);
-        } else {
-            btn.setTextColor(ContextCompat.getColor(ctx, R.color.text_secondary));
-            btn.setBackgroundResource(R.drawable.bg_card_glass);
-        }
+        updateBtnHighlight(a, aSelected, ctx);
+        updateBtnHighlight(b, !aSelected, ctx);
     }
 }
