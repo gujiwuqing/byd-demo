@@ -61,7 +61,7 @@ public class AdbHelper {
                 InputStream in = socket.getInputStream();
                 OutputStream out = socket.getOutputStream();
 
-                if (!authenticate(in, out, context)) {
+                if (!authenticate(socket, in, out, context)) {
                     Log.e(TAG, "ADB 认证失败");
                     callback.onResult(false, granted, failed, new ArrayList<>());
                     return;
@@ -142,7 +142,7 @@ public class AdbHelper {
                 InputStream in = socket.getInputStream();
                 OutputStream out = socket.getOutputStream();
 
-                if (!authenticate(in, out, context)) {
+                if (!authenticate(socket, in, out, context)) {
                     Log.e(TAG, "Cannot start helper: ADB auth failed");
                     return;
                 }
@@ -177,14 +177,14 @@ public class AdbHelper {
         return socket;
     }
 
-    private static boolean authenticate(InputStream in, OutputStream out, Context context) throws Exception {
+    private static boolean authenticate(Socket socket, InputStream in, OutputStream out, Context context) throws Exception {
         sendMessage(out, CMD_CNXN, VERSION, MAX_PAYLOAD, "host::features=shell_v2");
 
         int[] msg = readMessage(in);
         if (msg == null) return false;
 
         if (msg[0] == CMD_CNXN) {
-            readData(in, msg[3]); // 必须消费 payload，否则后续 execShell 读到脏数据
+            readData(in, msg[3]);
             return true;
         }
 
@@ -201,22 +201,24 @@ public class AdbHelper {
         msg = readMessage(in);
         if (msg == null) return false;
         if (msg[0] == CMD_CNXN) {
-            readData(in, msg[3]); // 消费 payload
+            readData(in, msg[3]);
             return true;
         }
 
         if (msg[0] == CMD_AUTH && msg[1] == AUTH_TOKEN) {
-            // 签名被拒绝，发送公钥触发系统弹出"允许 USB 调试"弹窗
-            readData(in, msg[3]); // 消费 token payload
+            readData(in, msg[3]);
             String pubKey = keyManager.getAdbPublicKeyString();
             sendMessage(out, CMD_AUTH, AUTH_RSAPUBLICKEY, 0,
                     pubKey.getBytes(StandardCharsets.UTF_8));
 
-            Log.i(TAG, "等待用户在系统弹窗中点击\"允许 USB 调试\"...");
+            Log.i(TAG, "已发送公钥，等待用户在弹窗中点击\"允许\"（最多 2 分钟）...");
+            // 用户需要时间看到弹窗、勾选「一律允许」、点击确认，延长超时到 2 分钟
+            socket.setSoTimeout(120000);
 
             msg = readMessage(in);
             if (msg != null && msg[0] == CMD_CNXN) {
-                readData(in, msg[3]); // 消费 payload
+                readData(in, msg[3]);
+                socket.setSoTimeout(15000); // 恢复正常超时用于后续 shell 命令
                 return true;
             }
             return false;
