@@ -24,11 +24,14 @@ public class BydVehicleManager {
     private final BydTireApi tireApi;
     private final BydDriveApi driveApi;
     private final AutoserviceClient autoserviceClient;
+    private BydListenerManager listenerManager;
+    private PollState currentPollState = PollState.PARKED;
+    private int consecutiveFailures = 0;
+    private static final int MAX_BACKOFF_INTERVAL = 60000;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private VehicleStatusListener listener;
     private boolean polling = false;
-    private static final long POLL_INTERVAL = 2000;
 
     public interface VehicleStatusListener {
         void onStatusUpdated(VehicleStatus status);
@@ -43,6 +46,24 @@ public class BydVehicleManager {
         this.tireApi = new BydTireApi(appContext);
         this.driveApi = new BydDriveApi(appContext);
         this.autoserviceClient = new AutoserviceClient(appContext);
+
+        this.listenerManager = new BydListenerManager(new VehicleStatus());
+        listenerManager.setCallback(() -> {
+            if (listener != null) {
+                handler.post(() -> listener.onStatusUpdated(listenerManager.getSharedStatus()));
+            }
+        });
+
+        if (!forceSimMode) {
+            Object bodyworkDev = ReflectionHelper.getDeviceInstance(
+                    "android.hardware.bydauto.bodywork.BYDAutoBodyworkDevice", appContext);
+            listenerManager.registerBodyworkListener(bodyworkDev);
+
+            Object acDev = ReflectionHelper.getDeviceInstance(
+                    "android.hardware.bydauto.ac.BYDAutoAcDevice", appContext);
+            listenerManager.registerAcListener(acDev);
+        }
+
         Log.i(TAG, "Initialized - AC:" + acApi.isRealDevice()
                 + " Body:" + bodyworkApi.isAvailable()
                 + " Stat:" + statisticApi.isAvailable()
@@ -118,10 +139,29 @@ public class BydVehicleManager {
         public void run() {
             if (!polling) return;
             VehicleStatus status = readCurrentStatus();
+
+            boolean dataValid = (status.speed >= 0 || status.batteryPercent >= 0);
+            if (!dataValid) {
+                consecutiveFailures++;
+            } else {
+                consecutiveFailures = 0;
+            }
+
+            currentPollState = PollState.classify(
+                    status.speed, status.gear, status.chargeGunState, dataValid);
+
             if (listener != null) {
                 listener.onStatusUpdated(status);
             }
-            handler.postDelayed(this, POLL_INTERVAL);
+
+            long interval = currentPollState.intervalMs;
+            if (consecutiveFailures > 0) {
+                interval = Math.min(
+                        (long) (interval * Math.pow(1.5, consecutiveFailures)),
+                        MAX_BACKOFF_INTERVAL);
+            }
+
+            handler.postDelayed(this, interval);
         }
     };
 
