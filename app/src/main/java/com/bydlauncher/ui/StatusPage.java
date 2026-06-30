@@ -17,6 +17,11 @@ public class StatusPage {
 
     private final View rootView;
     private final Context context;
+    private AppSlotManager appSlotManager;
+
+    public void setAppSlotManager(AppSlotManager manager) {
+        this.appSlotManager = manager;
+    }
 
     // 电量油量续航
     private final TextView tvBattery, tvEvRange, tvFuel, tvFuelAmount, tvTotalRange;
@@ -80,10 +85,34 @@ public class StatusPage {
     }
 
     private void initPipArea() {
-        rootView.findViewById(R.id.pip_map).setOnClickListener(v -> launchApp("com.autonavi.minimap", "高德地图"));
-        rootView.findViewById(R.id.pip_music).setOnClickListener(v -> launchApp("com.tencent.qqmusic", "QQ音乐"));
-        rootView.findViewById(R.id.pip_video).setOnClickListener(v -> launchApp("com.tencent.qqlive", "腾讯视频"));
-        rootView.findViewById(R.id.pip_phone).setOnClickListener(v -> launchApp("com.android.dialer", "电话"));
+        rootView.findViewById(R.id.pip_map).setOnClickListener(v -> {
+            if (appSlotManager != null && appSlotManager.isConfigured(AppSlotManager.SLOT_NAV)) {
+                appSlotManager.launch(AppSlotManager.SLOT_NAV);
+            } else {
+                launchApp("com.autonavi.minimap", "高德地图");
+            }
+        });
+        rootView.findViewById(R.id.pip_music).setOnClickListener(v -> {
+            if (appSlotManager != null && appSlotManager.isConfigured(AppSlotManager.SLOT_MUSIC)) {
+                appSlotManager.launch(AppSlotManager.SLOT_MUSIC);
+            } else {
+                launchApp("com.tencent.qqmusic", "QQ音乐");
+            }
+        });
+        rootView.findViewById(R.id.pip_video).setOnClickListener(v -> {
+            if (appSlotManager != null && appSlotManager.isConfigured(AppSlotManager.SLOT_VIDEO)) {
+                appSlotManager.launch(AppSlotManager.SLOT_VIDEO);
+            } else {
+                launchApp("com.tencent.qqlive", "腾讯视频");
+            }
+        });
+        rootView.findViewById(R.id.pip_phone).setOnClickListener(v -> {
+            if (appSlotManager != null && appSlotManager.isConfigured(AppSlotManager.SLOT_PHONE)) {
+                appSlotManager.launch(AppSlotManager.SLOT_PHONE);
+            } else {
+                launchApp("com.android.dialer", "电话");
+            }
+        });
     }
 
     private void launchApp(String packageName, String appName) {

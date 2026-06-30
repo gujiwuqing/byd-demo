@@ -6,6 +6,7 @@
 
     <!-- 主内容：顶部栏 + 内容区 + 底部栏 -->
     <LinearLayout
+        android:id="@+id/standard_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
@@ -32,6 +33,9 @@
             android:layout_width="match_parent"
             android:layout_height="@dimen/nav_bar_height" />
     </LinearLayout>
+
+    <!-- 无界模式（默认隐藏） -->
+    <include layout="@layout/page_unbounded" />
 
     <!-- 全屏遮罩层（所有弹窗共用） -->
     <View

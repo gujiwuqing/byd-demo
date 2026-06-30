@@ -42,6 +42,13 @@ public class SettingsPage {
 
     private OnAdbAuthorizeListener adbAuthorizeListener;
     private OnSimModeChangedListener simModeChangedListener;
+    private AppSlotManager appSlotManager;
+    private TextView btnLayoutStandard, btnLayoutUnbounded;
+
+    public interface OnLayoutModeChangedListener {
+        void onLayoutModeChanged(boolean isUnbounded);
+    }
+    private OnLayoutModeChangedListener layoutModeChangedListener;
 
     // 主题分段按钮
     private final TextView btnThemeSystem, btnThemeLight, btnThemeDark;
@@ -92,6 +99,8 @@ public class SettingsPage {
         initLogViewer();
         initAdbAuthorize();
         initApiProbe();
+        initLayoutMode();
+        initAppSlots();
     }
 
     public void setOnSimModeChangedListener(OnSimModeChangedListener listener) {
@@ -100,6 +109,15 @@ public class SettingsPage {
 
     public void setOnAdbAuthorizeListener(OnAdbAuthorizeListener listener) {
         this.adbAuthorizeListener = listener;
+    }
+
+    public void setOnLayoutModeChangedListener(OnLayoutModeChangedListener listener) {
+        this.layoutModeChangedListener = listener;
+    }
+
+    public void setAppSlotManager(AppSlotManager manager) {
+        this.appSlotManager = manager;
+        refreshSlotLabels();
     }
 
     // ── 主题 ──
@@ -311,6 +329,72 @@ public class SettingsPage {
                     }
                 });
             });
+        }
+    }
+
+    // ── 布局模式 ──
+
+    private void initLayoutMode() {
+        btnLayoutStandard = rootView.findViewById(R.id.settings_layout_standard);
+        btnLayoutUnbounded = rootView.findViewById(R.id.settings_layout_unbounded);
+        if (btnLayoutStandard == null || btnLayoutUnbounded == null) return;
+
+        String mode = prefs.getString("layout_mode", "standard");
+        highlightLayoutMode("unbounded".equals(mode));
+
+        btnLayoutStandard.setOnClickListener(v -> {
+            prefs.edit().putString("layout_mode", "standard").apply();
+            highlightLayoutMode(false);
+            if (layoutModeChangedListener != null) layoutModeChangedListener.onLayoutModeChanged(false);
+        });
+        btnLayoutUnbounded.setOnClickListener(v -> {
+            prefs.edit().putString("layout_mode", "unbounded").apply();
+            highlightLayoutMode(true);
+            if (layoutModeChangedListener != null) layoutModeChangedListener.onLayoutModeChanged(true);
+        });
+    }
+
+    private void highlightLayoutMode(boolean isUnbounded) {
+        if (btnLayoutStandard == null) return;
+        setSegmentActive(btnLayoutStandard, !isUnbounded);
+        setSegmentActive(btnLayoutUnbounded, isUnbounded);
+    }
+
+    // ── 应用配置 ──
+
+    private void initAppSlots() {
+        setupSlot(R.id.settings_slot_nav, R.id.settings_slot_nav_value, AppSlotManager.SLOT_NAV);
+        setupSlot(R.id.settings_slot_music, R.id.settings_slot_music_value, AppSlotManager.SLOT_MUSIC);
+        setupSlot(R.id.settings_slot_video, R.id.settings_slot_video_value, AppSlotManager.SLOT_VIDEO);
+        setupSlot(R.id.settings_slot_phone, R.id.settings_slot_phone_value, AppSlotManager.SLOT_PHONE);
+    }
+
+    private void setupSlot(int rowId, int valueId, String slot) {
+        View row = rootView.findViewById(rowId);
+        TextView value = rootView.findViewById(valueId);
+        if (row == null || value == null) return;
+
+        row.setOnClickListener(v -> {
+            if (appSlotManager == null) return;
+            AppPickerDialog.show(context, appSlotManager, (packageName, label) -> {
+                appSlotManager.setPackageName(slot, packageName);
+                value.setText(label);
+            });
+        });
+    }
+
+    private void refreshSlotLabels() {
+        if (appSlotManager == null) return;
+        updateSlotLabel(R.id.settings_slot_nav_value, AppSlotManager.SLOT_NAV);
+        updateSlotLabel(R.id.settings_slot_music_value, AppSlotManager.SLOT_MUSIC);
+        updateSlotLabel(R.id.settings_slot_video_value, AppSlotManager.SLOT_VIDEO);
+        updateSlotLabel(R.id.settings_slot_phone_value, AppSlotManager.SLOT_PHONE);
+    }
+
+    private void updateSlotLabel(int viewId, String slot) {
+        TextView tv = rootView.findViewById(viewId);
+        if (tv != null && appSlotManager != null) {
+            tv.setText(appSlotManager.getAppLabel(slot));
         }
     }
 

@@ -136,4 +136,20 @@
 
     <!-- 日志页 -->
     <string name="log_title">日志</string>
+
+    <!-- 无界模式 -->
+    <string name="unbounded_tap_nav">点击打开导航</string>
+    <string name="unbounded_no_nav">未设置导航应用，请在设置中配置</string>
+    <string name="unbounded_app_uninstalled">应用已卸载，请重新选择</string>
+    <string name="settings_layout_mode">布局模式</string>
+    <string name="settings_layout_standard">标准</string>
+    <string name="settings_layout_unbounded">无界</string>
+    <string name="settings_app_config">应用配置</string>
+    <string name="settings_app_nav">导航应用</string>
+    <string name="settings_app_music">音乐应用</string>
+    <string name="settings_app_video">视频应用</string>
+    <string name="settings_app_phone">电话应用</string>
+    <string name="settings_app_not_set">未设置</string>
+    <string name="settings_app_pick_title">选择应用</string>
+    <string name="settings_app_search_hint">搜索应用…</string>
 </resources>

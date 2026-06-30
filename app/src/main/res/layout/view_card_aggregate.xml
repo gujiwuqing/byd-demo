@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="260dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_card_glass"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="6dp">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⚡" android:textSize="14sp" />
+        <TextView android:id="@+id/agg_speed" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="28sp" android:textStyle="bold" android:layout_marginStart="4dp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=" km/h" android:textColor="@color/text_tertiary" android:textSize="11sp" />
+        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+        <TextView android:id="@+id/agg_gear" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="P" android:textColor="@color/accent" android:textSize="18sp" android:textStyle="bold" />
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" android:layout_marginBottom="6dp" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="2dp">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔋 " android:textSize="12sp" />
+        <TextView android:id="@+id/agg_battery" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="89%" android:textColor="@color/accent" android:textSize="13sp" android:textStyle="bold" />
+        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+        <TextView android:id="@+id/agg_ev_range" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="90km EV" android:textColor="@color/text_secondary" android:textSize="11sp" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="6dp">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⛽ " android:textSize="12sp" />
+        <TextView android:id="@+id/agg_fuel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="37%" android:textColor="@color/status_fair" android:textSize="13sp" android:textStyle="bold" />
+        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+        <TextView android:id="@+id/agg_fuel_amount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="21.0L" android:textColor="@color/text_secondary" android:textSize="11sp" />
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" android:layout_marginBottom="6dp" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="2dp">
+        <TextView android:id="@+id/agg_tire_fl" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="FL 250" android:textColor="@color/text_primary" android:textSize="12sp" android:gravity="center" />
+        <TextView android:id="@+id/agg_tire_fr" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="FR 252" android:textColor="@color/text_primary" android:textSize="12sp" android:gravity="center" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="6dp">
+        <TextView android:id="@+id/agg_tire_rl" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="RL 250" android:textColor="@color/text_primary" android:textSize="12sp" android:gravity="center" />
+        <TextView android:id="@+id/agg_tire_rr" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="RR 250" android:textColor="@color/text_primary" android:textSize="12sp" android:gravity="center" />
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider" android:layout_marginBottom="6dp" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="2dp">
+        <TextView android:id="@+id/agg_outside_temp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="车外 26°" android:textColor="@color/text_secondary" android:textSize="12sp" />
+        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+        <TextView android:id="@+id/agg_power" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.0kW" android:textColor="@color/accent" android:textSize="12sp" android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>
