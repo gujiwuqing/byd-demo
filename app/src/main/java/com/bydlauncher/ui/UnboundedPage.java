@@ -165,36 +165,13 @@ public class UnboundedPage {
     }
 
     private void setupDragZone() {
-        dragZone.setOnTouchListener(new View.OnTouchListener() {
-            private float startY;
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        startY = event.getRawY();
-                        return true;
-                    case MotionEvent.ACTION_MOVE:
-                        float dy = startY - event.getRawY();
-                        float threshold = 80 * context.getResources().getDisplayMetrics().density;
-                        if (dy > threshold) {
-                            if (modeSwitch != null) modeSwitch.switchToStandard();
-                            return true;
-                        }
-                        break;
-                }
-                return false;
-            }
-        });
+        // 底部拖拽区域不触发模式切换，模式只能通过设置页切换
     }
 
     private void setupMiniNavbar() {
-        View navHome = rootView.findViewById(R.id.mini_nav_home);
-        if (navHome != null) {
-            navHome.setOnClickListener(v -> {
-                if (modeSwitch != null) modeSwitch.switchToStandard();
-            });
-        }
+        // 精简导航栏不触发模式切换
+        // AC 按钮预留空调快捷操作
+        // 设置按钮预留（当前无操作，模式切换请去设置页）
     }
 
     public View getView() { return rootView; }

@@ -484,7 +484,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onBackPressed() {
         if (isUnboundedMode) {
-            switchToStandard();
+            // 无界模式下按返回键不切换模式，只能通过设置页切换
         } else if (currentTab != 0) {
             navBar.selectTab(0);
         }
