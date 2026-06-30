@@ -31,6 +31,8 @@ import com.bydlauncher.ui.NavBar;
 import com.bydlauncher.ui.SettingsPage;
 import com.bydlauncher.ui.StatusPage;
 import com.bydlauncher.ui.TopBar;
+import com.bydlauncher.ui.UnboundedPage;
+import com.bydlauncher.ui.AppSlotManager;
 import com.bydlauncher.ui.WindowPanelController;
 
 public class MainActivity extends AppCompatActivity
@@ -53,6 +55,11 @@ public class MainActivity extends AppCompatActivity
 
     private View[] pages;
     private int currentTab = 0;
+    private View standardContainer;
+    private View unboundedContainer;
+    private UnboundedPage unboundedPage;
+    private AppSlotManager appSlotManager;
+    private boolean isUnboundedMode = false;
     private BydEnvironmentDetector.Environment detectedEnv;
 
     @Override
@@ -63,6 +70,10 @@ public class MainActivity extends AppCompatActivity
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         hideSystemUI();
         setContentView(R.layout.activity_main);
+
+        standardContainer = findViewById(R.id.standard_container);
+        unboundedContainer = findViewById(R.id.page_unbounded);
+        appSlotManager = new AppSlotManager(this);
 
         // 自动检测车机环境（用户手动设置优先）
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
@@ -107,6 +118,7 @@ public class MainActivity extends AppCompatActivity
         );
 
         statusPage = new StatusPage(pageStatusView);
+        statusPage.setAppSlotManager(appSlotManager);
         controlsPage = new ControlsPage(pageControlsView, vehicleManager.getAcApi());
         appsPage = new AppsPage(pageAppsView);
 
@@ -120,6 +132,27 @@ public class MainActivity extends AppCompatActivity
             startAdbGrant();
         });
         settingsPage.setOnSimModeChangedListener(this::reinitializeWithSimMode);
+
+        // 无界模式初始化
+        if (unboundedContainer != null) {
+            unboundedPage = new UnboundedPage(unboundedContainer);
+            unboundedPage.setModeSwitch(this::switchToStandard);
+            unboundedPage.setAppSlotManager(appSlotManager);
+        }
+
+        // 设置页布局模式回调
+        settingsPage.setOnLayoutModeChangedListener(isUnbounded -> {
+            if (isUnbounded) switchToUnbounded();
+            else switchToStandard();
+        });
+        settingsPage.setAppSlotManager(appSlotManager);
+
+        // 读取上次的布局模式
+        String layoutMode = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .getString("layout_mode", "standard");
+        if ("unbounded".equals(layoutMode) && unboundedContainer != null) {
+            switchToUnboundedImmediate();
+        }
 
         // 权限检查
         checkPermissions();
@@ -399,12 +432,60 @@ public class MainActivity extends AppCompatActivity
                     status.trunkOpen, status.hoodOpen,
                     status.doorLeftFrontOpen, status.doorRightFrontOpen,
                     status.doorLeftRearOpen, status.doorRightRearOpen);
+            if (unboundedPage != null && isUnboundedMode) {
+                unboundedPage.updateStatus(status);
+                unboundedPage.refreshMusic();
+            }
         });
+    }
+
+    public void switchToUnbounded() {
+        if (isUnboundedMode) return;
+        isUnboundedMode = true;
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .edit().putString("layout_mode", "unbounded").apply();
+
+        unboundedContainer.setVisibility(View.VISIBLE);
+        unboundedContainer.setAlpha(0f);
+        unboundedContainer.animate().alpha(1f).setDuration(300)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                .start();
+
+        standardContainer.animate().alpha(0f).setDuration(300)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                .withEndAction(() -> standardContainer.setVisibility(View.GONE))
+                .start();
+    }
+
+    public void switchToStandard() {
+        if (!isUnboundedMode) return;
+        isUnboundedMode = false;
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .edit().putString("layout_mode", "standard").apply();
+
+        standardContainer.setVisibility(View.VISIBLE);
+        standardContainer.setAlpha(0f);
+        standardContainer.animate().alpha(1f).setDuration(300)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                .start();
+
+        unboundedContainer.animate().alpha(0f).setDuration(300)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                .withEndAction(() -> unboundedContainer.setVisibility(View.GONE))
+                .start();
+    }
+
+    private void switchToUnboundedImmediate() {
+        isUnboundedMode = true;
+        standardContainer.setVisibility(View.GONE);
+        unboundedContainer.setVisibility(View.VISIBLE);
     }
 
     @Override
     public void onBackPressed() {
-        if (currentTab != 0) {
+        if (isUnboundedMode) {
+            switchToStandard();
+        } else if (currentTab != 0) {
             navBar.selectTab(0);
         }
     }
