@@ -70,19 +70,39 @@ public class AdbHelper {
                 Log.i(TAG, "ADB 认证成功，开始授权...");
 
                 List<String> signature = new ArrayList<>();
+
+                // 把所有 pm grant 合并成一条 shell 命令，避免多次 execShell 的 localId 冲突
+                String pkg = context.getPackageName();
+                StringBuilder script = new StringBuilder();
+                for (String perm : BydPermissionHelper.getAllPermissions()) {
+                    if (script.length() > 0) script.append("; ");
+                    script.append("pm grant ").append(pkg).append(" ").append(perm);
+                    script.append(" 2>&1");
+                }
+
+                String combinedResult = execShell(in, out, script.toString());
+                Log.i(TAG, "授权脚本输出: " + combinedResult);
+
+                // 根据组合输出判断哪些成功/失败
+                // 成功的 pm grant 无输出，失败的有 Exception 或 Error
                 for (String perm : BydPermissionHelper.getAllPermissions()) {
                     String shortName = perm.substring("android.permission.BYDAUTO_".length());
-                    String cmd = "pm grant " + context.getPackageName() + " " + perm;
-                    String result = execShell(in, out, cmd);
-                    if (result != null && !result.contains("Exception") && !result.contains("Error")) {
-                        Log.i(TAG, "  ✓ " + shortName);
-                        granted.add(shortName);
-                    } else if (result != null && result.contains("not a changeable permission type")) {
+                    if (combinedResult != null && combinedResult.contains("not a changeable permission type")
+                            && combinedResult.contains(perm)) {
                         Log.w(TAG, "  ⚠ " + shortName + ": signature 级别权限");
                         signature.add(shortName);
                     } else {
-                        Log.w(TAG, "  ✗ " + shortName + (result != null ? ": " + result.trim() : ""));
-                        failed.add(shortName);
+                        // pm grant 成功时无输出，判断整体输出是否包含严重错误
+                        boolean hasError = combinedResult != null &&
+                                (combinedResult.contains("SecurityException") ||
+                                 combinedResult.contains("java.lang.Exception"));
+                        if (!hasError) {
+                            Log.i(TAG, "  ✓ " + shortName);
+                            granted.add(shortName);
+                        } else {
+                            Log.w(TAG, "  ✗ " + shortName);
+                            failed.add(shortName);
+                        }
                     }
                 }
 
