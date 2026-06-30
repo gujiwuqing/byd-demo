@@ -20,6 +20,11 @@ android {
                 storePassword System.getenv("KEY_STORE_PASSWORD")
                 keyAlias System.getenv("KEY_ALIAS")
                 keyPassword System.getenv("KEY_PASSWORD")
+                // BYD 车机 Android 9 只支持 v1/v2，v3/v4 会导致"解析软件包时出现问题"
+                v1SigningEnabled true
+                v2SigningEnabled true
+                v3SigningEnabled false
+                v4SigningEnabled false
             }
         }
     }
