@@ -109,6 +109,47 @@ public class AdbHelper {
         }
     }
 
+    public static void startHelperDaemon(Context context, Runnable onStarted) {
+        new Thread(() -> {
+            Socket socket = null;
+            try {
+                socket = connect();
+                if (socket == null) {
+                    Log.e(TAG, "Cannot start helper: ADB unavailable");
+                    return;
+                }
+
+                InputStream in = socket.getInputStream();
+                OutputStream out = socket.getOutputStream();
+
+                if (!authenticate(in, out, context)) {
+                    Log.e(TAG, "Cannot start helper: ADB auth failed");
+                    return;
+                }
+
+                String apkPath = context.getApplicationInfo().sourceDir;
+                String cmd = "CLASSPATH=" + apkPath
+                        + " nohup app_process /system/bin"
+                        + " com.bydlauncher.helper.HelperDaemon"
+                        + " > /dev/null 2>&1 &";
+
+                String result = execShell(in, out, cmd);
+                Log.i(TAG, "HelperDaemon start result: " + result);
+
+                Thread.sleep(1000);
+
+                if (onStarted != null) onStarted.run();
+
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to start HelperDaemon", e);
+            } finally {
+                if (socket != null) {
+                    try { socket.close(); } catch (IOException ignored) {}
+                }
+            }
+        }, "helper-start").start();
+    }
+
     private static Socket connect() throws IOException {
         Socket socket = new Socket();
         socket.connect(new java.net.InetSocketAddress(ADB_HOST, ADB_PORT), TIMEOUT);
