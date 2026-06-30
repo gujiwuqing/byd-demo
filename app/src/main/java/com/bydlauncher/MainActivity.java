@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import com.bydlauncher.api.BydApiExplorer;
+import com.bydlauncher.api.BydPermissionHelper;
 import com.bydlauncher.api.BydVehicleManager;
 import com.bydlauncher.model.VehicleStatus;
 import com.bydlauncher.theme.ThemeManager;
@@ -54,6 +55,9 @@ public class MainActivity extends AppCompatActivity
 
         vehicleManager = BydVehicleManager.getInstance(this);
         vehicleManager.setListener(this);
+
+        // 权限诊断：检查 BYD 权限授权状态，输出到 Logcat（过滤 "BydPermissionHelper"）
+        BydPermissionHelper.diagnosePermissions(this);
 
         // 在真实车机上扫描可用 API，输出到 Logcat（过滤 "BydApiExplorer"）
         BydApiExplorer.exploreAll();

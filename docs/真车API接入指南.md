@@ -223,6 +223,47 @@ public void probeWindowFeatureIds() {
 **Q: logcat 显示 simulation mode，真车上也这样？**  
 A: 说明 `Class.forName("android.hardware.bydauto.ac.BYDAutoAcDevice")` 失败，可能是权限问题。检查 `BydPermissionContext` 是否正确包裹 context。
 
+**Q: logcat 出现 SecurityException: UID xxx does not have permission to access content://com.byd.vehicle.data.provider/data？**  
+A: 这是 BYD 车机权限未授权导致的。BYD SDK 内部通过 ContentProvider 进行跨进程 IPC 调用，`BydPermissionContext` 无法拦截远程权限检查。需要通过 adb 手动授权：
+
+```bash
+# 连接车机
+adb connect 192.168.10.10:5555
+
+# 进入 adb shell
+adb shell
+
+# 逐条执行以下授权命令
+pm grant com.bydlauncher android.permission.BYDAUTO_AC_GET
+pm grant com.bydlauncher android.permission.BYDAUTO_AC_SET
+pm grant com.bydlauncher android.permission.BYDAUTO_AC_COMMON
+pm grant com.bydlauncher android.permission.BYDAUTO_BODYWORK_GET
+pm grant com.bydlauncher android.permission.BYDAUTO_BODYWORK_COMMON
+pm grant com.bydlauncher android.permission.BYDAUTO_DOOR_LOCK_GET
+pm grant com.bydlauncher android.permission.BYDAUTO_DOOR_LOCK_COMMON
+pm grant com.bydlauncher android.permission.BYDAUTO_POWER_GET
+pm grant com.bydlauncher android.permission.BYDAUTO_ENERGY_GET
+pm grant com.bydlauncher android.permission.BYDAUTO_PM2P5_GET
+pm grant com.bydlauncher android.permission.BYDAUTO_STATISTIC_GET
+pm grant com.bydlauncher android.permission.BYDAUTO_GEARBOX_GET
+pm grant com.bydlauncher android.permission.BYDAUTO_SPEED_GET
+pm grant com.bydlauncher android.permission.BYDAUTO_CHARGING_GET
+pm grant com.bydlauncher android.permission.BYDAUTO_TYRE_GET
+pm grant com.bydlauncher android.permission.BYDAUTO_LIGHT_GET
+pm grant com.bydlauncher android.permission.BYDAUTO_LIGHT_SET
+pm grant com.bydlauncher android.permission.BYDAUTO_SETTING_GET
+
+# 退出 shell
+exit
+
+# 重启应用
+adb shell am force-stop com.bydlauncher
+```
+
+> 提示：应用启动时会自动运行权限诊断，在 logcat 中过滤 `BydPermissionHelper` 可查看哪些权限缺失以及需要执行的具体命令。
+
+> 注意：如果 `pm grant` 报错 "not a changeable permission type"，说明该权限为 signature 级别，需要使用 BYD 平台签名重新签名 APK 或安装为系统应用。
+
 **Q: API 返回 -10011？**  
 A: 未注册到 BYD 服务，车机重启后重试，或检查权限声明。
 
@@ -230,7 +271,7 @@ A: 未注册到 BYD 服务，车机重启后重试，或检查权限声明。
 A: 该功能在当前车型不支持。
 
 **Q: 约 30 天后功能失效？**  
-A: BYD 车机会定期清除第三方应用权限，需重新安装 APK。
+A: BYD 车机会定期清除第三方应用权限，需重新执行上述 `pm grant` 命令或重新安装 APK。
 
 ---
 

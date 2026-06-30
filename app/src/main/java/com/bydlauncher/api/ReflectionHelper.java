@@ -17,6 +17,17 @@ public class ReflectionHelper {
         } catch (ClassNotFoundException e) {
             Log.w(TAG, "BYD API not available (non-BYD device): " + className);
             return null;
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof SecurityException) {
+                Log.e(TAG, "权限不足: " + className);
+                Log.e(TAG, "SecurityException: " + cause.getMessage());
+                Log.e(TAG, "请在 adb shell 中执行: pm grant com.bydlauncher <权限名>");
+                Log.e(TAG, "运行 BydPermissionHelper.diagnosePermissions() 查看完整命令");
+            } else {
+                Log.e(TAG, "Failed to get instance: " + className, e);
+            }
+            return null;
         } catch (Exception e) {
             Log.e(TAG, "Failed to get instance: " + className, e);
             return null;
