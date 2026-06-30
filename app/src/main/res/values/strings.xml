@@ -97,9 +97,9 @@
     <string name="settings_car_model">车型</string>
     <string name="settings_car_model_default">宋PLUS DM-i</string>
     <string name="settings_sim_mode">模拟模式</string>
-    <string name="settings_sim_mode_desc">非 BYD 设备上自动启用，显示模拟数据</string>
-    <string name="settings_sim_on">已启用</string>
-    <string name="settings_sim_off">已关闭（真车模式）</string>
+    <string name="settings_sim_mode_desc">默认启用，显示模拟数据；关闭后使用真车数据</string>
+    <string name="settings_sim_mode_on">模拟模式</string>
+    <string name="settings_sim_mode_real">真车模式</string>
 
     <string name="settings_launcher">桌面</string>
     <string name="settings_default_launcher">设为默认桌面</string>
@@ -114,6 +114,9 @@
     <string name="settings_reference_value">Kinex Launcher</string>
     <string name="settings_target_device">目标设备</string>
     <string name="settings_target_device_value">BYD DiLink 3.0 · 12-13英寸横屏</string>
+
+    <string name="settings_adb_authorize">ADB 权限授权</string>
+    <string name="settings_adb_authorize_desc">手动触发 ADB 授权，获取车辆数据权限</string>
 
     <!-- 权限提示 -->
     <string name="perm_byd_title">车辆权限</string>

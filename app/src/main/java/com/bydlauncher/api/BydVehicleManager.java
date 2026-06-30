@@ -12,6 +12,9 @@ public class BydVehicleManager {
     private static final String TAG = "BydVehicleManager";
     private static BydVehicleManager instance;
 
+    // 用户手动设置的模拟模式开关（true=模拟模式，false=真车模式）
+    private static boolean forceSimMode = true;
+
     private final BydAcApi acApi;
     private final BydBodyworkApi bodyworkApi;
     private final BydStatisticApi statisticApi;
@@ -56,6 +59,14 @@ public class BydVehicleManager {
             instance.stopPolling();
         }
         instance = null;
+    }
+
+    public static void setForceSimulation(boolean force) {
+        forceSimMode = force;
+    }
+
+    public static boolean isForceSimulation() {
+        return forceSimMode;
     }
 
     public BydAcApi getAcApi() { return acApi; }

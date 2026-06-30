@@ -21,7 +21,11 @@ public class BydDoorLockApi {
     private final Object device;
 
     public BydDoorLockApi(Context context) {
-        this.device = ReflectionHelper.getDeviceInstance(CLASS_NAME, context);
+        if (BydVehicleManager.isForceSimulation()) {
+            this.device = null;
+        } else {
+            this.device = ReflectionHelper.getDeviceInstance(CLASS_NAME, context);
+        }
     }
 
     public boolean isAvailable() {

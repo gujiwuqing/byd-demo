@@ -16,8 +16,13 @@ public class BydStatisticApi {
     private final double simTotalMileage = 15832.6;
 
     public BydStatisticApi(Context context) {
-        this.device = ReflectionHelper.getDeviceInstance(CLASS_NAME, context);
-        this.simulation = (device == null);
+        if (BydVehicleManager.isForceSimulation()) {
+            this.device = null;
+            this.simulation = true;
+        } else {
+            this.device = ReflectionHelper.getDeviceInstance(CLASS_NAME, context);
+            this.simulation = (device == null);
+        }
         if (simulation) {
             Log.i(TAG, "Running in simulation mode");
         }

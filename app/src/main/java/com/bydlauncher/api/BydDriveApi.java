@@ -53,13 +53,15 @@ public class BydDriveApi {
         Object foundDevice = null;
         String foundClass = null;
 
-        for (String className : CANDIDATE_CLASSES) {
-            Object d = ReflectionHelper.getDeviceInstance(className, context);
-            if (d != null) {
-                foundDevice = d;
-                foundClass = className;
-                Log.i(TAG, "找到可用的行驶状态 API: " + className);
-                break;
+        if (!BydVehicleManager.isForceSimulation()) {
+            for (String className : CANDIDATE_CLASSES) {
+                Object d = ReflectionHelper.getDeviceInstance(className, context);
+                if (d != null) {
+                    foundDevice = d;
+                    foundClass = className;
+                    Log.i(TAG, "找到可用的行驶状态 API: " + className);
+                    break;
+                }
             }
         }
 

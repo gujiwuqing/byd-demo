@@ -26,10 +26,21 @@ public class SettingsPage {
     public static final int PRESSURE_KPA = 1;
     public static final int PRESSURE_BAR = 2;
 
+    public interface OnAdbAuthorizeListener {
+        void onAdbAuthorize();
+    }
+
+    public interface OnSimModeChangedListener {
+        void onSimModeChanged(boolean isSimulation);
+    }
+
     private final View rootView;
     private final Context context;
     private final ThemeManager themeManager;
     private final SharedPreferences prefs;
+
+    private OnAdbAuthorizeListener adbAuthorizeListener;
+    private OnSimModeChangedListener simModeChangedListener;
 
     // 主题分段按钮
     private final TextView btnThemeSystem, btnThemeLight, btnThemeDark;
@@ -40,8 +51,10 @@ public class SettingsPage {
     private final TextView btnTempC, btnTempF;
     // 胎压分段按钮
     private final TextView btnPsi, btnKpa, btnBar;
-    // 状态
-    private final TextView simStatus;
+    // 模拟模式 Toggle Switch
+    private final FrameLayout simSwitch;
+    private final View simTrack, simThumb;
+    private final TextView simDesc;
 
     public SettingsPage(View rootView, boolean isSimulation) {
         this.rootView = rootView;
@@ -64,15 +77,27 @@ public class SettingsPage {
         btnKpa = rootView.findViewById(R.id.settings_kpa);
         btnBar = rootView.findViewById(R.id.settings_bar);
 
-        simStatus = rootView.findViewById(R.id.settings_sim_status);
+        simSwitch = rootView.findViewById(R.id.settings_sim_switch);
+        simTrack = rootView.findViewById(R.id.settings_sim_track);
+        simThumb = rootView.findViewById(R.id.settings_sim_thumb);
+        simDesc = rootView.findViewById(R.id.settings_sim_desc);
 
         initThemeButtons();
         initClockSwitch();
         initTempUnitButtons();
         initPressureButtons();
-        initSimStatus(isSimulation);
+        initSimSwitch(isSimulation);
         initDefaultLauncher();
         initLogViewer();
+        initAdbAuthorize();
+    }
+
+    public void setOnSimModeChangedListener(OnSimModeChangedListener listener) {
+        this.simModeChangedListener = listener;
+    }
+
+    public void setOnAdbAuthorizeListener(OnAdbAuthorizeListener listener) {
+        this.adbAuthorizeListener = listener;
     }
 
     // ── 主题 ──
@@ -170,20 +195,48 @@ public class SettingsPage {
         setSegmentActive(btnBar, unit == PRESSURE_BAR);
     }
 
-    // ── 模拟模式 ──
+    // ── 模拟模式 Toggle Switch ──
 
-    private void initSimStatus(boolean isSimulation) {
-        updateSimulationState(isSimulation);
+    private boolean isSimMode() {
+        return prefs.getBoolean("sim_mode", true);
+    }
+
+    private void initSimSwitch(boolean isSimulation) {
+        updateSimSwitch(isSimulation);
+        simSwitch.setOnClickListener(v -> {
+            boolean newVal = !isSimMode();
+            prefs.edit().putBoolean("sim_mode", newVal).apply();
+            updateSimSwitch(newVal);
+            if (simModeChangedListener != null) {
+                simModeChangedListener.onSimModeChanged(newVal);
+            }
+        });
+    }
+
+    private void updateSimSwitch(boolean isOn) {
+        simTrack.setBackgroundResource(isOn
+                ? R.drawable.bg_settings_switch_track_on
+                : R.drawable.bg_settings_switch_track_off);
+
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) simThumb.getLayoutParams();
+        if (isOn) {
+            params.gravity = android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.END;
+            params.setMarginEnd(dpToPx(2));
+            params.setMarginStart(0);
+        } else {
+            params.gravity = android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.START;
+            params.setMarginStart(dpToPx(2));
+            params.setMarginEnd(0);
+        }
+        simThumb.setLayoutParams(params);
+
+        simDesc.setText(isOn
+                ? R.string.settings_sim_mode_on
+                : R.string.settings_sim_mode_real);
     }
 
     public void updateSimulationState(boolean isSimulation) {
-        if (isSimulation) {
-            simStatus.setText(R.string.settings_sim_on);
-            simStatus.setTextColor(ContextCompat.getColor(context, R.color.status_fair));
-        } else {
-            simStatus.setText(R.string.settings_sim_off);
-            simStatus.setTextColor(ContextCompat.getColor(context, R.color.status_good));
-        }
+        updateSimSwitch(isSimulation);
     }
 
     // ── 默认桌面 ──
@@ -204,6 +257,16 @@ public class SettingsPage {
             Intent intent = new Intent(context, LogActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(intent);
+        });
+    }
+
+    // ── ADB 权限授权 ──
+
+    private void initAdbAuthorize() {
+        rootView.findViewById(R.id.settings_adb_authorize).setOnClickListener(v -> {
+            if (adbAuthorizeListener != null) {
+                adbAuthorizeListener.onAdbAuthorize();
+            }
         });
     }
 

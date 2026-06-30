@@ -43,8 +43,13 @@ public class BydBodyworkApi {
     private boolean simHoodOpen = false;
 
     public BydBodyworkApi(Context context) {
-        this.device = ReflectionHelper.getDeviceInstance(CLASS_NAME, context);
-        this.simulation = (device == null);
+        if (BydVehicleManager.isForceSimulation()) {
+            this.device = null;
+            this.simulation = true;
+        } else {
+            this.device = ReflectionHelper.getDeviceInstance(CLASS_NAME, context);
+            this.simulation = (device == null);
+        }
         if (simulation) {
             Log.i(TAG, "Running in simulation mode");
         }

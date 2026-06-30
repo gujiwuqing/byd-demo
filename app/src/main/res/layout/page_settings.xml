@@ -392,7 +392,7 @@
                 android:background="@drawable/bg_settings_divider"
                 android:layout_marginStart="@dimen/settings_divider_indent" />
 
-            <!-- 模拟模式 -->
+            <!-- 模拟模式（Toggle Switch） -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -420,6 +420,7 @@
                         android:textColor="@color/text_primary"
                         android:textSize="@dimen/settings_item_title_size" />
                     <TextView
+                        android:id="@+id/settings_sim_desc"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/settings_sim_mode_desc"
@@ -428,11 +429,76 @@
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
 
+                <FrameLayout
+                    android:id="@+id/settings_sim_switch"
+                    android:layout_width="@dimen/settings_switch_track_width"
+                    android:layout_height="@dimen/settings_switch_track_height">
+                    <View
+                        android:id="@+id/settings_sim_track"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/bg_settings_switch_track_on" />
+                    <View
+                        android:id="@+id/settings_sim_thumb"
+                        android:layout_width="@dimen/settings_switch_thumb_size"
+                        android:layout_height="@dimen/settings_switch_thumb_size"
+                        android:layout_gravity="center_vertical|end"
+                        android:layout_marginEnd="2dp"
+                        android:background="@drawable/bg_settings_switch_thumb" />
+                </FrameLayout>
+            </LinearLayout>
+
+            <!-- 分隔线 -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@drawable/bg_settings_divider"
+                android:layout_marginStart="@dimen/settings_divider_indent" />
+
+            <!-- ADB 权限授权 -->
+            <LinearLayout
+                android:id="@+id/settings_adb_authorize"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="@dimen/settings_item_min_height"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:background="?android:attr/selectableItemBackground">
+
                 <TextView
-                    android:id="@+id/settings_sim_status"
+                    android:layout_width="@dimen/settings_icon_size"
+                    android:layout_height="wrap_content"
+                    android:text="🔑"
+                    android:textSize="@dimen/settings_icon_text_size"
+                    android:gravity="center" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="@dimen/spacing_md">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_adb_authorize"
+                        android:textColor="@color/text_primary"
+                        android:textSize="@dimen/settings_item_title_size" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_adb_authorize_desc"
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="@dimen/settings_item_desc_size"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="14sp" />
+                    android:text="›"
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="20sp" />
             </LinearLayout>
 
             <!-- 分隔线 -->
