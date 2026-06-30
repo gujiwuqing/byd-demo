@@ -38,6 +38,7 @@ public class MainActivity extends AppCompatActivity
     private static final String PREFS_NAME = "byd_launcher_prefs";
     private static final String KEY_FIRST_LAUNCH = "first_launch";
     private static final String KEY_ADB_GRANTED = "adb_granted";
+    private static final long[] RETRY_DELAYS = {2000, 3000, 5000, 8000, 10000};
 
     private BydVehicleManager vehicleManager;
 
@@ -138,14 +139,14 @@ public class MainActivity extends AppCompatActivity
             Log.i(TAG, "ADB permissions already granted, skipping check");
         } else if (detectedEnv == BydEnvironmentDetector.Environment.PERMISSION_NEEDED) {
             if (fromBoot) {
-                scheduleAdbCheckWithRetry(5, 2000);
+                scheduleAdbCheckWithRetry(5, 0);
             } else {
                 showBydPermissionDialog();
             }
         } else if (detectedEnv == BydEnvironmentDetector.Environment.REAL_DEVICE) {
             if (!BydPermissionHelper.hasAllPermissions(this)) {
                 if (fromBoot) {
-                    scheduleAdbCheckWithRetry(5, 2000);
+                    scheduleAdbCheckWithRetry(5, 0);
                 } else {
                     showBydPermissionDialog();
                 }
@@ -164,21 +165,22 @@ public class MainActivity extends AppCompatActivity
     /**
      * 延迟重试检测 ADB 可用性（开机后 ADB 服务需要时间初始化）
      */
-    private void scheduleAdbCheckWithRetry(int maxRetries, long delayMs) {
+    private void scheduleAdbCheckWithRetry(int retriesLeft, int retryIndex) {
+        long delay = retryIndex < RETRY_DELAYS.length ? RETRY_DELAYS[retryIndex] : 10000;
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (isFinishing() || isDestroyed()) return;
 
             if (AdbHelper.isAdbAvailable()) {
                 Log.i(TAG, "ADB detected after delay");
                 showAdbAuthDialog();
-            } else if (maxRetries > 1) {
-                Log.i(TAG, "ADB not ready, retrying... (" + (maxRetries - 1) + " left)");
-                scheduleAdbCheckWithRetry(maxRetries - 1, delayMs);
+            } else if (retriesLeft > 1) {
+                Log.i(TAG, "ADB not ready, retrying... (" + (retriesLeft - 1) + " left)");
+                scheduleAdbCheckWithRetry(retriesLeft - 1, retryIndex + 1);
             } else {
                 Log.w(TAG, "ADB not available after all retries, showing manual dialog");
                 showBydPermissionDialog();
             }
-        }, delayMs);
+        }, delay);
     }
 
     /**
@@ -276,35 +278,45 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void startAdbGrant() {
-        AdbHelper.grantPermissions(this, (success, granted, failed) -> runOnUiThread(() -> {
-            if (success || !granted.isEmpty()) {
-                // 保存 ADB 已授权标记，下次启动不再弹窗
-                getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                        .edit().putBoolean(KEY_ADB_GRANTED, true).apply();
+        AdbHelper.grantPermissions(this, (success, granted, failed, signature) -> runOnUiThread(() -> {
+            if (!granted.isEmpty()) {
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    int grantedCount = BydPermissionHelper.getGrantedCount(this);
+                    int total = BydPermissionHelper.getAllPermissions().length;
 
-                android.widget.Toast.makeText(this,
-                        getString(R.string.perm_byd_adb_success),
-                        android.widget.Toast.LENGTH_LONG).show();
+                    Log.i(TAG, "授权验证: " + grantedCount + "/" + total
+                            + " (signature级别: " + signature.size() + ")");
 
-                // ADB 授权成功，切换到真车模式
-                getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                        .edit().putBoolean("sim_mode", false).apply();
-                BydVehicleManager.setForceSimulation(false);
+                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                            .edit()
+                            .putBoolean(KEY_ADB_GRANTED, true)
+                            .remove("sim_mode_manual")
+                            .apply();
 
-                // 重新初始化车辆管理器
-                BydVehicleManager.resetInstance();
-                vehicleManager = BydVehicleManager.getInstance(this);
-                vehicleManager.setListener(this);
-                vehicleManager.startPolling();
+                    String msg;
+                    if (grantedCount == total) {
+                        msg = "权限授权完成 (" + grantedCount + "/" + total + ")";
+                    } else if (!signature.isEmpty()) {
+                        msg = "已授权 " + grantedCount + "/" + total
+                                + "，" + signature.size() + " 个需要平台签名（不影响基本功能）";
+                    } else {
+                        msg = "已授权 " + grantedCount + "/" + total;
+                    }
+                    android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_LONG).show();
 
-                // ControlsPage 持有旧的 acApi 引用，需要重建
-                View pageControlsView = findViewById(R.id.page_controls);
-                controlsPage = new ControlsPage(pageControlsView, vehicleManager.getAcApi());
+                    BydVehicleManager.setForceSimulation(false);
+                    BydVehicleManager.resetInstance();
+                    vehicleManager = BydVehicleManager.getInstance(this);
+                    vehicleManager.setListener(this);
+                    vehicleManager.startPolling();
 
-                // 更新设置页的开关状态
-                if (settingsPage != null) {
-                    settingsPage.updateSimulationState(false);
-                }
+                    View pageControlsView = findViewById(R.id.page_controls);
+                    controlsPage = new ControlsPage(pageControlsView, vehicleManager.getAcApi());
+
+                    if (settingsPage != null) {
+                        settingsPage.updateSimulationState(false);
+                    }
+                }, 500);
             } else {
                 android.widget.Toast.makeText(this,
                         getString(R.string.perm_byd_adb_fail),

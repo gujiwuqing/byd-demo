@@ -89,4 +89,28 @@ public class BydPermissionHelper {
         }
         return true;
     }
+
+    public static List<String> getMissingPermissions(Context context) {
+        PackageManager pm = context.getPackageManager();
+        String packageName = context.getPackageName();
+        List<String> missing = new ArrayList<>();
+        for (String perm : BYD_PERMISSIONS) {
+            if (pm.checkPermission(perm, packageName) != PackageManager.PERMISSION_GRANTED) {
+                missing.add(perm);
+            }
+        }
+        return missing;
+    }
+
+    public static int getGrantedCount(Context context) {
+        PackageManager pm = context.getPackageManager();
+        String packageName = context.getPackageName();
+        int count = 0;
+        for (String perm : BYD_PERMISSIONS) {
+            if (pm.checkPermission(perm, packageName) == PackageManager.PERMISSION_GRANTED) {
+                count++;
+            }
+        }
+        return count;
+    }
 }
