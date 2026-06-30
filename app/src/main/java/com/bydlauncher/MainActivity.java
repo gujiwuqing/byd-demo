@@ -167,8 +167,15 @@ public class MainActivity extends AppCompatActivity
 
         // 设置页布局模式回调
         settingsPage.setOnLayoutModeChangedListener(isUnbounded -> {
-            if (isUnbounded) switchToUnbounded();
-            else switchToStandard();
+            temporaryStandardVisit = false;
+            if (isUnbounded) {
+                switchToUnbounded();
+            } else {
+                // 如果已经在标准容器中（临时访问），只需确保状态正确
+                isUnboundedMode = false;
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                        .edit().putString("layout_mode", "standard").apply();
+            }
         });
         settingsPage.setAppSlotManager(appSlotManager);
 
