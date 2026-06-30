@@ -1,7 +1,9 @@
 package com.bydlauncher;
 
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Bundle;
@@ -212,8 +214,29 @@ public class MainActivity extends AppCompatActivity
     private boolean isDefaultLauncher() {
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_HOME);
-        ResolveInfo resolveInfo = getPackageManager().resolveActivity(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY);
+        ResolveInfo resolveInfo = getPackageManager().resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
         return resolveInfo != null && getPackageName().equals(resolveInfo.activityInfo.packageName);
+    }
+
+    private void enableHomeLauncher() {
+        ComponentName stub = new ComponentName(this, HomeStubActivity.class);
+        int currentState = getPackageManager().getComponentEnabledSetting(stub);
+        if (currentState != PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+            getPackageManager().setComponentEnabledSetting(stub,
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    PackageManager.DONT_KILL_APP);
+        }
+        Intent homeIntent = new Intent(Intent.ACTION_MAIN);
+        homeIntent.addCategory(Intent.CATEGORY_HOME);
+        homeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(homeIntent);
+    }
+
+    private void disableHomeLauncher() {
+        ComponentName stub = new ComponentName(this, HomeStubActivity.class);
+        getPackageManager().setComponentEnabledSetting(stub,
+                PackageManager.COMPONENT_ENABLED_STATE_DEFAULT,
+                PackageManager.DONT_KILL_APP);
     }
 
     private void showDefaultLauncherDialog() {
@@ -221,12 +244,7 @@ public class MainActivity extends AppCompatActivity
                 .setTitle(R.string.perm_launcher_title)
                 .setMessage(R.string.perm_launcher_message)
                 .setPositiveButton(R.string.perm_btn_settings, (d, w) -> {
-                    try {
-                        Intent intent = new Intent(Settings.ACTION_HOME_SETTINGS);
-                        startActivity(intent);
-                    } catch (Exception e) {
-                        // 忽略
-                    }
+                    enableHomeLauncher();
                 })
                 .setNegativeButton(R.string.perm_btn_cancel, null));
     }
