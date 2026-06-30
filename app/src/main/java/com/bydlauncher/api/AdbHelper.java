@@ -184,6 +184,7 @@ public class AdbHelper {
         if (msg == null) return false;
 
         if (msg[0] == CMD_CNXN) {
+            readData(in, msg[3]); // 必须消费 payload，否则后续 execShell 读到脏数据
             return true;
         }
 
@@ -199,9 +200,14 @@ public class AdbHelper {
 
         msg = readMessage(in);
         if (msg == null) return false;
-        if (msg[0] == CMD_CNXN) return true;
+        if (msg[0] == CMD_CNXN) {
+            readData(in, msg[3]); // 消费 payload
+            return true;
+        }
 
         if (msg[0] == CMD_AUTH && msg[1] == AUTH_TOKEN) {
+            // 签名被拒绝，发送公钥触发系统弹出"允许 USB 调试"弹窗
+            readData(in, msg[3]); // 消费 token payload
             String pubKey = keyManager.getAdbPublicKeyString();
             sendMessage(out, CMD_AUTH, AUTH_RSAPUBLICKEY, 0,
                     pubKey.getBytes(StandardCharsets.UTF_8));
@@ -209,7 +215,11 @@ public class AdbHelper {
             Log.i(TAG, "等待用户在系统弹窗中点击\"允许 USB 调试\"...");
 
             msg = readMessage(in);
-            return msg != null && msg[0] == CMD_CNXN;
+            if (msg != null && msg[0] == CMD_CNXN) {
+                readData(in, msg[3]); // 消费 payload
+                return true;
+            }
+            return false;
         }
 
         return false;

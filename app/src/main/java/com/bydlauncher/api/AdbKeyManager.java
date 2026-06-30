@@ -69,6 +69,12 @@ public class AdbKeyManager {
         }
     }
 
+    public static void clearKeys(Context context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit().remove(KEY_PRIVATE).remove(KEY_PUBLIC).apply();
+        Log.i(TAG, "RSA key pair cleared — next auth will trigger ADB dialog");
+    }
+
     public byte[] signToken(byte[] token) throws Exception {
         Signature sig = Signature.getInstance("SHA1withRSA");
         sig.initSign(privateKey);

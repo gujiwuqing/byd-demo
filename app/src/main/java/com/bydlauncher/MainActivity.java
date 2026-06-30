@@ -19,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import com.bydlauncher.api.AdbHelper;
+import com.bydlauncher.api.AdbKeyManager;
 import com.bydlauncher.api.BydApiExplorer;
 import com.bydlauncher.api.BydEnvironmentDetector;
 import com.bydlauncher.api.BydPermissionHelper;
@@ -360,6 +361,8 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void startAdbGrant() {
+        // 키를 초기화하여 ADB 인증 다이얼로그가 반드시 표시되도록 한다
+        AdbKeyManager.clearKeys(this);
         AdbHelper.grantPermissions(this, (success, granted, failed, signature) -> runOnUiThread(() -> {
             if (!granted.isEmpty()) {
                 new Handler(Looper.getMainLooper()).postDelayed(() -> {
