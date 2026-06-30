@@ -13,7 +13,7 @@ public class BydVehicleManager {
     private static BydVehicleManager instance;
 
     // 用户手动设置的模拟模式开关（true=模拟模式，false=真车模式）
-    private static boolean forceSimMode = true;
+    private static boolean forceSimMode = false;
 
     private final BydAcApi acApi;
     private final BydBodyworkApi bodyworkApi;
@@ -59,6 +59,23 @@ public class BydVehicleManager {
             instance.stopPolling();
         }
         instance = null;
+    }
+
+    public static BydEnvironmentDetector.Environment detectAndConfigure(Context context) {
+        BydEnvironmentDetector.Environment env = BydEnvironmentDetector.detect(context);
+        switch (env) {
+            case REAL_DEVICE:
+                setForceSimulation(false);
+                break;
+            case PERMISSION_NEEDED:
+                setForceSimulation(false);
+                break;
+            case SIMULATOR:
+                setForceSimulation(true);
+                break;
+        }
+        Log.i(TAG, "Environment detected: " + env + ", simulation=" + forceSimMode);
+        return env;
     }
 
     public static void setForceSimulation(boolean force) {

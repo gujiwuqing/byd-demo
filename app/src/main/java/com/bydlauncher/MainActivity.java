@@ -18,6 +18,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import com.bydlauncher.api.AdbHelper;
 import com.bydlauncher.api.BydApiExplorer;
+import com.bydlauncher.api.BydEnvironmentDetector;
 import com.bydlauncher.api.BydPermissionHelper;
 import com.bydlauncher.api.BydVehicleManager;
 import com.bydlauncher.model.VehicleStatus;
@@ -49,6 +50,7 @@ public class MainActivity extends AppCompatActivity
 
     private View[] pages;
     private int currentTab = 0;
+    private BydEnvironmentDetector.Environment detectedEnv;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,10 +61,19 @@ public class MainActivity extends AppCompatActivity
         hideSystemUI();
         setContentView(R.layout.activity_main);
 
-        // 读取用户手动设置的模拟模式开关（默认开启）
-        boolean forceSim = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                .getBoolean("sim_mode", true);
-        BydVehicleManager.setForceSimulation(forceSim);
+        // 自动检测车机环境（用户手动设置优先）
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean hasManualOverride = prefs.contains("sim_mode_manual");
+
+        if (hasManualOverride) {
+            boolean forceSim = prefs.getBoolean("sim_mode_manual", true);
+            BydVehicleManager.setForceSimulation(forceSim);
+            this.detectedEnv = forceSim ? BydEnvironmentDetector.Environment.SIMULATOR
+                    : BydEnvironmentDetector.Environment.REAL_DEVICE;
+            Log.i(TAG, "Using manual override: simulation=" + forceSim);
+        } else {
+            this.detectedEnv = BydVehicleManager.detectAndConfigure(this);
+        }
 
         vehicleManager = BydVehicleManager.getInstance(this);
         vehicleManager.setListener(this);
@@ -97,7 +108,7 @@ public class MainActivity extends AppCompatActivity
         appsPage = new AppsPage(pageAppsView);
 
         // 模拟模式使用用户手动设置的值（默认开启）
-        boolean isSimulation = forceSim;
+        boolean isSimulation = BydVehicleManager.isForceSimulation();
         settingsPage = new SettingsPage(pageSettingsView, isSimulation);
         settingsPage.setOnAdbAuthorizeListener(() -> {
             // 重置已授权标记，重新触发授权流程
@@ -122,22 +133,19 @@ public class MainActivity extends AppCompatActivity
             showOverlayPermissionDialog(firstLaunch);
         }
 
-        // 检查 BYD 车辆 API 权限（仅在真实车机上检查）
-        boolean hasAnyRealApi = vehicleManager.getAcApi().isRealDevice()
-                || vehicleManager.getBodyworkApi().isAvailable()
-                || vehicleManager.getStatisticApi().isAvailable();
-
-        // 如果 ADB 已授权过，跳过弹窗
+        // 检查 BYD 车辆 API 权限
         if (adbAlreadyGranted) {
             Log.i(TAG, "ADB permissions already granted, skipping check");
-        } else if (hasAnyRealApi) {
-            boolean hasMissingApi = !vehicleManager.getAcApi().isRealDevice()
-                    || !vehicleManager.getDriveApi().isRealDevice()
-                    || !vehicleManager.getTireApi().isRealDevice();
-            if (hasMissingApi) {
+        } else if (detectedEnv == BydEnvironmentDetector.Environment.PERMISSION_NEEDED) {
+            if (fromBoot) {
+                scheduleAdbCheckWithRetry(5, 2000);
+            } else {
+                showBydPermissionDialog();
+            }
+        } else if (detectedEnv == BydEnvironmentDetector.Environment.REAL_DEVICE) {
+            if (!BydPermissionHelper.hasAllPermissions(this)) {
                 if (fromBoot) {
-                    // 开机后 ADB 服务可能还未就绪，延迟重试检测
-                    scheduleAdbCheckWithRetry(3, 2000);
+                    scheduleAdbCheckWithRetry(5, 2000);
                 } else {
                     showBydPermissionDialog();
                 }
@@ -178,6 +186,9 @@ public class MainActivity extends AppCompatActivity
      */
     private void reinitializeWithSimMode(boolean forceSim) {
         Log.i(TAG, "Switching to " + (forceSim ? "simulation" : "real") + " mode");
+
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .edit().putBoolean("sim_mode_manual", forceSim).apply();
 
         BydVehicleManager.setForceSimulation(forceSim);
         BydVehicleManager.resetInstance();
