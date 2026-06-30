@@ -1,5 +1,6 @@
 package com.bydlauncher;
 
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -274,6 +275,10 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void enableHomeLauncher() {
+        ComponentName stub = new ComponentName(this, HomeStubActivity.class);
+        getPackageManager().setComponentEnabledSetting(stub,
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                PackageManager.DONT_KILL_APP);
         try {
             Intent intent = new Intent(Settings.ACTION_HOME_SETTINGS);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
