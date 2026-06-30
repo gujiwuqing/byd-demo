@@ -136,7 +136,17 @@ public class MainActivity extends AppCompatActivity
         // 无界模式初始化
         if (unboundedContainer != null) {
             unboundedPage = new UnboundedPage(unboundedContainer);
-            unboundedPage.setModeSwitch(this::switchToStandard);
+            unboundedPage.setModeSwitch(new UnboundedPage.ModeSwitch() {
+                @Override
+                public void switchToStandard() {
+                    MainActivity.this.switchToStandard();
+                }
+                @Override
+                public void switchToStandardSettings() {
+                    MainActivity.this.switchToStandard();
+                    navBar.selectTab(3);
+                }
+            });
             unboundedPage.setAppSlotManager(appSlotManager);
         }
 

@@ -15,6 +15,7 @@ public class UnboundedPage {
 
     public interface ModeSwitch {
         void switchToStandard();
+        void switchToStandardSettings();
     }
 
     private final View rootView;
@@ -166,12 +167,36 @@ public class UnboundedPage {
 
     private void setupDragZone() {
         // 底部拖拽区域不触发模式切换，模式只能通过设置页切换
+        dragZone.setClickable(true);
     }
 
     private void setupMiniNavbar() {
-        // 精简导航栏不触发模式切换
-        // AC 按钮预留空调快捷操作
-        // 设置按钮预留（当前无操作，模式切换请去设置页）
+        View navbar = rootView.findViewById(R.id.mini_navbar);
+        if (navbar != null) {
+            navbar.setClickable(true);
+        }
+
+        View navAc = rootView.findViewById(R.id.mini_nav_ac);
+        View navHome = rootView.findViewById(R.id.mini_nav_home);
+        View navSettings = rootView.findViewById(R.id.mini_nav_settings);
+
+        if (navAc != null) {
+            navAc.setOnClickListener(v -> {
+                // 预留空调快捷操作
+            });
+        }
+        if (navHome != null) {
+            navHome.setOnClickListener(v -> {
+                // 无界模式已经是主页，切换卡片显隐
+                if (cardsVisible) hideCards();
+                else showCards();
+            });
+        }
+        if (navSettings != null) {
+            navSettings.setOnClickListener(v -> {
+                if (modeSwitch != null) modeSwitch.switchToStandardSettings();
+            });
+        }
     }
 
     public View getView() { return rootView; }
