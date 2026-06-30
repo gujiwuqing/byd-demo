@@ -277,14 +277,15 @@ public class SettingsPage {
     private void initApiProbe() {
         View btnApiProbe = rootView.findViewById(R.id.btn_api_probe);
         if (btnApiProbe != null) {
+            TextView probeTitle = rootView.findViewById(R.id.btn_api_probe_title);
             btnApiProbe.setOnClickListener(v -> {
                 android.widget.Toast.makeText(context, "正在扫描 API...", android.widget.Toast.LENGTH_SHORT).show();
                 BydApiExplorer.runFullProbe(context, new BydApiExplorer.ProbeProgressListener() {
                     @Override
                     public void onProgress(int current, int total, String message) {
                         ((android.app.Activity) context).runOnUiThread(() -> {
-                            if (btnApiProbe instanceof android.widget.Button) {
-                                ((android.widget.Button) btnApiProbe).setText(message + " (" + current + "/" + total + ")");
+                            if (probeTitle != null) {
+                                probeTitle.setText(message + " (" + current + "/" + total + ")");
                             }
                         });
                     }
@@ -292,8 +293,8 @@ public class SettingsPage {
                     @Override
                     public void onComplete(String filePath) {
                         ((android.app.Activity) context).runOnUiThread(() -> {
-                            if (btnApiProbe instanceof android.widget.Button) {
-                                ((android.widget.Button) btnApiProbe).setText("API 探测");
+                            if (probeTitle != null) {
+                                probeTitle.setText("API 探测");
                             }
                             android.widget.Toast.makeText(context,
                                     "探测完成，报告: " + filePath,
