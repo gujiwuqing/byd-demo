@@ -7,6 +7,8 @@ import android.util.Log;
 
 import com.bydlauncher.model.VehicleStatus;
 
+import java.util.Map;
+
 public class BydVehicleManager {
 
     private static final String TAG = "BydVehicleManager";
@@ -21,6 +23,7 @@ public class BydVehicleManager {
     private final BydDoorLockApi doorLockApi;
     private final BydTireApi tireApi;
     private final BydDriveApi driveApi;
+    private final AutoserviceClient autoserviceClient;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private VehicleStatusListener listener;
@@ -39,6 +42,7 @@ public class BydVehicleManager {
         this.doorLockApi = new BydDoorLockApi(appContext);
         this.tireApi = new BydTireApi(appContext);
         this.driveApi = new BydDriveApi(appContext);
+        this.autoserviceClient = new AutoserviceClient(appContext);
         Log.i(TAG, "Initialized - AC:" + acApi.isRealDevice()
                 + " Body:" + bodyworkApi.isAvailable()
                 + " Stat:" + statisticApi.isAvailable()
@@ -92,6 +96,7 @@ public class BydVehicleManager {
     public BydDoorLockApi getDoorLockApi() { return doorLockApi; }
     public BydTireApi getTireApi() { return tireApi; }
     public BydDriveApi getDriveApi() { return driveApi; }
+    public AutoserviceClient getAutoserviceClient() { return autoserviceClient; }
 
     public void setListener(VehicleStatusListener listener) {
         this.listener = listener;
@@ -205,6 +210,37 @@ public class BydVehicleManager {
         }
         if (!tireApi.isRealDevice()) {
             fillTireSimulationData(s);
+        }
+
+        // ========== service call autoservice 补充数据 ==========
+        if (autoserviceClient.isAvailable()) {
+            try {
+                Map<String, Object> batteryExtras = autoserviceClient.readBatteryExtras();
+                if (batteryExtras.containsKey("batteryTempMax"))
+                    s.batteryTempMax = (int) batteryExtras.get("batteryTempMax");
+                if (batteryExtras.containsKey("batteryTempMin"))
+                    s.batteryTempMin = (int) batteryExtras.get("batteryTempMin");
+                if (batteryExtras.containsKey("cellVoltageMax"))
+                    s.cellVoltageMax = (int) batteryExtras.get("cellVoltageMax");
+                if (batteryExtras.containsKey("cellVoltageMin"))
+                    s.cellVoltageMin = (int) batteryExtras.get("cellVoltageMin");
+                if (batteryExtras.containsKey("soh"))
+                    s.soh = (int) batteryExtras.get("soh");
+
+                Map<String, Object> vehicleExtras = autoserviceClient.readVehicleExtras();
+                if (vehicleExtras.containsKey("voltage12v"))
+                    s.voltage12v = (double) vehicleExtras.get("voltage12v");
+                if (vehicleExtras.containsKey("chargeGunState"))
+                    s.chargeGunState = (int) vehicleExtras.get("chargeGunState");
+                if (vehicleExtras.containsKey("powerState"))
+                    s.powerState = (int) vehicleExtras.get("powerState");
+                if (vehicleExtras.containsKey("driveMode"))
+                    s.driveMode = (int) vehicleExtras.get("driveMode");
+                if (vehicleExtras.containsKey("motorPowerKw"))
+                    s.motorPowerKw = (int) vehicleExtras.get("motorPowerKw");
+            } catch (Exception e) {
+                Log.w(TAG, "AutoserviceClient data fetch failed", e);
+            }
         }
 
         return s;
