@@ -185,7 +185,7 @@
                 </LinearLayout>
 
                 <!-- 中间：车辆示意图 -->
-                <com.bydlauncher.ui.VehicleDiagramView
+                <com.diui.launcher.ui.VehicleDiagramView
                     android:id="@+id/win_vehicle_diagram"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
