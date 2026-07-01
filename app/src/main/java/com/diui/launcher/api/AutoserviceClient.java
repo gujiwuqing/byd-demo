@@ -250,7 +250,7 @@ public class AutoserviceClient {
                     {"车内温度", 5, FidRegistry.FID_CABIN_TEMP},
                     {"车外温度", 5, FidRegistry.FID_OUTSIDE_TEMP},
                     {"风量", 5, FidRegistry.FID_AC_FAN},
-                    {"AC循环", 5, FidRegistry.FID_AC_CYCLE},,
+                    {"AC循环", 5, FidRegistry.FID_AC_CYCLE},
                 }},
                 {"Bodywork (1001)", FidRegistry.DEV_BODYWORK, new Object[][]{
                     {"车门左前", 5, FidRegistry.FID_DOOR_FL},
