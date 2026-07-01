@@ -1,11 +1,18 @@
 package com.diui.launcher.api;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import java.io.File;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -24,6 +31,9 @@ public class AdbHelper {
     private static final AtomicReference<Dadb> sharedDadb = new AtomicReference<>(null);
     private static final AtomicBoolean authPending = new AtomicBoolean(false);
     private static final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private static final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+    private static volatile String resolvedHost = null;
 
     public interface AuthCallback {
         void onAuthPending();
@@ -35,14 +45,83 @@ public class AdbHelper {
         void onResult(boolean success, List<String> granted, List<String> failed, List<String> signature);
     }
 
+    public interface AvailableCallback {
+        void onResult(boolean available);
+    }
+
+    // ---------- ADB 地址探测 ----------
+
+    /**
+     * 同步探测——必须在后台线程调用。
+     * 依次尝试 127.0.0.1 + 本机所有非回环 IPv4 地址，返回第一个 5555 端口可达的地址。
+     */
+    public static String findAdbHost() {
+        if (resolvedHost != null && probePort(resolvedHost, ADB_PORT)) {
+            return resolvedHost;
+        }
+        resolvedHost = null;
+
+        List<String> candidates = new ArrayList<>();
+        candidates.add("127.0.0.1");
+        try {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces != null && interfaces.hasMoreElements()) {
+                NetworkInterface intf = interfaces.nextElement();
+                Enumeration<InetAddress> addrs = intf.getInetAddresses();
+                while (addrs.hasMoreElements()) {
+                    InetAddress addr = addrs.nextElement();
+                    if (!addr.isLoopbackAddress() && addr instanceof Inet4Address) {
+                        candidates.add(addr.getHostAddress());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "枚举网络接口失败", e);
+        }
+
+        for (String host : candidates) {
+            if (probePort(host, ADB_PORT)) {
+                resolvedHost = host;
+                Log.i(TAG, "ADB 可达: " + host + ":" + ADB_PORT);
+                return host;
+            }
+        }
+
+        Log.w(TAG, "ADB 不可达，已尝试: " + candidates);
+        return null;
+    }
+
+    /**
+     * 同步检测——必须在后台线程调用。
+     */
     public static boolean isAdbAvailable() {
+        return findAdbHost() != null;
+    }
+
+    /**
+     * 异步检测——可安全在主线程调用，结果回调到主线程。
+     */
+    public static void checkAvailableAsync(AvailableCallback callback) {
+        executor.execute(() -> {
+            String host = findAdbHost();
+            mainHandler.post(() -> callback.onResult(host != null));
+        });
+    }
+
+    private static String getAdbHost() {
+        return resolvedHost != null ? resolvedHost : "127.0.0.1";
+    }
+
+    private static boolean probePort(String host, int port) {
         try (Socket s = new Socket()) {
-            s.connect(new java.net.InetSocketAddress("127.0.0.1", ADB_PORT), 1000);
+            s.connect(new InetSocketAddress(host, port), 1000);
             return true;
         } catch (Exception e) {
             return false;
         }
     }
+
+    // ---------- 密钥管理 ----------
 
     private static AdbKeyPair getOrCreateKeyPair(Context context) {
         File keyDir = context.getFilesDir();
@@ -70,16 +149,20 @@ public class AdbHelper {
         if (dadb != null) {
             try { dadb.close(); } catch (Exception ignored) {}
         }
+        resolvedHost = null;
         Log.i(TAG, "ADB 密钥已清除，下次连接将弹出授权框");
     }
 
+    // ---------- 连接与认证 ----------
+
     private static Dadb tryConnect(Context context, long timeoutMs) {
         AdbKeyPair keyPair = getOrCreateKeyPair(context);
+        String host = getAdbHost();
         final Dadb[] result = {null};
 
         Thread connectThread = new Thread(() -> {
             try {
-                Dadb dadb = Dadb.create("127.0.0.1", ADB_PORT, keyPair);
+                Dadb dadb = Dadb.create(host, ADB_PORT, keyPair);
                 AdbShellResponse test = dadb.shell("echo ok");
                 if (test.getExitCode() == 0) {
                     result[0] = dadb;
@@ -87,7 +170,7 @@ public class AdbHelper {
                     dadb.close();
                 }
             } catch (Exception e) {
-                Log.d(TAG, "连接尝试: " + e.getMessage());
+                Log.d(TAG, "连接尝试 " + host + ": " + e.getMessage());
             }
         }, "adb-connect-probe");
         connectThread.setDaemon(true);
@@ -102,23 +185,24 @@ public class AdbHelper {
 
     public static void connectAndAuth(Context context, AuthCallback callback) {
         executor.execute(() -> {
-            if (!isAdbAvailable()) {
+            String host = findAdbHost();
+            if (host == null) {
                 Log.w(TAG, "ADB 端口未开放");
-                callback.onAuthFailed("ADB 未开启，请在设置中开启 USB 调试");
+                callback.onAuthFailed("ADB 未开启，请在设置中开启无线 ADB 调试");
                 return;
             }
 
             Dadb dadb = tryConnect(context, 2000);
             if (dadb != null) {
                 sharedDadb.set(dadb);
-                Log.i(TAG, "ADB 已授权，直接连接成功");
+                Log.i(TAG, "ADB 已授权，直接连接成功 (" + host + ")");
                 callback.onAuthGranted();
                 return;
             }
 
             authPending.set(true);
             callback.onAuthPending();
-            Log.i(TAG, "等待用户授权 ADB（车机屏幕应弹出授权框）...");
+            Log.i(TAG, "等待用户授权 ADB（车机屏幕应弹出授权框）... host=" + host);
 
             int maxAttempts = 40;
             for (int i = 0; i < maxAttempts && authPending.get(); i++) {
@@ -128,7 +212,7 @@ public class AdbHelper {
                 if (dadb != null) {
                     sharedDadb.set(dadb);
                     authPending.set(false);
-                    Log.i(TAG, "ADB 授权成功！（第 " + (i + 1) + " 次尝试）");
+                    Log.i(TAG, "ADB 授权成功！（第 " + (i + 1) + " 次尝试, host=" + host + ")");
                     callback.onAuthGranted();
                     return;
                 }
@@ -140,6 +224,8 @@ public class AdbHelper {
             callback.onAuthFailed("授权超时，请在弹窗中点击\"允许\"后重试");
         });
     }
+
+    // ---------- 权限授予 ----------
 
     public static void grantPermissions(Context context, GrantCallback callback) {
         executor.execute(() -> {
@@ -187,6 +273,8 @@ public class AdbHelper {
             }
         });
     }
+
+    // ---------- HelperDaemon 管理 ----------
 
     public static void startHelperDaemon(Context context, Runnable onStarted) {
         executor.execute(() -> {

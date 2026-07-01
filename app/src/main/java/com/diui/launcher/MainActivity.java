@@ -13,7 +13,6 @@ import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 
-import java.net.Socket;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -132,23 +131,26 @@ public class MainActivity extends AppCompatActivity
         settingsPage.setOnAdbAuthorizeListener(() -> {
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                     .edit().putBoolean(KEY_ADB_GRANTED, false).apply();
-            if (!AdbHelper.isAdbAvailable()) {
-                android.widget.Toast.makeText(this,
-                        "本地 ADB 不可用，请确认车机已开启 ADB 调试",
-                        android.widget.Toast.LENGTH_LONG).show();
-                return;
-            }
-            startAdbGrant();
+            AdbHelper.checkAvailableAsync(available -> {
+                if (!available) {
+                    android.widget.Toast.makeText(this,
+                            "本地 ADB 不可用，请确认车机已开启 ADB 调试",
+                            android.widget.Toast.LENGTH_LONG).show();
+                    return;
+                }
+                startAdbGrant();
+            });
         });
         settingsPage.setOnDirectGrantListener(() -> {
-            if (!AdbHelper.isAdbAvailable()) {
-                android.widget.Toast.makeText(this,
-                        "本地 ADB 不可用，请确认车机已开启 ADB 调试",
-                        android.widget.Toast.LENGTH_LONG).show();
-                return;
-            }
-            // 不重置密钥：已认证过则静默执行 pm grant，未认证过则触发首次认证弹窗
-            startAdbGrant(false);
+            AdbHelper.checkAvailableAsync(available -> {
+                if (!available) {
+                    android.widget.Toast.makeText(this,
+                            "本地 ADB 不可用，请确认车机已开启 ADB 调试",
+                            android.widget.Toast.LENGTH_LONG).show();
+                    return;
+                }
+                startAdbGrant(false);
+            });
         });
         settingsPage.setOnSimModeChangedListener(this::reinitializeWithSimMode);
 
@@ -210,47 +212,29 @@ public class MainActivity extends AppCompatActivity
             showOverlayPermissionDialog(firstLaunch);
         }
 
-        // ADB 授权诊断
-        boolean adbAvailable = AdbHelper.isAdbAvailable();
-        Log.i(TAG, "ADB诊断: available=" + adbAvailable
-                + " alreadyGranted=" + adbAlreadyGranted
-                + " env=" + detectedEnv
-                + " fromBoot=" + fromBoot);
+        // ADB 授权诊断（异步，避免主线程 Socket 操作）
+        AdbHelper.checkAvailableAsync(adbAvailable -> {
+            Log.i(TAG, "ADB诊断: available=" + adbAvailable
+                    + " alreadyGranted=" + adbAlreadyGranted
+                    + " env=" + detectedEnv
+                    + " fromBoot=" + fromBoot);
 
-        if (adbAlreadyGranted) {
-            Log.i(TAG, "ADB already granted, skipping auth");
-        } else if (adbAvailable) {
-            Log.i(TAG, "ADB available, starting auto auth");
-            if (fromBoot) {
-                scheduleAdbGrantWithRetry(5, 0);
-            } else {
-                autoAdbGrant();
-            }
-        } else {
-            Log.w(TAG, "ADB port 5555 不可达，尝试检查其他端口...");
-            // 在后台尝试多个端口
-            new Thread(() -> {
-                int[] ports = {5555, 5037};
-                boolean found = false;
-                for (int port : ports) {
-                    try (Socket s = new Socket()) {
-                        s.connect(new java.net.InetSocketAddress("127.0.0.1", port), 1000);
-                        Log.i(TAG, "端口 " + port + " 可达！");
-                        found = true;
-                    } catch (Exception e) {
-                        Log.d(TAG, "端口 " + port + " 不可达: " + e.getMessage());
-                    }
+            if (adbAlreadyGranted) {
+                Log.i(TAG, "ADB already granted, skipping auth");
+            } else if (adbAvailable) {
+                Log.i(TAG, "ADB available, starting auto auth");
+                if (fromBoot) {
+                    scheduleAdbGrantWithRetry(5, 0);
+                } else {
+                    autoAdbGrant();
                 }
-                final boolean portFound = found;
-                runOnUiThread(() -> {
-                    if (!portFound) {
-                        android.widget.Toast.makeText(this,
-                                "ADB 端口不可达，请确认已开启「无线调试」或「网络ADB」",
-                                android.widget.Toast.LENGTH_LONG).show();
-                    }
-                });
-            }).start();
-        }
+            } else {
+                Log.w(TAG, "ADB 端口不可达（已尝试 127.0.0.1 及本机 Wi-Fi IP）");
+                android.widget.Toast.makeText(this,
+                        "ADB 端口不可达，请确认已开启「无线调试」或「网络ADB」",
+                        android.widget.Toast.LENGTH_LONG).show();
+            }
+        });
 
         // 检查是否为默认桌面
         checkDefaultLauncher();
@@ -274,15 +258,17 @@ public class MainActivity extends AppCompatActivity
                 return;
             }
 
-            if (AdbHelper.isAdbAvailable()) {
-                Log.i(TAG, "ADB available after boot delay, auto granting...");
-                autoAdbGrant();
-            } else if (retriesLeft > 1) {
-                Log.i(TAG, "ADB not ready, retrying... (" + (retriesLeft - 1) + " left)");
-                scheduleAdbGrantWithRetry(retriesLeft - 1, retryIndex + 1);
-            } else {
-                Log.w(TAG, "ADB not available after all retries");
-            }
+            AdbHelper.checkAvailableAsync(available -> {
+                if (available) {
+                    Log.i(TAG, "ADB available after boot delay, auto granting...");
+                    autoAdbGrant();
+                } else if (retriesLeft > 1) {
+                    Log.i(TAG, "ADB not ready, retrying... (" + (retriesLeft - 1) + " left)");
+                    scheduleAdbGrantWithRetry(retriesLeft - 1, retryIndex + 1);
+                } else {
+                    Log.w(TAG, "ADB not available after all retries");
+                }
+            });
         }, delay);
     }
 
@@ -291,15 +277,6 @@ public class MainActivity extends AppCompatActivity
      * 系统的"允许 USB 调试？"对话框仍会由 adbd 自动弹出（首次需用户点允许）。
      */
     private void autoAdbGrant() {
-        boolean available = AdbHelper.isAdbAvailable();
-        Log.i(TAG, "autoAdbGrant: isAdbAvailable=" + available);
-        if (!available) {
-            Log.w(TAG, "ADB not available, skip auto grant");
-            android.widget.Toast.makeText(this,
-                    "ADB 端口(5555)不可达，请检查是否开启无线调试",
-                    android.widget.Toast.LENGTH_LONG).show();
-            return;
-        }
         Log.i(TAG, "Auto ADB grant starting...");
         startAdbGrant(false);
     }

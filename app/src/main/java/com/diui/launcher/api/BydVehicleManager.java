@@ -138,12 +138,16 @@ public class BydVehicleManager {
      * ADB 不可用时静默跳过（模拟器/未开 ADB）。
      */
     private void ensureHelperRunning(Context appContext) {
-        if (!AdbHelper.isAdbAvailable()) {
-            Log.i(TAG, "ADB unavailable, skip helper daemon");
-            return;
-        }
+        AdbHelper.checkAvailableAsync(available -> {
+            if (!available) {
+                Log.i(TAG, "ADB unavailable, skip helper daemon");
+                return;
+            }
+            ensureHelperRunningInternal(appContext);
+        });
+    }
 
-        long wantVersion = installedVersionCode(appContext);
+    private void ensureHelperRunningInternal(Context appContext) {        long wantVersion = installedVersionCode(appContext);
         long spawnedVersion = appContext
                 .getSharedPreferences(HELPER_PREFS, Context.MODE_PRIVATE)
                 .getLong(KEY_SPAWNED_VERSION, NO_STORED_VERSION);

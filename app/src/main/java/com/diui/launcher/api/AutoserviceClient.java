@@ -23,7 +23,9 @@ public class AutoserviceClient {
     private boolean available = false;
 
     public AutoserviceClient(Context context) {
-        this.available = AdbHelper.isAdbAvailable();
+        // 不在构造函数做网络探测（主线程会抛 NetworkOnMainThreadException）
+        // 首次调用 getInt/readXxx 时若 service call 失败会自动降级
+        this.available = true;
     }
 
     public boolean isAvailable() {
