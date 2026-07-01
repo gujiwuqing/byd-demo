@@ -352,7 +352,116 @@ public class AutoserviceClient {
         }).start();
     }
 
-    // ---------- 暴力扫描（发现未知 FID）----------
+    // ---------- Content Provider 探测 ----------
+
+    /**
+     * 查询 BYD Content Provider，从 ADB shell 执行 content query 命令。
+     * 这些 Provider 无需特殊权限即可从 shell uid 读取。
+     */
+    public static void probeContentProviders(ScanCallback callback) {
+        new Thread(() -> {
+            StringBuilder sb = new StringBuilder();
+            sb.append("===== Content Provider 探测 =====\n\n");
+
+            dadb.Dadb dadb = AdbHelper.getSharedDadb();
+            if (dadb == null) {
+                sb.append("✗ Dadb 未连接\n");
+                new android.os.Handler(android.os.Looper.getMainLooper())
+                        .post(() -> callback.onResult(sb.toString()));
+                return;
+            }
+
+            // 1. CarStatusProvider
+            sb.append("── CarStatusProvider ──\n");
+            sb.append("URI: content://com.byd.carStatusProvider/car_status\n");
+            try {
+                dadb.AdbShellResponse r = dadb.shell(
+                        "content query --uri content://com.byd.carStatusProvider/car_status 2>&1 | head -50");
+                sb.append(r.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("✗ 异常: ").append(e.getMessage()).append("\n");
+            }
+
+            // 2. CarSettingsProvider 各路径
+            sb.append("\n── CarSettingsProvider ──\n");
+            String[] csPaths = {"", "/travel", "/config", "/global", "/system"};
+            for (String path : csPaths) {
+                String uri = "content://com.byd.providers.carsettings" + path;
+                try {
+                    dadb.AdbShellResponse r = dadb.shell(
+                            "content query --uri " + uri + " 2>&1 | head -30");
+                    String out = r.getAllOutput().trim();
+                    if (!out.isEmpty() && !out.contains("No result found") && !out.contains("Exception")) {
+                        sb.append("\n  ").append(uri).append(":\n");
+                        for (String line : out.split("\n")) {
+                            sb.append("    ").append(line).append("\n");
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            // 3. GPack VehicleServiceProvider
+            sb.append("\n── VehicleServiceProvider ──\n");
+            try {
+                dadb.AdbShellResponse r = dadb.shell(
+                        "content query --uri content://com.gpack.service.provider.VehicleServiceProvider/ 2>&1 | head -30");
+                sb.append(r.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("✗ 异常: ").append(e.getMessage()).append("\n");
+            }
+
+            // 4. Android System Settings 车辆相关
+            sb.append("\n── System Settings (车辆相关) ──\n");
+            String[] settingsKeys = {
+                "KEY_VEHICLE_TYPE", "KEY_REALLY_CARMODE", "EXIST_CAR_SETTINGS",
+                "EXIST_CAR_WINDOW", "car_fuel_range", "car_ev_range", "car_hev_range",
+                "car_fuel_percent", "car_soc", "car_speed", "car_gear",
+                "car_total_mileage", "car_ev_mileage", "car_fuel_mileage"
+            };
+            for (String key : settingsKeys) {
+                try {
+                    dadb.AdbShellResponse r = dadb.shell("settings get system " + key + " 2>&1");
+                    String val = r.getAllOutput().trim();
+                    if (!val.isEmpty() && !val.equals("null")) {
+                        sb.append("  ").append(key).append(" = ").append(val).append("\n");
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            // 5. 全量 system settings 车辆关键词过滤
+            sb.append("\n── System Settings (关键词: fuel/ev/range/soc/car) ──\n");
+            try {
+                dadb.AdbShellResponse r = dadb.shell(
+                        "settings list system 2>/dev/null | grep -iE 'fuel|ev_range|hev|range|soc|speed|gear|mileage|oil|power' | head -40");
+                String out = r.getAllOutput().trim();
+                if (!out.isEmpty()) {
+                    sb.append(out).append("\n");
+                } else {
+                    sb.append("  (无匹配)\n");
+                }
+            } catch (Exception e) {
+                sb.append("✗ 异常: ").append(e.getMessage()).append("\n");
+            }
+
+            // 6. DiCarServer content provider
+            sb.append("\n── DiCarServer Provider ──\n");
+            try {
+                dadb.AdbShellResponse r = dadb.shell(
+                        "content query --uri content://com.byd.car.server.provider.CarServiceProvider/ 2>&1 | head -30");
+                sb.append(r.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("✗ 异常: ").append(e.getMessage()).append("\n");
+            }
+
+            sb.append("\n===== 探测完成 =====");
+            String report = sb.toString();
+            android.util.Log.i("ContentProviderProbe", report);
+            new android.os.Handler(android.os.Looper.getMainLooper())
+                    .post(() -> callback.onResult(report));
+        }).start();
+    }
+}
+
 
     /**
      * 对指定设备类型，在给定 FID 列表中逐个探测（tx=5 和 tx=7 都试），

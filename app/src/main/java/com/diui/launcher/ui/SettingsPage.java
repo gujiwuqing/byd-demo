@@ -89,6 +89,7 @@ public class SettingsPage {
         initVehicleDiag();
         initDaemonDiag();
         initFidScan();
+        initContentProbe();
         initFidBruteScan();
         initApiProbe();
         initLayoutMode();
@@ -490,6 +491,18 @@ public class SettingsPage {
                         .setNegativeButton("关闭", null)
                         .show();
             });
+        });
+    }
+
+    // ── Content Provider 探测 ──
+
+    private void initContentProbe() {
+        rootView.findViewById(R.id.settings_content_probe).setOnClickListener(v -> {
+            Context ctx = rootView.getContext();
+            android.widget.Toast.makeText(ctx, "正在查询 Content Provider（约5秒）...", android.widget.Toast.LENGTH_LONG).show();
+
+            com.diui.launcher.api.AutoserviceClient.probeContentProviders(report ->
+                    showReport(ctx, "Content Provider 探测", report));
         });
     }
 

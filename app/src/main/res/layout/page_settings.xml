@@ -754,7 +754,60 @@
                 android:background="@drawable/bg_settings_divider"
                 android:layout_marginStart="@dimen/settings_divider_indent" />
 
-            <!-- 暴力 FID 发现 -->
+            <!-- 分隔线 -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@drawable/bg_settings_divider"
+                android:layout_marginStart="@dimen/settings_divider_indent" />
+
+            <!-- Content Provider 探测 -->
+            <LinearLayout
+                android:id="@+id/settings_content_probe"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="@dimen/settings_item_min_height"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:background="?android:attr/selectableItemBackground">
+
+                <TextView
+                    android:layout_width="@dimen/settings_icon_size"
+                    android:layout_height="wrap_content"
+                    android:text="🗄️"
+                    android:textSize="@dimen/settings_icon_text_size"
+                    android:gravity="center" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="@dimen/spacing_md">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Content Provider 探测"
+                        android:textColor="@color/text_primary"
+                        android:textSize="@dimen/settings_item_title_size" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="查询续航/油量/里程等 BYD 内容提供者"
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="@dimen/settings_item_desc_size"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="›"
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="20sp" />
+            </LinearLayout>
+
+            <!-- FID 暴力发现 -->
             <LinearLayout
                 android:id="@+id/settings_fid_brute"
                 android:layout_width="match_parent"
