@@ -165,10 +165,10 @@ public class StatusPage {
 
         // 胎压胎温
         if (s.tirePressureFL >= 0) {
-            tireFLPressure.setText(String.valueOf(s.tirePressureFL));
-            tireFRPressure.setText(String.valueOf(s.tirePressureFR));
-            tireRLPressure.setText(String.valueOf(s.tirePressureRL));
-            tireRRPressure.setText(String.valueOf(s.tirePressureRR));
+            tireFLPressure.setText(s.tirePressureFL + " kPa");
+            tireFRPressure.setText(s.tirePressureFR + " kPa");
+            tireRLPressure.setText(s.tirePressureRL + " kPa");
+            tireRRPressure.setText(s.tirePressureRR + " kPa");
             tireFLTemp.setText(s.tireTempFL + "°C");
             tireFRTemp.setText(s.tireTempFR + "°C");
             tireRLTemp.setText(s.tireTempRL + "°C");

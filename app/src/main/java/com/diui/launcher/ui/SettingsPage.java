@@ -18,14 +18,6 @@ public class SettingsPage {
 
     private static final String PREFS_NAME = "byd_launcher_prefs";
     private static final String KEY_CLOCK_24H = "clock_24h";
-    private static final String KEY_TEMP_UNIT = "temp_unit";
-    private static final String KEY_PRESSURE_UNIT = "pressure_unit";
-
-    public static final int TEMP_C = 0;
-    public static final int TEMP_F = 1;
-    public static final int PRESSURE_PSI = 0;
-    public static final int PRESSURE_KPA = 1;
-    public static final int PRESSURE_BAR = 2;
 
     public interface OnAdbAuthorizeListener {
         void onAdbAuthorize();
@@ -55,10 +47,6 @@ public class SettingsPage {
     // 时钟 Toggle Switch
     private final FrameLayout clockSwitch;
     private final View clockTrack, clockThumb;
-    // 温度分段按钮
-    private final TextView btnTempC, btnTempF;
-    // 胎压分段按钮
-    private final TextView btnPsi, btnKpa, btnBar;
     // 模拟模式 Toggle Switch
     private final FrameLayout simSwitch;
     private final View simTrack, simThumb;
@@ -78,13 +66,6 @@ public class SettingsPage {
         clockTrack = rootView.findViewById(R.id.settings_clock_track);
         clockThumb = rootView.findViewById(R.id.settings_clock_thumb);
 
-        btnTempC = rootView.findViewById(R.id.settings_temp_c);
-        btnTempF = rootView.findViewById(R.id.settings_temp_f);
-
-        btnPsi = rootView.findViewById(R.id.settings_psi);
-        btnKpa = rootView.findViewById(R.id.settings_kpa);
-        btnBar = rootView.findViewById(R.id.settings_bar);
-
         simSwitch = rootView.findViewById(R.id.settings_sim_switch);
         simTrack = rootView.findViewById(R.id.settings_sim_track);
         simThumb = rootView.findViewById(R.id.settings_sim_thumb);
@@ -92,8 +73,6 @@ public class SettingsPage {
 
         initThemeButtons();
         initClockSwitch();
-        initTempUnitButtons();
-        initPressureButtons();
         initSimSwitch(isSimulation);
         initDefaultLauncher();
         initLogViewer();
@@ -173,46 +152,6 @@ public class SettingsPage {
             params.setMarginEnd(0);
         }
         clockThumb.setLayoutParams(params);
-    }
-
-    // ── 温度 ──
-
-    private void initTempUnitButtons() {
-        int unit = prefs.getInt(KEY_TEMP_UNIT, TEMP_C);
-        btnTempC.setOnClickListener(v -> setTempUnit(TEMP_C));
-        btnTempF.setOnClickListener(v -> setTempUnit(TEMP_F));
-        highlightTempUnit(unit);
-    }
-
-    private void setTempUnit(int unit) {
-        prefs.edit().putInt(KEY_TEMP_UNIT, unit).apply();
-        highlightTempUnit(unit);
-    }
-
-    private void highlightTempUnit(int unit) {
-        setSegmentActive(btnTempC, unit == TEMP_C);
-        setSegmentActive(btnTempF, unit == TEMP_F);
-    }
-
-    // ── 胎压 ──
-
-    private void initPressureButtons() {
-        int unit = prefs.getInt(KEY_PRESSURE_UNIT, PRESSURE_PSI);
-        btnPsi.setOnClickListener(v -> setPressureUnit(PRESSURE_PSI));
-        btnKpa.setOnClickListener(v -> setPressureUnit(PRESSURE_KPA));
-        btnBar.setOnClickListener(v -> setPressureUnit(PRESSURE_BAR));
-        highlightPressure(unit);
-    }
-
-    private void setPressureUnit(int unit) {
-        prefs.edit().putInt(KEY_PRESSURE_UNIT, unit).apply();
-        highlightPressure(unit);
-    }
-
-    private void highlightPressure(int unit) {
-        setSegmentActive(btnPsi, unit == PRESSURE_PSI);
-        setSegmentActive(btnKpa, unit == PRESSURE_KPA);
-        setSegmentActive(btnBar, unit == PRESSURE_BAR);
     }
 
     // ── 模拟模式 Toggle Switch ──
@@ -415,15 +354,5 @@ public class SettingsPage {
     public static boolean isClock24h(Context context) {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .getBoolean(KEY_CLOCK_24H, true);
-    }
-
-    public static int getTempUnit(Context context) {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getInt(KEY_TEMP_UNIT, TEMP_C);
-    }
-
-    public static int getPressureUnit(Context context) {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getInt(KEY_PRESSURE_UNIT, PRESSURE_PSI);
     }
 }

@@ -3,15 +3,8 @@
     <string name="app_name">迪UI</string>
 
     <!-- 顶部栏 -->
-    <string name="no_media">未在播放</string>
 
     <!-- 底部导航标签 -->
-    <string name="tab_status">状态</string>
-    <string name="tab_map">地图</string>
-    <string name="tab_controls">控制</string>
-    <string name="tab_apps">应用</string>
-    <string name="tab_settings">设置</string>
-    <string name="ac_off_label">OFF</string>
 
     <!-- Status 页 -->
     <string name="air_quality">空气质量</string>
@@ -19,63 +12,19 @@
     <string name="aq_inside">室内</string>
     <string name="aq_excellent">优</string>
     <string name="aq_good">良</string>
-    <string name="aq_fair">中</string>
-    <string name="aq_poor">差</string>
-    <string name="speed_unit">km/h</string>
-    <string name="tire_unit">PSI</string>
     <string name="not_playing">未在播放</string>
     <string name="music_unknown_title">未知歌曲</string>
     <string name="music_unknown_artist">未知歌手</string>
-    <string name="add_shortcut">添加</string>
-    <string name="coming_soon">即将推出</string>
-    <string name="speed_unit_tire">PSI</string>
-    <string name="all_closed">全部关闭</string>
-    <string name="locked_text">已锁车</string>
-    <string name="unlocked_text">已解锁</string>
 
     <!-- Status 页 · 右侧卡片 -->
-    <string name="card_driving">驾驶</string>
-    <string name="card_battery">电量</string>
-    <string name="card_tire_pressure">胎压</string>
-    <string name="card_door_status">车门状态</string>
-    <string name="card_apps">应用</string>
-    <string name="charging">充电中</string>
-    <string name="not_charging">未充电</string>
 
     <!-- Status 页 · 底部按钮栏 -->
-    <string name="btn_quick_access">快捷</string>
-    <string name="btn_ac_control">空调</string>
-    <string name="btn_app_list">应用</string>
-    <string name="btn_settings">设置</string>
 
     <!-- Controls 页 -->
-    <string name="ac_control">空调控制</string>
-    <string name="vehicle_control">车辆控制</string>
-    <string name="wind_level">风量</string>
-    <string name="wind_mode">出风</string>
-    <string name="cycle_mode">循环</string>
-    <string name="control_mode">模式</string>
-    <string name="face_blow">吹面</string>
-    <string name="foot_blow">吹脚</string>
-    <string name="defrost">除雾</string>
-    <string name="inner_cycle">内循环</string>
-    <string name="outer_cycle">外循环</string>
-    <string name="auto_mode">自动</string>
-    <string name="manual_mode">手动</string>
-    <string name="lock_car">锁车</string>
-    <string name="trunk">后备箱</string>
-    <string name="window">车窗</string>
-    <string name="ac_closed">已关闭</string>
 
     <!-- Map 页 -->
-    <string name="navigation">导航</string>
-    <string name="select_map_app">选择地图应用进行导航</string>
-    <string name="amap">高德地图</string>
-    <string name="baidu_map">百度地图</string>
-    <string name="not_installed">未安装</string>
 
     <!-- Apps 页 -->
-    <string name="all_apps">所有应用</string>
 
     <!-- Settings 页 -->
     <string name="settings_title">设置</string>
@@ -86,12 +35,7 @@
     <string name="settings_theme_dark">深色</string>
     <string name="settings_clock_format">时钟格式</string>
     <string name="settings_clock_24h_desc">显示 24 小时制时间</string>
-    <string name="settings_clock_24h">24小时制</string>
-    <string name="settings_clock_12h">12小时制</string>
 
-    <string name="settings_units">单位</string>
-    <string name="settings_temp_unit">温度单位</string>
-    <string name="settings_pressure_unit">胎压单位</string>
 
     <string name="settings_vehicle">车辆</string>
     <string name="settings_car_model">车型</string>
@@ -101,7 +45,6 @@
     <string name="settings_sim_mode_on">模拟模式</string>
     <string name="settings_sim_mode_real">真车模式</string>
 
-    <string name="settings_launcher">桌面</string>
     <string name="settings_default_launcher">设为默认桌面</string>
     <string name="settings_default_launcher_desc">点击后系统会询问选择默认桌面应用</string>
 
@@ -122,9 +65,7 @@
     <string name="perm_byd_title">车辆权限</string>
     <string name="perm_byd_message">检测到部分车辆接口不可用。\n请在系统设置中允许本应用访问车辆数据，以获得完整功能。</string>
     <string name="perm_byd_adb_message">即将请求车辆数据权限。\n系统会弹出 ADB 授权对话框，请点击"允许"。</string>
-    <string name="perm_byd_adb_success">权限授权成功，正在重新加载车辆数据…</string>
     <string name="perm_byd_adb_fail">部分权限授权失败，请检查 ADB 是否已开启。</string>
-    <string name="perm_byd_adb_unavailable">本地 ADB 不可用，请确保车机已开启 ADB 调试。</string>
     <string name="perm_btn_auth">授权</string>
     <string name="perm_overlay_title">悬浮窗权限</string>
     <string name="perm_overlay_message">需要悬浮窗权限以显示车窗控制弹窗。\n请在弹出的系统设置中允许"显示在其他应用上层"。</string>
