@@ -141,7 +141,8 @@ public class BydBodyworkApi {
         }
         int fid = windowWriteFid(area);
         if (fid == -1) return;
-        adbWrite(fid, state == STATE_OPEN ? 100 : 0);
+        // competitor FID 用枚举：1=开 2=关
+        adbWrite(fid, state == STATE_OPEN ? 1 : 2);
     }
 
     public void setWindowPercent(int area, int percent) {

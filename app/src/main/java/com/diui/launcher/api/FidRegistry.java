@@ -46,6 +46,7 @@ public final class FidRegistry {
     public static final int FID_DOOR_RR = 692060174;
     public static final int FID_HOOD = 692060188;              // tx=5, 引擎盖
     public static final int FID_TRUNK = 1074790416;            // tx=5, 后备箱
+    public static final int FID_SUNROOF = 1101004832;           // tx=5, 天窗（1=开 2=关）
     public static final int FID_WINDOW_FL = 947912728;         // tx=5, 百分比
     public static final int FID_WINDOW_FR = 1267728400;
     public static final int FID_WINDOW_RL = 947912736;
@@ -61,12 +62,13 @@ public final class FidRegistry {
     public static final int FID_CELL_VOLT_MAX = 1147142192;    // tx=5, ×0.001 = V
     public static final int FID_CELL_VOLT_MIN = 1147142160;    // tx=5, ×0.001 = V
     public static final int FID_TOTAL_ELEC_CON = 1032871984;   // tx=7 float! 累计能耗 kWh
+    public static final int FID_BATT_TEMP_AVG = 1148190776;    // tx=5, 需 -40，电池平均温度
 
     // ========== Speed (dev=1013) ==========
     public static final int FID_SPEED = -1807745016;           // tx=7 float! ← 修正！
 
     // ========== Gearbox (dev=1011) ==========
-    public static final int FID_GEAR = 555745336;              // tx=5
+    public static final int FID_GEAR = 562036736;              // tx=5（fixture 实测纠正）
 
     // ========== Motor (dev=1012) ==========
     public static final int FID_MOTOR_POWER = 339738656;       // tx=5, kW
@@ -86,7 +88,7 @@ public final class FidRegistry {
 
     // ========== Light (dev=1004) ==========
     public static final int FID_LIGHT_LOW = 950009866;         // tx=5, 近光灯
-    public static final int FID_DRL = 1231040528;              // tx=5, 日行灯
+    public static final int FID_DRL = 985661476;               // tx=5, 日行灯（fixture 实测纠正）
 
     // ========== Safety (dev=1007) ==========
     public static final int FID_SEATBELT_FL = 692060184;       // tx=5, 安全带
@@ -110,11 +112,17 @@ public final class FidRegistry {
     public static final int WFID_AC_CYCLE = 501219355;      // value=0=外循环 1=内循环 ✓
     public static final int WFID_AC_DEFROST_REAR = 501219357; // value=0=off 1=on ✓
 
-    // 车窗写入 (dev=1001) — 百分比 0~100
-    public static final int WFID_WINDOW_FL = 1276219408;    // 左前窗 % ✓
-    public static final int WFID_WINDOW_FR = 1276219424;    // 右前窗 % ✓
-    public static final int WFID_WINDOW_RL = 1276219416;    // 左后窗 % ✓
-    public static final int WFID_WINDOW_RR = 1276219432;    // 右后窗 % ✓
+    // 车窗写入 (dev=1001) — 枚举方式（competitor-actions.json，更广泛支持）
+    // value: 1=开 2=关 3=停 4=半开 5=微开
+    public static final int WFID_WINDOW_FL = 1125122104;    // 左前窗（主驾）
+    public static final int WFID_WINDOW_FR = 1125122107;    // 右前窗（副驾）
+    public static final int WFID_WINDOW_RL = 1125122112;    // 左后窗
+    public static final int WFID_WINDOW_RR = 1125122115;    // 右后窗
+    // Leopard 3 百分比方式（宋Plus DMi 未验证，备用）
+    public static final int WFID_WINDOW_FL_PCT = 1276219408;
+    public static final int WFID_WINDOW_FR_PCT = 1276219424;
+    public static final int WFID_WINDOW_RL_PCT = 1276219416;
+    public static final int WFID_WINDOW_RR_PCT = 1276219432;
 
     // 门锁写入 (dev=1001)
     public static final int WFID_DOOR_LOCK = 1276141590;    // value=1=解锁 2=上锁 ✓
