@@ -465,10 +465,11 @@ public class AdbHelper {
                 sb.append("   查询失败: ").append(e.getMessage()).append("\n");
             }
 
-            // 5. 测试 app_process 是否可用
+            // 5. 测试 app_process 是否可用（使用 /data/local/tmp 作为 dalvik-cache）
             sb.append("\n5. app_process 基础测试:\n");
             try {
-                AdbShellResponse apResp = dadb.shell("app_process /system/bin --help 2>&1 | head -3 || echo 'app_process 不可用'");
+                dadb.shell("mkdir -p /data/local/tmp/dalvik-cache 2>/dev/null");
+                AdbShellResponse apResp = dadb.shell("ANDROID_DATA=/data/local/tmp app_process /system/bin --help 2>&1 | head -3 || echo 'app_process 不可用'");
                 sb.append("   ").append(apResp.getAllOutput().trim().replace("\n", "\n   ")).append("\n");
             } catch (Exception e) {
                 sb.append("   ✗ 异常: ").append(e.getMessage()).append("\n");
@@ -476,7 +477,8 @@ public class AdbHelper {
 
             // 6. 启动 daemon（前台，捕获完整输出）
             sb.append("\n6. 启动 daemon（前台，3秒）:\n");
-            String fgCmd = "CLASSPATH=" + apkPath
+            String fgCmd = "ANDROID_DATA=/data/local/tmp"
+                    + " CLASSPATH=" + apkPath
                     + " app_process /system/bin"
                     + " com.diui.launcher.helper.HelperDaemon"
                     + " " + appUid
@@ -518,7 +520,8 @@ public class AdbHelper {
 
             // 8. 后台启动（正式方式）
             sb.append("\n8. 后台启动 daemon:\n");
-            String bgCmd = "CLASSPATH=" + apkPath
+            String bgCmd = "ANDROID_DATA=/data/local/tmp"
+                    + " CLASSPATH=" + apkPath
                     + " nohup app_process /system/bin"
                     + " com.diui.launcher.helper.HelperDaemon"
                     + " " + appUid
@@ -570,9 +573,13 @@ public class AdbHelper {
             }
 
             try {
+                // 预创建 dalvik-cache 目录（shell 用户可写）
+                dadb.shell("mkdir -p /data/local/tmp/dalvik-cache 2>/dev/null");
+
                 String apkPath = context.getApplicationInfo().sourceDir;
                 int appUid = context.getApplicationInfo().uid;
-                String cmd = "CLASSPATH=" + apkPath
+                String cmd = "ANDROID_DATA=/data/local/tmp"
+                        + " CLASSPATH=" + apkPath
                         + " nohup app_process /system/bin"
                         + " com.diui.launcher.helper.HelperDaemon"
                         + " " + appUid
