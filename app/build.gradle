@@ -47,6 +47,12 @@ android {
     lint {
         checkReleaseBuilds false
     }
+
+    packagingOptions {
+        resources {
+            excludes += ['META-INF/LICENSE.md', 'META-INF/LICENSE-notice.md', 'META-INF/NOTICE.md']
+        }
+    }
 }
 
 dependencies {
