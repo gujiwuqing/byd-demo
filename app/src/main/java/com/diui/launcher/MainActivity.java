@@ -20,7 +20,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import com.diui.launcher.api.AdbHelper;
-import com.diui.launcher.api.AdbKeyManager;
 import com.diui.launcher.api.BydApiExplorer;
 import com.diui.launcher.api.BydEnvironmentDetector;
 import com.diui.launcher.api.BydPermissionHelper;
@@ -353,11 +352,6 @@ public class MainActivity extends AppCompatActivity
         startAdbGrant(true);
     }
 
-    /**
-     * @param clearKeys true=重置 RSA 密钥强制重新弹"允许USB调试"（完整重新认证）；
-     *                  false=复用已信任的密钥静默执行 pm grant（已认证过则不弹窗，
-     *                  未认证过仍会触发首次认证弹窗）。
-     */
     private void startAdbGrant(boolean clearKeys) {
         if (!adbGrantInProgress.compareAndSet(false, true)) {
             Log.w(TAG, "ADB grant already in progress, skipping");
@@ -365,37 +359,49 @@ public class MainActivity extends AppCompatActivity
         }
         showSystemUI();
         if (clearKeys) {
-            AdbKeyManager.clearKeys(this);
+            AdbHelper.clearKeys(this);
         }
-        AdbHelper.grantPermissions(this, (success, granted, failed, signature) -> runOnUiThread(() -> {
-            boolean authSucceeded = !granted.isEmpty() || !failed.isEmpty() || !signature.isEmpty();
-            if (authSucceeded) {
-                new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                    Log.i(TAG, "ADB 认证成功: granted=" + granted.size()
-                            + " failed=" + failed.size() + " signature=" + signature.size());
 
+        android.widget.Toast.makeText(this, "正在连接 ADB，请在弹窗中点击\"允许\"...",
+                android.widget.Toast.LENGTH_LONG).show();
+
+        AdbHelper.connectAndAuth(this, new AdbHelper.AuthCallback() {
+            @Override
+            public void onAuthPending() {
+                runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this,
+                        "等待 ADB 授权，请在屏幕弹窗中点击\"允许\"",
+                        android.widget.Toast.LENGTH_LONG).show());
+            }
+
+            @Override
+            public void onAuthGranted() {
+                Log.i(TAG, "ADB 认证成功，开始授权权限...");
+                AdbHelper.grantPermissions(MainActivity.this, (success, granted, failed, signature) ->
+                        runOnUiThread(() -> {
                     getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                             .edit()
                             .putBoolean(KEY_ADB_GRANTED, true)
                             .remove("sim_mode_manual")
                             .apply();
 
-                    AdbHelper.startHelperDaemon(this, () -> {
-                        Log.i(TAG, "HelperDaemon started after ADB auth");
-                    });
+                    AdbHelper.startHelperDaemon(MainActivity.this, () ->
+                            Log.i(TAG, "HelperDaemon started after ADB auth"));
 
                     String msg;
                     if (!granted.isEmpty()) {
                         msg = "ADB授权成功，已授权 " + granted.size() + " 个权限";
+                    } else if (!signature.isEmpty()) {
+                        msg = "ADB授权成功，" + signature.size() + " 个需要平台签名（不影响功能）";
                     } else {
-                        msg = "ADB授权成功，车辆API通过系统服务访问";
+                        msg = "ADB授权成功";
                     }
-                    android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_LONG).show();
+                    android.widget.Toast.makeText(MainActivity.this, msg,
+                            android.widget.Toast.LENGTH_LONG).show();
 
                     BydVehicleManager.setForceSimulation(false);
                     BydVehicleManager.resetInstance();
-                    vehicleManager = BydVehicleManager.getInstance(this);
-                    vehicleManager.setListener(this);
+                    vehicleManager = BydVehicleManager.getInstance(MainActivity.this);
+                    vehicleManager.setListener(MainActivity.this);
                     vehicleManager.startPolling();
 
                     View pageControlsView = findViewById(R.id.page_controls);
@@ -407,15 +413,20 @@ public class MainActivity extends AppCompatActivity
 
                     hideSystemUI();
                     adbGrantInProgress.set(false);
-                }, 500);
-            } else {
-                hideSystemUI();
-                android.widget.Toast.makeText(this,
-                        getString(R.string.perm_byd_adb_fail),
-                        android.widget.Toast.LENGTH_LONG).show();
-                adbGrantInProgress.set(false);
+                }));
             }
-        }));
+
+            @Override
+            public void onAuthFailed(String error) {
+                runOnUiThread(() -> {
+                    hideSystemUI();
+                    android.widget.Toast.makeText(MainActivity.this,
+                            "ADB 授权失败: " + error,
+                            android.widget.Toast.LENGTH_LONG).show();
+                    adbGrantInProgress.set(false);
+                });
+            }
+        });
     }
 
     /**

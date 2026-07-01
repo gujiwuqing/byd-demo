@@ -8,11 +8,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew assembleDebug
 # APK: app/build/outputs/apk/debug/app-debug.apk
 
-adb connect 192.168.10.10:5555                    # WiFi 连接车机（固定 IP）
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+# 方式一：网盘下载安装（推荐）
+# 上传 APK 到网盘，在车机网盘 App 中下载并安装
+
+# 方式二：USB 安装器
+# 将 APK 放入 U 盘 "Third Party Apps 55" 文件夹 → 插车机 → 密码 BYD6125F
+
+# 方式三：ADB WiFi
+adb connect 192.168.10.10:5555
+adb install app/build/outputs/apk/debug/app-debug.apk
+
+# 调试
 adb logcat -s AndroidRuntime:E                    # 查看崩溃日志
 adb shell screencap -p /sdcard/s.png && adb pull /sdcard/s.png  # 截图调试
-adb shell cmd package set-home-activity com.bydlauncher/.MainActivity
+adb shell cmd package set-home-activity com.diui.launcher/.MainActivity
 ```
 
 无测试套件。无 lint 配置。验证改动靠构建 + 安装到设备/模拟器手动测试。
@@ -72,6 +81,29 @@ BydVehicleManager（单例，2 秒轮询）
 - **模拟模式**：非 BYD 设备上 `Class.forName` 失败 → `simulation = true` → 返回硬编码数据，所有控制操作只修改内存状态
 - `BydPermissionContext`（ContextWrapper）：拦截 `BYDAUTO_*` 权限检查，使非系统签名 APK 可访问 API
 
+### 权限与 ADB 授权系统
+
+BYD 车机权限分三个层级：
+- `COMMON`：运行时权限，可通过 `pm grant` 授予，`getInstance()` 时检查
+- `GET`：signature 级别，读取方法需要，通过 `BydPermissionContext` 客户端绕过
+- `SET`：signature 级别，写入方法需要，通过 `BydPermissionContext` 客户端绕过
+
+**权限绕过两层机制**：
+1. `BydPermissionContext`（ContextWrapper）— 拦截客户端侧的权限检查，对 `getInstance()` 和大部分 GET/SET 方法有效
+2. `pm grant`（通过 ADB）— 在系统权限数据库中真正授予 COMMON 权限，应对 IPC 服务端侧的权限检查
+
+**ADB 自连接授权流程**（参考 [Overdrive](https://github.com/yash-srivastava/Overdrive-release) 项目）：
+```
+App 启动 → 检测 BYD 环境 → 需要权限
+  → AdbHelper.connectAndAuth() 连接 127.0.0.1:5555
+  → dadb 库发送 RSA 公钥 → 车机屏幕弹出 "允许USB调试?" 弹窗
+  → 用户点击 "允许" → 后台轮询检测授权（3秒/次，最多2分钟）
+  → 授权成功 → AdbHelper.grantPermissions() 执行 pm grant
+  → 启动 HelperDaemon（通过 ADB shell 以 shell 权限运行 app_process）
+```
+
+**关键依赖**：`dev.mobile:dadb:1.2.8`（纯 Java ADB 客户端库，替代手写 ADB 协议）
+
 ### 主题系统
 
 深色 OLED + Glassmorphism 风格。`ThemeManager` 管理浅/深切换，通过 `AppCompatDelegate.setDefaultNightMode()` + Android 原生 `values/colors.xml` + `values-night/colors.xml` 实现。`SettingsPage` 额外持久化时钟格式、温度单位、胎压单位到 SharedPreferences（key 见 `SettingsPage` 的静态常量），供其他页面通过静态方法读取。
@@ -82,7 +114,14 @@ BydVehicleManager（单例，2 秒轮询）
 - **布局命名**：`page_*.xml` 标签页、`panel_*.xml` 内嵌弹窗面板、`dialog_*.xml` 旧 Dialog（废弃）、`card_*.xml` 卡片、`view_*.xml` 固定栏
 - **面板 vs Dialog**：新增弹窗功能必须用 `panel_*.xml` + Activity 内嵌方式，不用 Android Dialog
 - **targetSdk 28**：刻意不升级，避免 BYD 车机权限问题
-- **ProGuard**：保留 `android.hardware.bydauto.**` 和 `com.bydlauncher.api.**`
+- **ProGuard**：保留 `android.hardware.bydauto.**` 和 `com.diui.launcher.api.**`
+
+## Package & Identity
+
+- **applicationId**：`com.diui.launcher`（不能用 `com.bydlauncher`，与 BYD 系统自带桌面冲突）
+- **namespace**：`com.diui.launcher`（与 applicationId 一致）
+- **Java 包名**：`com.diui.launcher`（所有源文件统一使用）
+- **目标车型**：21款比亚迪宋Plus DMi（DiLink 3.0 / Android 9）
 
 ## BYD API Notes
 
