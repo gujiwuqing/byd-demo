@@ -140,6 +140,10 @@ public class AdbHelper {
         return resolvedHost != null ? resolvedHost : "127.0.0.1";
     }
 
+    public static Dadb getSharedDadb() {
+        return sharedDadb.get();
+    }
+
     private static boolean probePort(String host, int port) {
         try (Socket s = new Socket()) {
             s.connect(new InetSocketAddress(host, port), 1000);

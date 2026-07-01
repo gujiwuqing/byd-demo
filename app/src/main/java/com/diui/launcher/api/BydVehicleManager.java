@@ -325,6 +325,11 @@ public class BydVehicleManager {
             fillTireSimulationData(s);
         }
 
+        // ========== ADB shell 降级：BYD API 返回 -1 时通过 service call 补数据 ==========
+        if (AdbHelper.getSharedDadb() != null && autoserviceClient.isAvailable()) {
+            fillFromAutoserviceShell(s);
+        }
+
         // ========== 补充数据（HelperClient 优先 → AutoserviceClient 降级）==========
         try {
             if (helperClient.isAvailable()) {
@@ -406,6 +411,76 @@ public class BydVehicleManager {
 
         int motorPower = helperClient.getInt(FidRegistry.DEV_MOTOR, FidRegistry.FID_MOTOR_POWER);
         if (!FidRegistry.isSentinel(motorPower)) s.motorPowerKw = motorPower;
+    }
+
+    /**
+     * 通过 ADB shell 执行 service call autoservice 读取核心车辆数据。
+     * 当 BYD 反射 API 因 signature 权限返回 -1 时，作为降级通道使用。
+     */
+    private void fillFromAutoserviceShell(VehicleStatus s) {
+        try {
+            // AC
+            int acState = autoserviceClient.getAcState();
+            if (!FidRegistry.isSentinel(acState) && acState >= 0) {
+                s.acOn = (acState == 1);
+            }
+            int acTemp = autoserviceClient.getAcTemp();
+            if (!FidRegistry.isSentinel(acTemp) && acTemp > 0 && acTemp < 100) {
+                s.acTemp = (acTemp > 30) ? acTemp / 2 : acTemp;
+            }
+            int outsideTemp = autoserviceClient.getOutsideTemp();
+            if (!FidRegistry.isSentinel(outsideTemp) && outsideTemp > -50 && outsideTemp < 80) {
+                s.outsideTemp = outsideTemp;
+            }
+            int wind = autoserviceClient.getAcWind();
+            if (!FidRegistry.isSentinel(wind) && wind >= 0 && wind <= 7) {
+                s.acWindLevel = wind;
+            }
+
+            // 电量
+            int soc = autoserviceClient.getBatteryCapacity();
+            if (!FidRegistry.isSentinel(soc) && soc >= 0 && soc <= 100) {
+                s.batteryPercent = soc;
+            }
+
+            // 车门
+            int doorFL = autoserviceClient.getDoorState(FidRegistry.FID_DOOR_FL);
+            if (!FidRegistry.isSentinel(doorFL)) s.doorLeftFrontOpen = (doorFL == 1);
+            int doorFR = autoserviceClient.getDoorState(FidRegistry.FID_DOOR_FR);
+            if (!FidRegistry.isSentinel(doorFR)) s.doorRightFrontOpen = (doorFR == 1);
+            int doorRL = autoserviceClient.getDoorState(FidRegistry.FID_DOOR_RL);
+            if (!FidRegistry.isSentinel(doorRL)) s.doorLeftRearOpen = (doorRL == 1);
+            int doorRR = autoserviceClient.getDoorState(FidRegistry.FID_DOOR_RR);
+            if (!FidRegistry.isSentinel(doorRR)) s.doorRightRearOpen = (doorRR == 1);
+
+            // 车窗
+            int winFL = autoserviceClient.getWindowState(FidRegistry.FID_WINDOW_FL);
+            if (!FidRegistry.isSentinel(winFL)) s.windowFL = winFL;
+            int winFR = autoserviceClient.getWindowState(FidRegistry.FID_WINDOW_FR);
+            if (!FidRegistry.isSentinel(winFR)) s.windowFR = winFR;
+            int winRL = autoserviceClient.getWindowState(FidRegistry.FID_WINDOW_RL);
+            if (!FidRegistry.isSentinel(winRL)) s.windowRL = winRL;
+            int winRR = autoserviceClient.getWindowState(FidRegistry.FID_WINDOW_RR);
+            if (!FidRegistry.isSentinel(winRR)) s.windowRR = winRR;
+
+            // 速度/档位
+            int speed = autoserviceClient.getSpeed();
+            if (!FidRegistry.isSentinel(speed) && speed >= 0) s.speed = speed;
+            int gear = autoserviceClient.getGear();
+            if (!FidRegistry.isSentinel(gear) && gear >= 0) s.gear = gear;
+
+            // 胎压
+            int tireFL = autoserviceClient.getInt(FidRegistry.DEV_TIRE, FidRegistry.FID_TIRE_FL);
+            if (!FidRegistry.isSentinel(tireFL) && tireFL > 0) s.tirePressureFL = tireFL;
+            int tireFR = autoserviceClient.getInt(FidRegistry.DEV_TIRE, FidRegistry.FID_TIRE_FR);
+            if (!FidRegistry.isSentinel(tireFR) && tireFR > 0) s.tirePressureFR = tireFR;
+            int tireRL = autoserviceClient.getInt(FidRegistry.DEV_TIRE, FidRegistry.FID_TIRE_RL);
+            if (!FidRegistry.isSentinel(tireRL) && tireRL > 0) s.tirePressureRL = tireRL;
+            int tireRR = autoserviceClient.getInt(FidRegistry.DEV_TIRE, FidRegistry.FID_TIRE_RR);
+            if (!FidRegistry.isSentinel(tireRR) && tireRR > 0) s.tirePressureRR = tireRR;
+        } catch (Exception e) {
+            Log.w(TAG, "autoservice shell fallback failed", e);
+        }
     }
 
     private void fillExtrasFromAutoservice(VehicleStatus s) {
