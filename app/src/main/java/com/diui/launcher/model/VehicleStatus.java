@@ -212,4 +212,28 @@ public class VehicleStatus {
                 || doorLeftRearOpen || doorRightRearOpen
                 || trunkOpen || hoodOpen;
     }
+
+    // ========== 保养数据（CarStatusProvider）==========
+    public int maintenanceDaysLeft = -1;    // 距下次保养天数
+    public int maintenanceMileLeft = -1;    // 距下次保养公里数
+    public int maintenanceIssueNum = 0;     // 当前故障数量
+
+    public String getMaintenanceDaysText() {
+        return maintenanceDaysLeft >= 0 ? maintenanceDaysLeft + "天" : "N/A";
+    }
+
+    public String getMaintenanceMileText() {
+        return maintenanceMileLeft >= 0 ? maintenanceMileLeft + "km" : "N/A";
+    }
+
+    public static class MaintenanceInfo {
+        public final int daysLeft;
+        public final int mileLeft;
+        public final int issueNum;
+        public MaintenanceInfo(int daysLeft, int mileLeft, int issueNum) {
+            this.daysLeft = daysLeft;
+            this.mileLeft = mileLeft;
+            this.issueNum = issueNum;
+        }
+    }
 }

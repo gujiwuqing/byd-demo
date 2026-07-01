@@ -3,6 +3,8 @@ package com.diui.launcher.api;
 import android.content.Context;
 import android.util.Log;
 
+import dadb.AdbShellResponse;
+
 public class BydBodyworkApi {
 
     private static final String TAG = "BydBodyworkApi";
@@ -79,9 +81,9 @@ public class BydBodyworkApi {
     }
 
     public void toggleLock() {
-        if (simulation) {
-            simLocked = !simLocked;
-        }
+        if (simulation) { simLocked = !simLocked; return; }
+        boolean locked = isLocked();
+        adbWrite(FidRegistry.WFID_DOOR_LOCK, locked ? 1 : 2); // 1=解锁 2=上锁
     }
 
     public int getPowerLevel() {
@@ -125,7 +127,7 @@ public class BydBodyworkApi {
     /**
      * 设置车窗状态
      * @param area 车窗位置 (DOOR_LEFT_FRONT, DOOR_RIGHT_FRONT, DOOR_LEFT_REAR, DOOR_RIGHT_REAR)
-     * @param state STATE_CLOSED 或 STATE_OPEN
+     * @param state STATE_CLOSED=0 关 STATE_OPEN=1 开
      */
     public void setWindowState(int area, int state) {
         if (simulation) {
@@ -137,16 +139,24 @@ public class BydBodyworkApi {
             }
             return;
         }
-        // 尝试多种可能的方法名
-        int result = ReflectionHelper.invokeVoidMethod(device, "setWindowState",
-                new Class<?>[]{int.class, int.class}, new Object[]{area, state});
-        if (result == -1) {
-            result = ReflectionHelper.invokeVoidMethod(device, "setWindow",
-                    new Class<?>[]{int.class, int.class}, new Object[]{area, state});
-        }
-        if (result == -1) {
-            result = ReflectionHelper.invokeVoidMethod(device, "controlWindow",
-                    new Class<?>[]{int.class, int.class}, new Object[]{area, state});
+        int fid = windowWriteFid(area);
+        if (fid == -1) return;
+        adbWrite(fid, state == STATE_OPEN ? 100 : 0);
+    }
+
+    public void setWindowPercent(int area, int percent) {
+        if (simulation) return;
+        int fid = windowWriteFid(area);
+        if (fid != -1) adbWrite(fid, Math.max(0, Math.min(100, percent)));
+    }
+
+    private int windowWriteFid(int area) {
+        switch (area) {
+            case DOOR_LEFT_FRONT:  return FidRegistry.WFID_WINDOW_FL;
+            case DOOR_RIGHT_FRONT: return FidRegistry.WFID_WINDOW_FR;
+            case DOOR_LEFT_REAR:   return FidRegistry.WFID_WINDOW_RL;
+            case DOOR_RIGHT_REAR:  return FidRegistry.WFID_WINDOW_RR;
+            default: return -1;
         }
     }
 
@@ -167,14 +177,12 @@ public class BydBodyworkApi {
 
     public void openTrunk() {
         if (simulation) { simTrunkOpen = true; return; }
-        ReflectionHelper.invokeVoidMethod(device, "openTrunk",
-                new Class<?>[]{}, new Object[]{});
+        adbWrite(FidRegistry.WFID_FRONT_TRUNK, 1);
     }
 
     public void closeTrunk() {
         if (simulation) { simTrunkOpen = false; return; }
-        ReflectionHelper.invokeVoidMethod(device, "closeTrunk",
-                new Class<?>[]{}, new Object[]{});
+        adbWrite(FidRegistry.WFID_FRONT_TRUNK, 3);
     }
 
     public boolean isTrunkOpen() {
@@ -199,6 +207,18 @@ public class BydBodyworkApi {
     public boolean isHoodOpen() {
         if (simulation) return simHoodOpen;
         return getDoorState(DOOR_HOOD) == STATE_OPEN;
+    }
+
+    private void adbWrite(int fid, int value) {
+        dadb.Dadb d = AdbHelper.getSharedDadb();
+        if (d == null) { Log.w(TAG, "adbWrite: dadb not connected"); return; }
+        try {
+            String cmd = "service call autoservice 6 i32 1001 i32 " + fid + " i32 " + value;
+            Log.i(TAG, "adbWrite fid=" + fid + " val=" + value);
+            d.shell(cmd);
+        } catch (Exception e) {
+            Log.e(TAG, "adbWrite failed fid=" + fid, e);
+        }
     }
 
     public boolean isRealDevice() {

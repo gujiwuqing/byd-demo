@@ -31,6 +31,7 @@ public class BydVehicleManager {
     private PollState currentPollState = PollState.PARKED;
     private int consecutiveFailures = 0;
     private static final int MAX_BACKOFF_INTERVAL = 60000;
+    private int maintenancePollTick = 0; // 保养数据每 20 次轮询读取一次（约5分钟）
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private VehicleStatusListener listener;
@@ -352,6 +353,16 @@ public class BydVehicleManager {
             }
         } catch (Exception e) {
             Log.w(TAG, "Extra data fetch failed", e);
+        }
+
+        // ========== 低频数据：保养信息（每20次轮询读一次）==========
+        if (hasAdb && (++maintenancePollTick % 20 == 1)) {
+            VehicleStatus.MaintenanceInfo maint = autoserviceClient.readMaintenanceInfo();
+            if (maint != null) {
+                s.maintenanceDaysLeft = maint.daysLeft;
+                s.maintenanceMileLeft = maint.mileLeft;
+                s.maintenanceIssueNum = maint.issueNum;
+            }
         }
 
         return s;

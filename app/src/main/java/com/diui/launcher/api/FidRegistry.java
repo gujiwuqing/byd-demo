@@ -100,7 +100,45 @@ public final class FidRegistry {
     public static final int FID_TIRE_RL = -1728052948;
     public static final int FID_TIRE_RR = -1728052944;
 
-    // ========== 哨兵值 ==========
+    // ========== 写入 FID（来自 BYDMate LIVE_VALIDATED，Leopard 3 实测） ==========
+    // 注意：写入 FID 与读取 FID 完全不同！
+
+    // AC 写入 (dev=1000)
+    public static final int WFID_AC_ON = 501219352;         // value=0 (unvalidated)
+    public static final int WFID_AC_OFF = 501219364;        // value=1 ✓
+    public static final int WFID_AC_TEMP = 501219368;       // value=16~30°C ✓
+    public static final int WFID_AC_CYCLE = 501219355;      // value=0=外循环 1=内循环 ✓
+    public static final int WFID_AC_DEFROST_REAR = 501219357; // value=0=off 1=on ✓
+
+    // 车窗写入 (dev=1001) — 百分比 0~100
+    public static final int WFID_WINDOW_FL = 1276219408;    // 左前窗 % ✓
+    public static final int WFID_WINDOW_FR = 1276219424;    // 右前窗 % ✓
+    public static final int WFID_WINDOW_RL = 1276219416;    // 左后窗 % ✓
+    public static final int WFID_WINDOW_RR = 1276219432;    // 右后窗 % ✓
+
+    // 门锁写入 (dev=1001)
+    public static final int WFID_DOOR_LOCK = 1276141590;    // value=1=解锁 2=上锁 ✓
+
+    // 天窗写入 (dev=1001)
+    public static final int WFID_SUNROOF = 1125122056;      // value=1=开 2=关 3=倾 4=停 ✓
+    public static final int WFID_SUNSHADE = 1125122060;     // value=1=开 2=关 ✓
+
+    // 前备箱 (dev=1001)
+    public static final int WFID_FRONT_TRUNK = 1276182560;  // value=1=开 3=关 ✓
+
+    // 座椅加热/通风 (dev=1000) — switch: 1=on 2=off; level: 1~5
+    public static final int WFID_SEAT_HEAT_DR_SW = 1276248084;  // 主驾加热开关 ✓
+    public static final int WFID_SEAT_HEAT_DR_LV = 1276252180;  // 主驾加热档位 ✓
+    public static final int WFID_SEAT_HEAT_PA_SW = 1276248092;  // 副驾加热开关 ✓
+    public static final int WFID_SEAT_HEAT_PA_LV = 1276252188;  // 副驾加热档位 ✓
+    public static final int WFID_SEAT_VENT_DR_SW = 1276248080;  // 主驾通风开关 ✓
+    public static final int WFID_SEAT_VENT_DR_LV = 1276252176;  // 主驾通风档位 ✓
+    public static final int WFID_SEAT_VENT_PA_SW = 1276248088;  // 副驾通风开关 ✓
+    public static final int WFID_SEAT_VENT_PA_LV = 1276252184;  // 副驾通风档位 ✓
+
+    // 室内灯/氛围灯 (dev=1023)
+    public static final int WFID_INTERIOR_LIGHT = 1330643002;   // value=1=off 2=on ✓
+    public static final int WFID_AMBIENT_LIGHT = 1069547536;    // value=1=off 2~5=亮度 ✓
     public static final int SENTINEL_NO_CAN = 0x0000FFFF;     // 65535, 无 CAN 信号
     public static final int SENTINEL_UNINIT = 0x000FFFFF;      // 未初始化
     public static final int SENTINEL_BAD_TX = 0xFFFFD8E3;      // -10013, 错误事务码

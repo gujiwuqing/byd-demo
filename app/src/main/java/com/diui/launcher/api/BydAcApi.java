@@ -3,6 +3,8 @@ package com.diui.launcher.api;
 import android.content.Context;
 import android.util.Log;
 
+import dadb.AdbShellResponse;
+
 public class BydAcApi {
 
     private static final String TAG = "BydAcApi";
@@ -122,14 +124,15 @@ public class BydAcApi {
 
     public int start() {
         if (simulation) { simAcOn = true; return 0; }
-        return ReflectionHelper.invokeVoidMethod(device, "start",
-                new Class<?>[]{int.class}, new Object[]{SOURCE_VOICE});
+        // 走 ADB shell setInt，BYD API 服务端校验权限会拒绝
+        int r = adbWrite(FidRegistry.WFID_AC_ON, 0);
+        if (r != 0) r = adbWrite(FidRegistry.WFID_AC_OFF, 0); // 兜底：用 off FID 发 0
+        return r;
     }
 
     public int stop() {
         if (simulation) { simAcOn = false; return 0; }
-        return ReflectionHelper.invokeVoidMethod(device, "stop",
-                new Class<?>[]{int.class}, new Object[]{SOURCE_VOICE});
+        return adbWrite(FidRegistry.WFID_AC_OFF, 1);
     }
 
     public int toggle() {
@@ -141,17 +144,17 @@ public class BydAcApi {
             if (zone == ZONE_MAIN) simMainTemp = Math.max(17, Math.min(33, tempCelsius));
             return 0;
         }
-        return ReflectionHelper.invokeVoidMethod(device, "setAcTemperature",
-                new Class<?>[]{int.class, int.class, int.class, int.class},
-                new Object[]{zone, tempCelsius, SOURCE_VOICE, 1});
+        int temp = Math.max(16, Math.min(30, tempCelsius));
+        return adbWrite(FidRegistry.WFID_AC_TEMP, temp);
     }
 
     public int setMainTemp(int tempCelsius) {
-        return setTemperature(ZONE_MAIN, Math.max(17, Math.min(33, tempCelsius)));
+        return setTemperature(ZONE_MAIN, tempCelsius);
     }
 
     public int setWindLevel(int level) {
         if (simulation) { simWindLevel = Math.max(0, Math.min(7, level)); return 0; }
+        // 风量暂无已验证 write FID，保留原路径
         if (device == null) return -1;
         return ReflectionHelper.setViaBaseClass(device, DEVICE_TYPE, 0x1DE0000C, Math.max(0, Math.min(7, level)));
     }
@@ -164,14 +167,57 @@ public class BydAcApi {
 
     public int setCycleMode(int mode) {
         if (simulation) { simCycleMode = mode; return 0; }
-        return ReflectionHelper.invokeVoidMethod(device, "setAcCycleMode",
-                new Class<?>[]{int.class, int.class}, new Object[]{mode, SOURCE_VOICE});
+        // WFID_AC_CYCLE: 0=外循环 1=内循环
+        int val = (mode == CYCLE_INNER) ? 1 : 0;
+        return adbWrite(FidRegistry.WFID_AC_CYCLE, val);
     }
 
     public int setControlMode(int mode) {
         if (simulation) { simControlMode = mode; return 0; }
         return ReflectionHelper.invokeVoidMethod(device, "setAcControlMode",
                 new Class<?>[]{int.class, int.class}, new Object[]{mode, SOURCE_VOICE});
+    }
+
+    public int setDefrostRear(boolean on) {
+        if (simulation) return 0;
+        return adbWrite(FidRegistry.WFID_AC_DEFROST_REAR, on ? 1 : 0);
+    }
+
+    /** 座椅加热：seat=0主驾 1副驾, level=0=关 1~5=档位 */
+    public int setSeatHeat(int seat, int level) {
+        if (simulation) return 0;
+        int sw = (seat == 0) ? FidRegistry.WFID_SEAT_HEAT_DR_SW : FidRegistry.WFID_SEAT_HEAT_PA_SW;
+        int lv = (seat == 0) ? FidRegistry.WFID_SEAT_HEAT_DR_LV : FidRegistry.WFID_SEAT_HEAT_PA_LV;
+        if (level == 0) return adbWrite(sw, 2); // 2=off
+        adbWrite(sw, 1); // 1=on
+        return adbWrite(lv, Math.max(1, Math.min(5, level)));
+    }
+
+    /** 座椅通风：seat=0主驾 1副驾, level=0=关 1~5=档位 */
+    public int setSeatVent(int seat, int level) {
+        if (simulation) return 0;
+        int sw = (seat == 0) ? FidRegistry.WFID_SEAT_VENT_DR_SW : FidRegistry.WFID_SEAT_VENT_PA_SW;
+        int lv = (seat == 0) ? FidRegistry.WFID_SEAT_VENT_DR_LV : FidRegistry.WFID_SEAT_VENT_PA_LV;
+        if (level == 0) return adbWrite(sw, 2);
+        adbWrite(sw, 1);
+        return adbWrite(lv, Math.max(1, Math.min(5, level)));
+    }
+
+    private int adbWrite(int fid, int value) {
+        dadb.Dadb d = AdbHelper.getSharedDadb();
+        if (d == null) {
+            Log.w(TAG, "adbWrite: dadb not connected");
+            return -1;
+        }
+        try {
+            String cmd = "service call autoservice 6 i32 " + DEVICE_TYPE + " i32 " + fid + " i32 " + value;
+            dadb.AdbShellResponse resp = d.shell(cmd);
+            Log.i(TAG, "adbWrite fid=" + fid + " val=" + value + " → " + resp.getAllOutput().trim());
+            return 0;
+        } catch (Exception e) {
+            Log.e(TAG, "adbWrite failed fid=" + fid, e);
+            return -1;
+        }
     }
 
     public boolean isRealDevice() {

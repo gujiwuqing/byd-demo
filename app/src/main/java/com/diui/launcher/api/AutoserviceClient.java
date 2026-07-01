@@ -31,6 +31,27 @@ public class AutoserviceClient {
         return available;
     }
 
+    // ---------- 写入（tx=6 setInt）----------
+
+    /**
+     * 通过 ADB shell 向 autoservice 写入整数值。
+     * 使用 service call autoservice 6 i32 <dev> i32 <fid> i32 <value>
+     * 返回 0=成功，非0=失败。
+     */
+    public int writeInt(int deviceType, int fid, int value) {
+        String cmd = "service call autoservice 6 i32 " + deviceType + " i32 " + fid + " i32 " + value;
+        Log.i(TAG, "writeInt: dev=" + deviceType + " fid=" + fid + " val=" + value);
+        String result = execShell(cmd);
+        if (result == null) {
+            Log.w(TAG, "writeInt failed: null result");
+            return -1;
+        }
+        // 检查返回的异常码（第一个8位hex应为00000000）
+        int ret = parseParcelInt(result);
+        Log.i(TAG, "writeInt result: " + ret + " raw=" + result.trim());
+        return ret == 0 ? 0 : ret;
+    }
+
     // ---------- 核心读取 ----------
 
     public int getInt(int deviceType, int featureId) {
@@ -350,6 +371,43 @@ public class AutoserviceClient {
             new android.os.Handler(android.os.Looper.getMainLooper())
                     .post(() -> callback.onResult(report));
         }).start();
+    }
+
+    // ---------- Content Provider 读取 ----------
+
+    /**
+     * 从 CarStatusProvider 读取保养数据。
+     * URI: content://com.byd.carStatusProvider/car_status
+     * 无需特殊权限，ADB shell 直接可读。
+     */
+    public com.diui.launcher.model.VehicleStatus.MaintenanceInfo readMaintenanceInfo() {
+        String cmd = "content query --uri content://com.byd.carStatusProvider/car_status 2>/dev/null";
+        String result = execShell(cmd);
+        if (result == null || result.isEmpty()) return null;
+
+        int daysLeft = -1, mileLeft = -1, issueNum = 0;
+        for (String line : result.split("\n")) {
+            line = line.trim();
+            if (line.contains("key=car_status_maintenance_time")) {
+                daysLeft = extractIntValue(line);
+            } else if (line.contains("key=car_status_maintenance_mile")) {
+                mileLeft = extractIntValue(line);
+            } else if (line.contains("key=car_status_issue_num")) {
+                issueNum = extractIntValue(line);
+            }
+        }
+        return new com.diui.launcher.model.VehicleStatus.MaintenanceInfo(daysLeft, mileLeft, issueNum);
+    }
+
+    private static int extractIntValue(String line) {
+        // 格式: "Row: X id=Y, key=..., value=Z"
+        int idx = line.lastIndexOf("value=");
+        if (idx < 0) return -1;
+        try {
+            return Integer.parseInt(line.substring(idx + 6).trim());
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     // ---------- Content Provider 探测 ----------

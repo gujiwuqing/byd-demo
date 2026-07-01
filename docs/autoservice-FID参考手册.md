@@ -241,3 +241,128 @@ service call autoservice 7 i32 <dev> i32 <fid>
 5. 设置页 → 「📡 FID 全量扫描」→ 确认 ✓/✗
 6. 设置页 → 「🚗 真车模式诊断」→ 确认 service call 返回值
 7. 更新本文档对应行的「21款宋Plus」列
+
+---
+
+## 七、写入 FID（控制命令）
+
+> 来源：BYDMate LIVE_VALIDATED（Leopard 3 实车验证）
+> 写入命令：`service call autoservice 6 i32 <dev> i32 <fid> i32 <value>`
+> **注意：写入 FID 与读取 FID 完全不同！**
+
+### AC 空调写入（dev=1000）
+
+| 常量名 | FID | value 含义 | 验证状态 |
+|--------|-----|-----------|---------|
+| WFID_AC_ON | 501219352 | 0=开 | ⚠ 未验证 |
+| WFID_AC_OFF | 501219364 | 1=关 | ✓ |
+| WFID_AC_TEMP | 501219368 | 16~30°C | ✓ |
+| WFID_AC_CYCLE | 501219355 | 0=外循环 1=内循环 | ✓ |
+| WFID_AC_DEFROST_REAR | 501219357 | 0=关 1=开后除雾 | ✓ |
+
+### 车窗写入（dev=1001）— 百分比 0~100
+
+| 常量名 | FID | 说明 | 验证状态 |
+|--------|-----|------|---------|
+| WFID_WINDOW_FL | 1276219408 | 左前窗开度% | ✓ |
+| WFID_WINDOW_FR | 1276219424 | 右前窗开度% | ✓ |
+| WFID_WINDOW_RL | 1276219416 | 左后窗开度% | ✓ |
+| WFID_WINDOW_RR | 1276219432 | 右后窗开度% | ✓ |
+
+### 门锁写入（dev=1001）
+
+| 常量名 | FID | value 含义 | 验证状态 |
+|--------|-----|-----------|---------|
+| WFID_DOOR_LOCK | 1276141590 | 1=解锁 2=上锁 | ✓ |
+
+### 天窗写入（dev=1001）
+
+| 常量名 | FID | value 含义 | 验证状态 |
+|--------|-----|-----------|---------|
+| WFID_SUNROOF | 1125122056 | 1=开 2=关 3=倾 4=停 5=翻转 6=舒适 | ✓ |
+| WFID_SUNSHADE | 1125122060 | 1=开 2=关 | ✓ |
+
+### 前备箱写入（dev=1001）
+
+| 常量名 | FID | value 含义 | 验证状态 |
+|--------|-----|-----------|---------|
+| WFID_FRONT_TRUNK | 1276182560 | 1=开 3=关 | ✓ |
+
+### 座椅加热/通风（dev=1000）
+
+| 常量名 | FID | 说明 | 验证状态 |
+|--------|-----|------|---------|
+| WFID_SEAT_HEAT_DR_SW | 1276248084 | 主驾加热开关 1=开 2=关 | ✓ |
+| WFID_SEAT_HEAT_DR_LV | 1276252180 | 主驾加热档位 1~5 | ✓ |
+| WFID_SEAT_HEAT_PA_SW | 1276248092 | 副驾加热开关 | ✓ |
+| WFID_SEAT_HEAT_PA_LV | 1276252188 | 副驾加热档位 | ✓ |
+| WFID_SEAT_VENT_DR_SW | 1276248080 | 主驾通风开关 | ✓ |
+| WFID_SEAT_VENT_DR_LV | 1276252176 | 主驾通风档位 | ✓ |
+| WFID_SEAT_VENT_PA_SW | 1276248088 | 副驾通风开关 | ✓ |
+| WFID_SEAT_VENT_PA_LV | 1276252184 | 副驾通风档位 | ✓ |
+
+### 灯光写入（dev=1023/1004，特殊豁免）
+
+| 常量名 | FID | value | 说明 |
+|--------|-----|-------|------|
+| WFID_INTERIOR_LIGHT | 1330643002 | 1=关 2=开 | 室内灯（dev=1023） |
+| WFID_AMBIENT_LIGHT | 1069547536 | 1=关 2~5=亮度 | 氛围灯（dev=1023） |
+
+---
+
+## 八、Content Provider 数据源
+
+部分数据通过 Android Content Provider 读取，**无需特殊权限**，ADB shell 直接访问。
+
+### CarStatusProvider（已验证可用）
+
+URI: `content://com.byd.carStatusProvider/car_status`
+
+```bash
+content query --uri content://com.byd.carStatusProvider/car_status
+```
+
+| key | 说明 | 示例值 |
+|-----|------|--------|
+| `car_status_maintenance_time` | 距下次保养天数 | 238 |
+| `car_status_maintenance_mile` | 距下次保养公里数 | 4988 |
+| `set_car_status_maintenance_time` | 保养周期(天) | 360 |
+| `set_car_status_maintenance_mile` | 保养周期(km) | 7500 |
+| `car_status_issue_num` | 当前故障数量 | 0 |
+| `car_status_issue` | 故障列表 | (空) |
+| `travel_points_fuel` | 油耗曲线（#分隔，单位Wh/10km每段） | 0#0#6#11#13... |
+| `travel_points_elec` | 电耗曲线（#分隔，负值=回收） | 177#173#-5#-23... |
+| `car_status_maintenance_hev_mile` | HEV混动里程保养 | |
+
+### CarSettingsProvider（路径未知，待探测）
+
+URI: `content://com.byd.providers.carsettings`
+包含 TravelInfoHandler，可能有续航/油量数据，尚未找到正确路径。
+
+### 无效的 Provider（宋Plus DMi 不存在）
+
+- `com.gpack.service.provider.VehicleServiceProvider` ✗
+- `com.byd.car.server.provider.CarServiceProvider` ✗
+
+---
+
+## 九、写入 FID 在 21款宋Plus DMi 上的验证状态
+
+> BYDMate 的 LIVE_VALIDATED 在 Leopard 3（2026款豹3）上验证，宋Plus DMi 尚未逐一确认。
+> 装机后按以下步骤验证：
+
+```bash
+# 验证车窗写入（应能控制左前窗）
+service call autoservice 6 i32 1001 i32 1276219408 i32 50
+# 读回确认
+service call autoservice 5 i32 1001 i32 947912728
+```
+
+| 功能 | 验证状态（宋Plus DMi） |
+|------|---------------------|
+| 空调开关 | 待验证 |
+| 空调温度 | 待验证 |
+| 车窗开度 | 待验证 |
+| 门锁 | 待验证 |
+| 座椅加热/通风 | 待验证 |
+
