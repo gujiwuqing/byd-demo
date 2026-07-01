@@ -61,15 +61,22 @@ public class AutoserviceClient {
         return getInt(FidRegistry.DEV_AC, FidRegistry.FID_OUTSIDE_TEMP);
     }
 
-    public int getAcWind() {
-        return getInt(FidRegistry.DEV_AC, FidRegistry.FID_AC_WIND);
+    public int getCabinTemp() {
+        return getInt(FidRegistry.DEV_AC, FidRegistry.FID_CABIN_TEMP);
+    }
+
+    public int getFanLevel() {
+        return getInt(FidRegistry.DEV_AC, FidRegistry.FID_AC_FAN);
+    }
+
+    public int getAcCycle() {
+        return getInt(FidRegistry.DEV_AC, FidRegistry.FID_AC_CYCLE);
     }
 
     // ---------- 车身数据 ----------
 
     public int getBatteryCapacity() {
-        // SOC 是 float 类型（tx=7），返回如 67.5 表示 67.5%
-        float soc = getFloat(FidRegistry.DEV_BATTERY, FidRegistry.FID_SOC);
+        float soc = getFloat(FidRegistry.DEV_STATISTIC, FidRegistry.FID_SOC);
         return soc > 0 ? Math.round(soc) : -1;
     }
 
@@ -81,14 +88,38 @@ public class AutoserviceClient {
         return getInt(FidRegistry.DEV_BODYWORK, fid);
     }
 
+    public int getHoodState() {
+        return getInt(FidRegistry.DEV_BODYWORK, FidRegistry.FID_HOOD);
+    }
+
+    public int getTrunkState() {
+        return getInt(FidRegistry.DEV_BODYWORK, FidRegistry.FID_TRUNK);
+    }
+
+    public int getLockState() {
+        return getInt(FidRegistry.DEV_LOCK, FidRegistry.FID_LOCK_FL);
+    }
+
     // ---------- 行驶数据 ----------
 
-    public int getSpeed() {
-        return getInt(FidRegistry.DEV_SPEED, FidRegistry.FID_SPEED);
+    public float getSpeed() {
+        return getFloat(FidRegistry.DEV_SPEED, FidRegistry.FID_SPEED);
     }
 
     public int getGear() {
         return getInt(FidRegistry.DEV_GEARBOX, FidRegistry.FID_GEAR);
+    }
+
+    public int getMotorPower() {
+        return getInt(FidRegistry.DEV_MOTOR, FidRegistry.FID_MOTOR_POWER);
+    }
+
+    public int getWorkMode() {
+        return getInt(FidRegistry.DEV_DRIVE_MODE, FidRegistry.FID_WORK_MODE);
+    }
+
+    public int getMileage() {
+        return getInt(FidRegistry.DEV_STATISTIC, FidRegistry.FID_MILEAGE);
     }
 
     // ---------- 电池扩展 ----------
@@ -96,19 +127,19 @@ public class AutoserviceClient {
     public Map<String, Object> readBatteryExtras() {
         Map<String, Object> data = new LinkedHashMap<>();
 
-        int tempMax = getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_BATT_TEMP_MAX);
+        int tempMax = getInt(FidRegistry.DEV_STATISTIC, FidRegistry.FID_BATT_TEMP_MAX);
         if (!FidRegistry.isSentinel(tempMax) && tempMax >= 0) data.put("batteryTempMax", tempMax - 40);
 
-        int tempMin = getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_BATT_TEMP_MIN);
+        int tempMin = getInt(FidRegistry.DEV_STATISTIC, FidRegistry.FID_BATT_TEMP_MIN);
         if (!FidRegistry.isSentinel(tempMin) && tempMin >= 0) data.put("batteryTempMin", tempMin - 40);
 
-        int cellMax = getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_CELL_VOLT_MAX);
+        int cellMax = getInt(FidRegistry.DEV_STATISTIC, FidRegistry.FID_CELL_VOLT_MAX);
         if (!FidRegistry.isSentinel(cellMax) && cellMax > 0) data.put("cellVoltageMax", cellMax);
 
-        int cellMin = getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_CELL_VOLT_MIN);
+        int cellMin = getInt(FidRegistry.DEV_STATISTIC, FidRegistry.FID_CELL_VOLT_MIN);
         if (!FidRegistry.isSentinel(cellMin) && cellMin > 0) data.put("cellVoltageMin", cellMin);
 
-        int soh = getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_SOH);
+        int soh = getInt(FidRegistry.DEV_STATISTIC, FidRegistry.FID_SOH);
         if (!FidRegistry.isSentinel(soh) && soh >= 0) data.put("soh", soh);
 
         return data;
@@ -218,7 +249,8 @@ public class AutoserviceClient {
                     {"AC 温度", 5, FidRegistry.FID_AC_TEMP},
                     {"车内温度", 5, FidRegistry.FID_CABIN_TEMP},
                     {"车外温度", 5, FidRegistry.FID_OUTSIDE_TEMP},
-                    {"风量", 5, FidRegistry.FID_AC_WIND},
+                    {"风量", 5, FidRegistry.FID_AC_FAN},
+                    {"AC循环", 5, FidRegistry.FID_AC_CYCLE},,
                 }},
                 {"Bodywork (1001)", FidRegistry.DEV_BODYWORK, new Object[][]{
                     {"车门左前", 5, FidRegistry.FID_DOOR_FL},
@@ -230,8 +262,10 @@ public class AutoserviceClient {
                     {"车窗左后", 5, FidRegistry.FID_WINDOW_RL},
                     {"车窗右后", 5, FidRegistry.FID_WINDOW_RR},
                     {"12V电压", 7, FidRegistry.FID_12V_VOLTAGE},
+                    {"引擎盖", 5, FidRegistry.FID_HOOD},
+                    {"后备箱", 5, FidRegistry.FID_TRUNK},
                 }},
-                {"Battery (1014)", FidRegistry.DEV_BATTERY, new Object[][]{
+                {"Battery (1014)", FidRegistry.DEV_STATISTIC, new Object[][]{
                     {"电量SOC", 7, FidRegistry.FID_SOC},
                     {"SOH", 5, FidRegistry.FID_SOH},
                     {"里程", 5, FidRegistry.FID_MILEAGE},
@@ -239,10 +273,10 @@ public class AutoserviceClient {
                     {"电池温min", 5, FidRegistry.FID_BATT_TEMP_MIN},
                     {"电芯压max", 5, FidRegistry.FID_CELL_VOLT_MAX},
                     {"电芯压min", 5, FidRegistry.FID_CELL_VOLT_MIN},
-                    {"累计能耗", 7, FidRegistry.FID_ACCUM_ENERGY},
+                    {"累计能耗", 7, FidRegistry.FID_TOTAL_ELEC_CON},
                 }},
                 {"Speed (1013)", FidRegistry.DEV_SPEED, new Object[][]{
-                    {"速度", 5, FidRegistry.FID_SPEED},
+                    {"速度", 7, FidRegistry.FID_SPEED},
                 }},
                 {"Gearbox (1011)", FidRegistry.DEV_GEARBOX, new Object[][]{
                     {"挡位", 5, FidRegistry.FID_GEAR},
@@ -261,9 +295,20 @@ public class AutoserviceClient {
                 }},
                 {"DriveMode (1006)", FidRegistry.DEV_DRIVE_MODE, new Object[][]{
                     {"驱动模式", 5, FidRegistry.FID_DRIVE_MODE},
+                    {"工作模式", 5, FidRegistry.FID_WORK_MODE},
                 }},
                 {"Motor (1012)", FidRegistry.DEV_MOTOR, new Object[][]{
                     {"电机功率", 5, FidRegistry.FID_MOTOR_POWER},
+                }},
+                {"Lock (1032)", FidRegistry.DEV_LOCK, new Object[][]{
+                    {"门锁FL", 5, FidRegistry.FID_LOCK_FL},
+                }},
+                {"Light (1004)", FidRegistry.DEV_LIGHT, new Object[][]{
+                    {"近光灯", 5, FidRegistry.FID_LIGHT_LOW},
+                    {"日行灯", 5, FidRegistry.FID_DRL},
+                }},
+                {"Safety (1007)", FidRegistry.DEV_SAFETY, new Object[][]{
+                    {"安全带FL", 5, FidRegistry.FID_SEATBELT_FL},
                 }},
             };
 

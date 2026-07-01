@@ -394,19 +394,19 @@ public class BydVehicleManager {
     }
 
     private void fillExtrasFromHelper(VehicleStatus s) {
-        int tempMax = helperClient.getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_BATT_TEMP_MAX);
+        int tempMax = helperClient.getInt(FidRegistry.DEV_STATISTIC, FidRegistry.FID_BATT_TEMP_MAX);
         if (!FidRegistry.isSentinel(tempMax) && tempMax >= 0) s.batteryTempMax = tempMax - 40;
 
-        int tempMin = helperClient.getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_BATT_TEMP_MIN);
+        int tempMin = helperClient.getInt(FidRegistry.DEV_STATISTIC, FidRegistry.FID_BATT_TEMP_MIN);
         if (!FidRegistry.isSentinel(tempMin) && tempMin >= 0) s.batteryTempMin = tempMin - 40;
 
-        int cellMax = helperClient.getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_CELL_VOLT_MAX);
+        int cellMax = helperClient.getInt(FidRegistry.DEV_STATISTIC, FidRegistry.FID_CELL_VOLT_MAX);
         if (!FidRegistry.isSentinel(cellMax) && cellMax > 0) s.cellVoltageMax = cellMax;
 
-        int cellMin = helperClient.getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_CELL_VOLT_MIN);
+        int cellMin = helperClient.getInt(FidRegistry.DEV_STATISTIC, FidRegistry.FID_CELL_VOLT_MIN);
         if (!FidRegistry.isSentinel(cellMin) && cellMin > 0) s.cellVoltageMin = cellMin;
 
-        int soh = helperClient.getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_SOH);
+        int soh = helperClient.getInt(FidRegistry.DEV_STATISTIC, FidRegistry.FID_SOH);
         if (!FidRegistry.isSentinel(soh) && soh >= 0) s.soh = soh;
 
         float v12 = helperClient.getFloat(FidRegistry.DEV_BODYWORK, FidRegistry.FID_12V_VOLTAGE);
@@ -431,7 +431,7 @@ public class BydVehicleManager {
      */
     private void fillFromAutoserviceShell(VehicleStatus s) {
         try {
-            // AC（开关、温度、车外温度 ✓ 已验证可用）
+            // AC
             int acState = autoserviceClient.getAcState();
             if (!FidRegistry.isSentinel(acState) && acState >= 0) {
                 s.acOn = (acState == 1);
@@ -444,15 +444,28 @@ public class BydVehicleManager {
             if (!FidRegistry.isSentinel(outsideTemp) && outsideTemp > -50 && outsideTemp < 80) {
                 s.outsideTemp = outsideTemp;
             }
-            // 风量：FID_AC_WIND 在此车型返回 -10011，跳过
+            int fanLevel = autoserviceClient.getFanLevel();
+            if (!FidRegistry.isSentinel(fanLevel) && fanLevel >= 0 && fanLevel <= 7) {
+                s.acWindLevel = fanLevel;
+            }
+            int acCycle = autoserviceClient.getAcCycle();
+            if (!FidRegistry.isSentinel(acCycle) && acCycle >= 0) {
+                s.acCycleMode = acCycle;
+            }
 
-            // 电量（SOC 是 float 类型，已在 getBatteryCapacity 中处理）
+            // 电量（SOC，float）
             int soc = autoserviceClient.getBatteryCapacity();
             if (soc >= 0 && soc <= 100) {
                 s.batteryPercent = soc;
             }
 
-            // 车门（✓ 已验证可用）
+            // 里程
+            int mileage = autoserviceClient.getMileage();
+            if (!FidRegistry.isSentinel(mileage) && mileage > 0) {
+                s.totalMileage = mileage;
+            }
+
+            // 车门
             int doorFL = autoserviceClient.getDoorState(FidRegistry.FID_DOOR_FL);
             if (!FidRegistry.isSentinel(doorFL)) s.doorLeftFrontOpen = (doorFL == 1);
             int doorFR = autoserviceClient.getDoorState(FidRegistry.FID_DOOR_FR);
@@ -462,22 +475,41 @@ public class BydVehicleManager {
             int doorRR = autoserviceClient.getDoorState(FidRegistry.FID_DOOR_RR);
             if (!FidRegistry.isSentinel(doorRR)) s.doorRightRearOpen = (doorRR == 1);
 
-            // 车窗（左前/右前/左后 ✓，右后 -10011 跳过）
+            // 引擎盖 / 后备箱
+            int hood = autoserviceClient.getHoodState();
+            if (!FidRegistry.isSentinel(hood)) s.hoodOpen = (hood == 1);
+            int trunk = autoserviceClient.getTrunkState();
+            if (!FidRegistry.isSentinel(trunk)) s.trunkOpen = (trunk == 1);
+
+            // 门锁
+            int lock = autoserviceClient.getLockState();
+            if (!FidRegistry.isSentinel(lock)) s.isLocked = (lock == 1);
+
+            // 车窗
             int winFL = autoserviceClient.getWindowState(FidRegistry.FID_WINDOW_FL);
             if (!FidRegistry.isSentinel(winFL)) s.windowFL = winFL;
             int winFR = autoserviceClient.getWindowState(FidRegistry.FID_WINDOW_FR);
             if (!FidRegistry.isSentinel(winFR)) s.windowFR = winFR;
             int winRL = autoserviceClient.getWindowState(FidRegistry.FID_WINDOW_RL);
             if (!FidRegistry.isSentinel(winRL)) s.windowRL = winRL;
+            int winRR = autoserviceClient.getWindowState(FidRegistry.FID_WINDOW_RR);
+            if (!FidRegistry.isSentinel(winRR)) s.windowRR = winRR;
 
-            // 速度：FID_SPEED 在 DEV_SPEED 返回 -10013，跳过
-            // → 速度通过 BYD API (driveApi, real=true) 获取
+            // 速度（float）
+            float speed = autoserviceClient.getSpeed();
+            if (!FidRegistry.isSentinelFloat(speed) && speed >= 0) {
+                s.speed = Math.round(speed);
+            }
 
-            // 挡位（✓ 已验证可用）
+            // 挡位
             int gear = autoserviceClient.getGear();
             if (!FidRegistry.isSentinel(gear) && gear >= 0) s.gear = gear;
 
-            // 胎压（✓ 四轮均已验证可用）
+            // 电机功率
+            int motorPow = autoserviceClient.getMotorPower();
+            if (!FidRegistry.isSentinel(motorPow)) s.motorPowerKw = motorPow;
+
+            // 胎压
             int tireFL = autoserviceClient.getInt(FidRegistry.DEV_TIRE, FidRegistry.FID_TIRE_FL);
             if (!FidRegistry.isSentinel(tireFL) && tireFL > 0) s.tirePressureFL = tireFL;
             int tireFR = autoserviceClient.getInt(FidRegistry.DEV_TIRE, FidRegistry.FID_TIRE_FR);
@@ -552,12 +584,12 @@ public class BydVehicleManager {
                 {"AC 开关",     "5", String.valueOf(FidRegistry.DEV_AC),      String.valueOf(FidRegistry.FID_AC_STATE)},
                 {"AC 温度",     "5", String.valueOf(FidRegistry.DEV_AC),      String.valueOf(FidRegistry.FID_AC_TEMP)},
                 {"车外温度",    "5", String.valueOf(FidRegistry.DEV_AC),      String.valueOf(FidRegistry.FID_OUTSIDE_TEMP)},
-                {"风量",        "5", String.valueOf(FidRegistry.DEV_AC),      String.valueOf(FidRegistry.FID_AC_WIND)},
-                {"电池电量",    "7", String.valueOf(FidRegistry.DEV_BATTERY), String.valueOf(FidRegistry.FID_SOC)},
-                {"SOH",         "5", String.valueOf(FidRegistry.DEV_BATTERY), String.valueOf(FidRegistry.FID_SOH)},
+                {"风量",        "5", String.valueOf(FidRegistry.DEV_AC),      String.valueOf(FidRegistry.FID_AC_FAN)},
+                {"电池电量",    "7", String.valueOf(FidRegistry.DEV_STATISTIC), String.valueOf(FidRegistry.FID_SOC)},
+                {"SOH",         "5", String.valueOf(FidRegistry.DEV_STATISTIC), String.valueOf(FidRegistry.FID_SOH)},
                 {"车门左前",    "5", String.valueOf(FidRegistry.DEV_BODYWORK),String.valueOf(FidRegistry.FID_DOOR_FL)},
                 {"车门右前",    "5", String.valueOf(FidRegistry.DEV_BODYWORK),String.valueOf(FidRegistry.FID_DOOR_FR)},
-                {"速度",        "5", String.valueOf(FidRegistry.DEV_SPEED),   String.valueOf(FidRegistry.FID_SPEED)},
+                {"速度",        "7", String.valueOf(FidRegistry.DEV_SPEED),   String.valueOf(FidRegistry.FID_SPEED)},
                 {"挡位",        "5", String.valueOf(FidRegistry.DEV_GEARBOX), String.valueOf(FidRegistry.FID_GEAR)},
                 {"胎压左前",    "5", String.valueOf(FidRegistry.DEV_TIRE),    String.valueOf(FidRegistry.FID_TIRE_FL)},
                 {"12V电压",     "7", String.valueOf(FidRegistry.DEV_BODYWORK),String.valueOf(FidRegistry.FID_12V_VOLTAGE)},
