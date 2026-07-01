@@ -85,26 +85,44 @@ public class AdbHelper {
                 Log.i(TAG, "ADB 认证成功，开始授权...");
 
                 String pkg = context.getPackageName();
+                String[] perms = BydPermissionHelper.getAllPermissions();
+
+                // 每条 pm grant 用 echo 分隔符包裹，便于逐条解析
                 StringBuilder script = new StringBuilder();
-                for (String perm : BydPermissionHelper.getAllPermissions()) {
-                    if (script.length() > 0) script.append("; ");
-                    script.append("pm grant ").append(pkg).append(" ").append(perm).append(" 2>&1");
+                for (int i = 0; i < perms.length; i++) {
+                    if (i > 0) script.append("; ");
+                    script.append("echo '<<<PERM_").append(i).append(">>>'")
+                          .append("; pm grant ").append(pkg).append(" ").append(perms[i]).append(" 2>&1");
                 }
 
                 String combinedResult = execShell(in, out, script.toString());
                 Log.i(TAG, "授权脚本输出: " + combinedResult);
 
-                for (String perm : BydPermissionHelper.getAllPermissions()) {
-                    String shortName = perm.substring("android.permission.BYDAUTO_".length());
-                    if (combinedResult != null && combinedResult.contains("not a changeable permission type")
-                            && combinedResult.contains(perm)) {
+                // 按分隔符拆分，逐条解析每个权限的输出
+                for (int i = 0; i < perms.length; i++) {
+                    String shortName = perms[i].substring("android.permission.BYDAUTO_".length());
+                    String marker = "<<<PERM_" + i + ">>>";
+                    String nextMarker = (i + 1 < perms.length) ? "<<<PERM_" + (i + 1) + ">>>" : null;
+
+                    String permOutput = "";
+                    if (combinedResult != null) {
+                        int start = combinedResult.indexOf(marker);
+                        if (start >= 0) {
+                            start += marker.length();
+                            int end = (nextMarker != null) ? combinedResult.indexOf(nextMarker) : -1;
+                            permOutput = (end >= 0) ? combinedResult.substring(start, end)
+                                                    : combinedResult.substring(start);
+                        }
+                    }
+
+                    if (permOutput.contains("not a changeable permission type")) {
                         signature.add(shortName);
+                    } else if (permOutput.contains("SecurityException")
+                            || permOutput.contains("java.lang.Exception")
+                            || permOutput.contains("Unknown permission")) {
+                        failed.add(shortName);
                     } else {
-                        boolean hasError = combinedResult != null &&
-                                (combinedResult.contains("SecurityException") ||
-                                 combinedResult.contains("java.lang.Exception"));
-                        if (!hasError) granted.add(shortName);
-                        else failed.add(shortName);
+                        granted.add(shortName);
                     }
                 }
 
@@ -211,7 +229,7 @@ public class AdbHelper {
         }, "helper-kill").start();
     }
 
-    /** 检测名为 diui_helper 的进程是否在运行。 */
+    /** 检测名为 diui_helper 的进程是否在运行。注意：执行阻塞 I/O，禁止在主线程调用。 */
     public static boolean helperHeartbeat(Context context) {
         Socket socket = null;
         try {
@@ -235,9 +253,14 @@ public class AdbHelper {
 
     private static Socket connect() throws IOException {
         Socket socket = new Socket();
-        socket.connect(new java.net.InetSocketAddress(ADB_HOST, ADB_PORT), TIMEOUT);
-        socket.setSoTimeout(TIMEOUT);
-        return socket;
+        try {
+            socket.connect(new java.net.InetSocketAddress(ADB_HOST, ADB_PORT), TIMEOUT);
+            socket.setSoTimeout(TIMEOUT);
+            return socket;
+        } catch (IOException e) {
+            try { socket.close(); } catch (IOException ignored) {}
+            throw e;
+        }
     }
 
     private static byte[] nullTerminate(String s) {
@@ -331,6 +354,8 @@ public class AdbHelper {
         return false;
     }
 
+    private static final int MAX_READ_ITERATIONS = 500;
+
     /**
      * 执行 shell 命令并返回 stdout。递增 localId 防止 stream id 冲突；
      * 严格校验 OKAY.arg1==localId 并处理 stale packet。
@@ -361,9 +386,10 @@ public class AdbHelper {
         }
 
         StringBuilder output = new StringBuilder();
-        for (int i = 0; i < 500; i++) {
+        boolean truncated = true;
+        for (int i = 0; i < MAX_READ_ITERATIONS; i++) {
             int[] msg = readMessage(in);
-            if (msg == null) break;
+            if (msg == null) { truncated = false; break; }
 
             if (msg[0] == CMD_WRTE && msg[1] == remoteId && msg[2] == localId) {
                 byte[] data = readData(in, msg[3]);
@@ -371,10 +397,14 @@ public class AdbHelper {
                 sendMessage(out, CMD_OKAY, localId, remoteId, new byte[0]);
             } else if (msg[0] == CMD_CLSE && msg[1] == remoteId) {
                 sendMessage(out, CMD_CLSE, localId, remoteId, new byte[0]);
+                truncated = false;
                 break;
             } else {
                 handleStalePacket(in, out, msg, localId);
             }
+        }
+        if (truncated) {
+            Log.w(TAG, "execShell: 达到 " + MAX_READ_ITERATIONS + " 次读取上限，输出可能被截断 (已读 " + output.length() + " 字节)");
         }
         return output.toString();
     }
@@ -426,6 +456,7 @@ public class AdbHelper {
         if (magic != ~cmd) {
             Log.w(TAG, "消息 magic 校验失败: cmd=0x" + Integer.toHexString(cmd)
                     + " magic=0x" + Integer.toHexString(magic));
+            return null;
         }
         if (length < 0 || length > MAX_PAYLOAD) {
             Log.e(TAG, "消息长度异常: " + length);

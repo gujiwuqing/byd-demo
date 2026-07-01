@@ -81,6 +81,8 @@ public class AdbKeyManager {
     };
 
     public byte[] signToken(byte[] token) throws Exception {
+        if (privateKey == null) throw new IllegalStateException("RSA private key not available");
+
         byte[] digestInfo = new byte[SHA1_DIGEST_INFO_PREFIX.length + token.length];
         System.arraycopy(SHA1_DIGEST_INFO_PREFIX, 0, digestInfo, 0, SHA1_DIGEST_INFO_PREFIX.length);
         System.arraycopy(token, 0, digestInfo, SHA1_DIGEST_INFO_PREFIX.length, token.length);
@@ -92,6 +94,8 @@ public class AdbKeyManager {
     }
 
     public String getAdbPublicKeyString() {
+        if (publicKey == null) throw new IllegalStateException("RSA public key not available");
+
         byte[] encoded = encodeAdbPublicKey(publicKey);
         // ADB 公钥格式：base64 + " " + user@host，末尾由调用方 nullTerminate 补 \0
         return Base64.encodeToString(encoded, Base64.NO_WRAP) + " bydlauncher@byd";

@@ -13,6 +13,8 @@ import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -43,6 +45,7 @@ public class MainActivity extends AppCompatActivity
     private static final String KEY_FIRST_LAUNCH = "first_launch";
     private static final String KEY_ADB_GRANTED = "adb_granted";
     private static final long[] RETRY_DELAYS = {2000, 3000, 5000, 8000, 10000};
+    private final AtomicBoolean adbGrantInProgress = new AtomicBoolean(false);
 
     private BydVehicleManager vehicleManager;
 
@@ -212,8 +215,7 @@ public class MainActivity extends AppCompatActivity
         // 模拟器上 ADB 5555 不监听，isAdbAvailable() 返回 false，自然不触发。
         if (adbAlreadyGranted) {
             Log.i(TAG, "ADB permissions already granted, skipping check");
-            AdbHelper.startHelperDaemon(this, () ->
-                    Log.i(TAG, "HelperDaemon restarted on launch"));
+            // HelperDaemon 由 BydVehicleManager.ensureHelperRunning() 统一管理，无需单独启动
         } else if (AdbHelper.isAdbAvailable()
                 && !BydPermissionHelper.hasAllPermissions(this)) {
             Log.i(TAG, "ADB available but permissions missing, auto granting (env=" + detectedEnv + ")");
@@ -244,6 +246,11 @@ public class MainActivity extends AppCompatActivity
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (isFinishing() || isDestroyed()) return;
 
+            if (getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean(KEY_ADB_GRANTED, false)) {
+                Log.i(TAG, "ADB already granted during retry, skipping");
+                return;
+            }
+
             if (AdbHelper.isAdbAvailable()) {
                 Log.i(TAG, "ADB available after boot delay, auto granting...");
                 autoAdbGrant();
@@ -266,7 +273,7 @@ public class MainActivity extends AppCompatActivity
             return;
         }
         Log.i(TAG, "Auto ADB grant starting...");
-        startAdbGrant();
+        startAdbGrant(false);
     }
 
     /**
@@ -352,6 +359,10 @@ public class MainActivity extends AppCompatActivity
      *                  未认证过仍会触发首次认证弹窗）。
      */
     private void startAdbGrant(boolean clearKeys) {
+        if (!adbGrantInProgress.compareAndSet(false, true)) {
+            Log.w(TAG, "ADB grant already in progress, skipping");
+            return;
+        }
         showSystemUI();
         if (clearKeys) {
             AdbKeyManager.clearKeys(this);
@@ -395,12 +406,14 @@ public class MainActivity extends AppCompatActivity
                     }
 
                     hideSystemUI();
+                    adbGrantInProgress.set(false);
                 }, 500);
             } else {
                 hideSystemUI();
                 android.widget.Toast.makeText(this,
                         getString(R.string.perm_byd_adb_fail),
                         android.widget.Toast.LENGTH_LONG).show();
+                adbGrantInProgress.set(false);
             }
         }));
     }

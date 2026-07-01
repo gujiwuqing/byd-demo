@@ -91,3 +91,12 @@ BydVehicleManager（单例，2 秒轮询）
 - 返回值 65535 = 功能不可用，-10011 = 未注册
 - `BydApiExplorer.explore(context)` 可在真车 logcat 中列出所有可用 API 类（用于发现车窗/座椅控制的 featureId）
 - 详细真车接入步骤见 `docs/真车API接入指南.md`
+
+## Changelog
+
+每次代码修改的摘要记录，按日期归档在 `changelog/` 目录下，便于追溯历史改动。
+
+**规则**：
+- 目录结构：`changelog/YYYYMMDD.md`，每天一个文件
+- 同一天多次修改时，在文件内按时间分隔，格式为 `## HH:MM 修改标题`，新的追加在文件末尾
+- 每次修改完代码后必须写入 changelog，包含：涉及文件数和行数变化、按文件分组列出每项修复/改动的简要说明
