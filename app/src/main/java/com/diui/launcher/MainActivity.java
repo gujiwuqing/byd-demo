@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 
+import java.net.Socket;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -209,20 +210,46 @@ public class MainActivity extends AppCompatActivity
             showOverlayPermissionDialog(firstLaunch);
         }
 
-        // 检查 BYD 车辆 API 权限
-        // 宋Plus DMi 上所有 BYDAUTO 权限都是 signature 级别，pm grant 无法授予，
-        // 所以不检查 hasAllPermissions（永远为 false），只看 ADB 是否已认证过
+        // ADB 授权诊断
+        boolean adbAvailable = AdbHelper.isAdbAvailable();
+        Log.i(TAG, "ADB诊断: available=" + adbAvailable
+                + " alreadyGranted=" + adbAlreadyGranted
+                + " env=" + detectedEnv
+                + " fromBoot=" + fromBoot);
+
         if (adbAlreadyGranted) {
             Log.i(TAG, "ADB already granted, skipping auth");
-        } else if (AdbHelper.isAdbAvailable()) {
-            Log.i(TAG, "ADB available, starting auto auth (env=" + detectedEnv + ")");
+        } else if (adbAvailable) {
+            Log.i(TAG, "ADB available, starting auto auth");
             if (fromBoot) {
                 scheduleAdbGrantWithRetry(5, 0);
             } else {
                 autoAdbGrant();
             }
         } else {
-            Log.i(TAG, "ADB not available, skip grant (env=" + detectedEnv + ")");
+            Log.w(TAG, "ADB port 5555 不可达，尝试检查其他端口...");
+            // 在后台尝试多个端口
+            new Thread(() -> {
+                int[] ports = {5555, 5037};
+                boolean found = false;
+                for (int port : ports) {
+                    try (Socket s = new Socket()) {
+                        s.connect(new java.net.InetSocketAddress("127.0.0.1", port), 1000);
+                        Log.i(TAG, "端口 " + port + " 可达！");
+                        found = true;
+                    } catch (Exception e) {
+                        Log.d(TAG, "端口 " + port + " 不可达: " + e.getMessage());
+                    }
+                }
+                final boolean portFound = found;
+                runOnUiThread(() -> {
+                    if (!portFound) {
+                        android.widget.Toast.makeText(this,
+                                "ADB 端口不可达，请确认已开启「无线调试」或「网络ADB」",
+                                android.widget.Toast.LENGTH_LONG).show();
+                    }
+                });
+            }).start();
         }
 
         // 检查是否为默认桌面
@@ -264,8 +291,13 @@ public class MainActivity extends AppCompatActivity
      * 系统的"允许 USB 调试？"对话框仍会由 adbd 自动弹出（首次需用户点允许）。
      */
     private void autoAdbGrant() {
-        if (!AdbHelper.isAdbAvailable()) {
+        boolean available = AdbHelper.isAdbAvailable();
+        Log.i(TAG, "autoAdbGrant: isAdbAvailable=" + available);
+        if (!available) {
             Log.w(TAG, "ADB not available, skip auto grant");
+            android.widget.Toast.makeText(this,
+                    "ADB 端口(5555)不可达，请检查是否开启无线调试",
+                    android.widget.Toast.LENGTH_LONG).show();
             return;
         }
         Log.i(TAG, "Auto ADB grant starting...");

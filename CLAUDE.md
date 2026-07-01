@@ -83,6 +83,8 @@ BydVehicleManager（单例，2 秒轮询）
 
 ### 权限与 ADB 授权系统
 
+（21款宋Plus DMi）所有 BYDAUTO 权限都是 signature 级别
+
 BYD 车机权限分三个层级：
 - `COMMON`：运行时权限，可通过 `pm grant` 授予，`getInstance()` 时检查
 - `GET`：signature 级别，读取方法需要，通过 `BydPermissionContext` 客户端绕过
