@@ -68,7 +68,9 @@ public class AutoserviceClient {
     // ---------- 车身数据 ----------
 
     public int getBatteryCapacity() {
-        return getInt(FidRegistry.DEV_BATTERY, FidRegistry.FID_SOC);
+        // SOC 是 float 类型（tx=7），返回如 67.5 表示 67.5%
+        float soc = getFloat(FidRegistry.DEV_BATTERY, FidRegistry.FID_SOC);
+        return soc > 0 ? Math.round(soc) : -1;
     }
 
     public int getDoorState(int fid) {
@@ -230,14 +232,14 @@ public class AutoserviceClient {
                     {"12V电压", 7, FidRegistry.FID_12V_VOLTAGE},
                 }},
                 {"Battery (1014)", FidRegistry.DEV_BATTERY, new Object[][]{
-                    {"电量SOC", 5, FidRegistry.FID_SOC},
+                    {"电量SOC", 7, FidRegistry.FID_SOC},
                     {"SOH", 5, FidRegistry.FID_SOH},
                     {"里程", 5, FidRegistry.FID_MILEAGE},
                     {"电池温max", 5, FidRegistry.FID_BATT_TEMP_MAX},
                     {"电池温min", 5, FidRegistry.FID_BATT_TEMP_MIN},
                     {"电芯压max", 5, FidRegistry.FID_CELL_VOLT_MAX},
                     {"电芯压min", 5, FidRegistry.FID_CELL_VOLT_MIN},
-                    {"累计能耗", 5, FidRegistry.FID_ACCUM_ENERGY},
+                    {"累计能耗", 7, FidRegistry.FID_ACCUM_ENERGY},
                 }},
                 {"Speed (1013)", FidRegistry.DEV_SPEED, new Object[][]{
                     {"速度", 5, FidRegistry.FID_SPEED},

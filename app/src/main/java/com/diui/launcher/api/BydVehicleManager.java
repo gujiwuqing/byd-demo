@@ -431,7 +431,7 @@ public class BydVehicleManager {
      */
     private void fillFromAutoserviceShell(VehicleStatus s) {
         try {
-            // AC
+            // AC（开关、温度、车外温度 ✓ 已验证可用）
             int acState = autoserviceClient.getAcState();
             if (!FidRegistry.isSentinel(acState) && acState >= 0) {
                 s.acOn = (acState == 1);
@@ -444,18 +444,15 @@ public class BydVehicleManager {
             if (!FidRegistry.isSentinel(outsideTemp) && outsideTemp > -50 && outsideTemp < 80) {
                 s.outsideTemp = outsideTemp;
             }
-            int wind = autoserviceClient.getAcWind();
-            if (!FidRegistry.isSentinel(wind) && wind >= 0 && wind <= 7) {
-                s.acWindLevel = wind;
-            }
+            // 风量：FID_AC_WIND 在此车型返回 -10011，跳过
 
-            // 电量
+            // 电量（SOC 是 float 类型，已在 getBatteryCapacity 中处理）
             int soc = autoserviceClient.getBatteryCapacity();
-            if (!FidRegistry.isSentinel(soc) && soc >= 0 && soc <= 100) {
+            if (soc >= 0 && soc <= 100) {
                 s.batteryPercent = soc;
             }
 
-            // 车门
+            // 车门（✓ 已验证可用）
             int doorFL = autoserviceClient.getDoorState(FidRegistry.FID_DOOR_FL);
             if (!FidRegistry.isSentinel(doorFL)) s.doorLeftFrontOpen = (doorFL == 1);
             int doorFR = autoserviceClient.getDoorState(FidRegistry.FID_DOOR_FR);
@@ -465,23 +462,22 @@ public class BydVehicleManager {
             int doorRR = autoserviceClient.getDoorState(FidRegistry.FID_DOOR_RR);
             if (!FidRegistry.isSentinel(doorRR)) s.doorRightRearOpen = (doorRR == 1);
 
-            // 车窗
+            // 车窗（左前/右前/左后 ✓，右后 -10011 跳过）
             int winFL = autoserviceClient.getWindowState(FidRegistry.FID_WINDOW_FL);
             if (!FidRegistry.isSentinel(winFL)) s.windowFL = winFL;
             int winFR = autoserviceClient.getWindowState(FidRegistry.FID_WINDOW_FR);
             if (!FidRegistry.isSentinel(winFR)) s.windowFR = winFR;
             int winRL = autoserviceClient.getWindowState(FidRegistry.FID_WINDOW_RL);
             if (!FidRegistry.isSentinel(winRL)) s.windowRL = winRL;
-            int winRR = autoserviceClient.getWindowState(FidRegistry.FID_WINDOW_RR);
-            if (!FidRegistry.isSentinel(winRR)) s.windowRR = winRR;
 
-            // 速度/档位
-            int speed = autoserviceClient.getSpeed();
-            if (!FidRegistry.isSentinel(speed) && speed >= 0) s.speed = speed;
+            // 速度：FID_SPEED 在 DEV_SPEED 返回 -10013，跳过
+            // → 速度通过 BYD API (driveApi, real=true) 获取
+
+            // 挡位（✓ 已验证可用）
             int gear = autoserviceClient.getGear();
             if (!FidRegistry.isSentinel(gear) && gear >= 0) s.gear = gear;
 
-            // 胎压
+            // 胎压（✓ 四轮均已验证可用）
             int tireFL = autoserviceClient.getInt(FidRegistry.DEV_TIRE, FidRegistry.FID_TIRE_FL);
             if (!FidRegistry.isSentinel(tireFL) && tireFL > 0) s.tirePressureFL = tireFL;
             int tireFR = autoserviceClient.getInt(FidRegistry.DEV_TIRE, FidRegistry.FID_TIRE_FR);
@@ -557,7 +553,7 @@ public class BydVehicleManager {
                 {"AC 温度",     "5", String.valueOf(FidRegistry.DEV_AC),      String.valueOf(FidRegistry.FID_AC_TEMP)},
                 {"车外温度",    "5", String.valueOf(FidRegistry.DEV_AC),      String.valueOf(FidRegistry.FID_OUTSIDE_TEMP)},
                 {"风量",        "5", String.valueOf(FidRegistry.DEV_AC),      String.valueOf(FidRegistry.FID_AC_WIND)},
-                {"电池电量",    "5", String.valueOf(FidRegistry.DEV_BATTERY), String.valueOf(FidRegistry.FID_SOC)},
+                {"电池电量",    "7", String.valueOf(FidRegistry.DEV_BATTERY), String.valueOf(FidRegistry.FID_SOC)},
                 {"SOH",         "5", String.valueOf(FidRegistry.DEV_BATTERY), String.valueOf(FidRegistry.FID_SOH)},
                 {"车门左前",    "5", String.valueOf(FidRegistry.DEV_BODYWORK),String.valueOf(FidRegistry.FID_DOOR_FL)},
                 {"车门右前",    "5", String.valueOf(FidRegistry.DEV_BODYWORK),String.valueOf(FidRegistry.FID_DOOR_FR)},

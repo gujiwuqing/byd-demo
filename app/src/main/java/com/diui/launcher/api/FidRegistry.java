@@ -18,14 +18,14 @@ public final class FidRegistry {
     public static final int TX_SET_INT = 6;
     public static final int TX_GET_FLOAT = 7;
 
-    public static final int FID_SOC = 1246777400;
+    public static final int FID_SOC = 1246777400;          // tx=7 float!
     public static final int FID_MILEAGE = 1246765072;
     public static final int FID_SOH = 1145045032;
     public static final int FID_BATT_TEMP_MAX = 1148190752;
     public static final int FID_BATT_TEMP_MIN = 1148190736;
     public static final int FID_CELL_VOLT_MAX = 1147142192;
     public static final int FID_CELL_VOLT_MIN = 1147142160;
-    public static final int FID_ACCUM_ENERGY = 1032871984;
+    public static final int FID_ACCUM_ENERGY = 1032871984;  // tx=7 float!
 
     public static final int FID_SPEED = -1807745016;
     public static final int FID_GEAR = 555745336;
