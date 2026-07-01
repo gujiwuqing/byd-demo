@@ -409,6 +409,139 @@ public class AdbHelper {
 
     // ---------- HelperDaemon 管理 ----------
 
+    public interface DaemonDiagCallback {
+        void onResult(String report);
+    }
+
+    /**
+     * 启动 HelperDaemon 并收集每一步的诊断信息，结果回调到主线程。
+     */
+    public static void startHelperDaemonWithDiag(Context context, DaemonDiagCallback callback) {
+        executor.execute(() -> {
+            StringBuilder sb = new StringBuilder();
+            sb.append("===== HelperDaemon 启动诊断 =====\n\n");
+
+            // 1. Dadb 连接
+            Dadb dadb = sharedDadb.get();
+            sb.append("1. sharedDadb: ").append(dadb != null ? "有缓存连接" : "无").append("\n");
+
+            if (dadb == null) {
+                sb.append("   尝试重新连接 (host=").append(getAdbHost()).append(")...\n");
+                dadb = tryConnect(context, 3000);
+                if (dadb != null) {
+                    sharedDadb.set(dadb);
+                    sb.append("   ✓ 重新连接成功\n");
+                } else {
+                    sb.append("   ✗ 重新连接失败\n");
+                    sb.append("\n===== 诊断完成（ADB 未连接）=====");
+                    String report = sb.toString();
+                    Log.i(TAG, report);
+                    mainHandler.post(() -> callback.onResult(report));
+                    return;
+                }
+            }
+
+            // 2. 验证 Dadb shell
+            sb.append("\n2. shell 验证:\n");
+            try {
+                AdbShellResponse echoResp = dadb.shell("echo ok && id && whoami");
+                sb.append("   exit=").append(echoResp.getExitCode()).append("\n");
+                sb.append("   output: ").append(echoResp.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("   ✗ 异常: ").append(e.getMessage()).append("\n");
+            }
+
+            // 3. APK 路径
+            String apkPath = context.getApplicationInfo().sourceDir;
+            sb.append("\n3. APK 路径: ").append(apkPath).append("\n");
+            try {
+                AdbShellResponse lsResp = dadb.shell("ls -la " + apkPath);
+                sb.append("   ls: ").append(lsResp.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("   ls 失败: ").append(e.getMessage()).append("\n");
+            }
+
+            // 4. 检查是否已有 daemon 运行
+            sb.append("\n4. 已有 daemon 进程:\n");
+            try {
+                AdbShellResponse psResp = dadb.shell("ps -ef 2>/dev/null | grep HelperDaemon | grep -v grep || echo '无'");
+                sb.append("   ").append(psResp.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("   查询失败: ").append(e.getMessage()).append("\n");
+            }
+
+            // 5. 检查锁文件
+            sb.append("\n5. 锁文件:\n");
+            try {
+                AdbShellResponse lockResp = dadb.shell("ls -la /data/local/tmp/diui_helper.lock 2>&1");
+                sb.append("   ").append(lockResp.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("   查询失败: ").append(e.getMessage()).append("\n");
+            }
+
+            // 6. 尝试启动（前台模式，捕获输出）
+            sb.append("\n6. 启动 daemon（前台，5秒超时）:\n");
+            String cmd = "CLASSPATH=" + apkPath
+                    + " app_process /system/bin"
+                    + " com.diui.launcher.helper.HelperDaemon"
+                    + " 2>&1 &"
+                    + " DAEMON_PID=$!; sleep 3; kill $DAEMON_PID 2>/dev/null; wait $DAEMON_PID 2>/dev/null";
+            try {
+                AdbShellResponse startResp = dadb.shell(cmd);
+                String output = startResp.getAllOutput();
+                sb.append("   exit=").append(startResp.getExitCode()).append("\n");
+                if (output.length() > 0) {
+                    sb.append("   output:\n");
+                    for (String line : output.split("\n")) {
+                        sb.append("     ").append(line).append("\n");
+                    }
+                } else {
+                    sb.append("   output: (空)\n");
+                }
+            } catch (Exception e) {
+                sb.append("   ✗ 异常: ").append(e.getClass().getSimpleName())
+                  .append(": ").append(e.getMessage()).append("\n");
+            }
+
+            // 7. 后台启动（正式方式）
+            sb.append("\n7. 后台启动 daemon:\n");
+            String bgCmd = "CLASSPATH=" + apkPath
+                    + " nohup app_process /system/bin"
+                    + " com.diui.launcher.helper.HelperDaemon"
+                    + " > /dev/null 2>&1 &";
+            try {
+                AdbShellResponse bgResp = dadb.shell(bgCmd);
+                sb.append("   exit=").append(bgResp.getExitCode()).append("\n");
+                Thread.sleep(2000);
+            } catch (Exception e) {
+                sb.append("   ✗ 异常: ").append(e.getMessage()).append("\n");
+            }
+
+            // 8. 检查 binder 服务是否注册
+            sb.append("\n8. diui_helper binder 服务:\n");
+            try {
+                AdbShellResponse svcResp = dadb.shell("service list 2>/dev/null | grep diui_helper || echo '未注册'");
+                sb.append("   ").append(svcResp.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("   查询失败: ").append(e.getMessage()).append("\n");
+            }
+
+            // 9. 再次检查进程
+            sb.append("\n9. daemon 进程（启动后）:\n");
+            try {
+                AdbShellResponse psResp2 = dadb.shell("ps -ef 2>/dev/null | grep HelperDaemon | grep -v grep || echo '无'");
+                sb.append("   ").append(psResp2.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("   查询失败: ").append(e.getMessage()).append("\n");
+            }
+
+            sb.append("\n===== 诊断完成 =====");
+            String report = sb.toString();
+            Log.i(TAG, report);
+            mainHandler.post(() -> callback.onResult(report));
+        });
+    }
+
     public static void startHelperDaemon(Context context, Runnable onStarted) {
         executor.execute(() -> {
             Dadb dadb = sharedDadb.get();
