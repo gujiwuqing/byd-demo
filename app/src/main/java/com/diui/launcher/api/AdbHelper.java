@@ -441,53 +441,50 @@ public class AdbHelper {
                 }
             }
 
-            // 2. 验证 Dadb shell
-            sb.append("\n2. shell 验证:\n");
+            // 2. shell 验证 + SELinux
+            sb.append("\n2. shell 环境:\n");
             try {
-                AdbShellResponse echoResp = dadb.shell("echo ok && id && whoami");
-                sb.append("   exit=").append(echoResp.getExitCode()).append("\n");
-                sb.append("   output: ").append(echoResp.getAllOutput().trim()).append("\n");
+                AdbShellResponse idResp = dadb.shell("echo ok && id && getenforce && cat /proc/self/attr/current 2>/dev/null");
+                sb.append("   ").append(idResp.getAllOutput().trim().replace("\n", "\n   ")).append("\n");
             } catch (Exception e) {
                 sb.append("   ✗ 异常: ").append(e.getMessage()).append("\n");
             }
 
-            // 3. APK 路径
+            // 3. APK 路径 + appUid
             String apkPath = context.getApplicationInfo().sourceDir;
-            sb.append("\n3. APK 路径: ").append(apkPath).append("\n");
-            try {
-                AdbShellResponse lsResp = dadb.shell("ls -la " + apkPath);
-                sb.append("   ls: ").append(lsResp.getAllOutput().trim()).append("\n");
-            } catch (Exception e) {
-                sb.append("   ls 失败: ").append(e.getMessage()).append("\n");
-            }
+            int appUid = context.getApplicationInfo().uid;
+            sb.append("\n3. APK: ").append(apkPath).append("\n");
+            sb.append("   appUid: ").append(appUid).append("\n");
 
-            // 4. 检查是否已有 daemon 运行
+            // 4. 检查已有 daemon 进程
             sb.append("\n4. 已有 daemon 进程:\n");
             try {
-                AdbShellResponse psResp = dadb.shell("ps -ef 2>/dev/null | grep HelperDaemon | grep -v grep || echo '无'");
+                AdbShellResponse psResp = dadb.shell("ps -ef 2>/dev/null | grep -E 'HelperDaemon|diui_helper' | grep -v grep || echo '无'");
                 sb.append("   ").append(psResp.getAllOutput().trim()).append("\n");
             } catch (Exception e) {
                 sb.append("   查询失败: ").append(e.getMessage()).append("\n");
             }
 
-            // 5. 检查锁文件
-            sb.append("\n5. 锁文件:\n");
+            // 5. 测试 app_process 是否可用
+            sb.append("\n5. app_process 基础测试:\n");
             try {
-                AdbShellResponse lockResp = dadb.shell("ls -la /data/local/tmp/diui_helper.lock 2>&1");
-                sb.append("   ").append(lockResp.getAllOutput().trim()).append("\n");
+                AdbShellResponse apResp = dadb.shell("app_process /system/bin --help 2>&1 | head -3 || echo 'app_process 不可用'");
+                sb.append("   ").append(apResp.getAllOutput().trim().replace("\n", "\n   ")).append("\n");
             } catch (Exception e) {
-                sb.append("   查询失败: ").append(e.getMessage()).append("\n");
+                sb.append("   ✗ 异常: ").append(e.getMessage()).append("\n");
             }
 
-            // 6. 尝试启动（前台模式，捕获输出）
-            sb.append("\n6. 启动 daemon（前台，5秒超时）:\n");
-            String cmd = "CLASSPATH=" + apkPath
+            // 6. 启动 daemon（前台，捕获完整输出）
+            sb.append("\n6. 启动 daemon（前台，3秒）:\n");
+            String fgCmd = "CLASSPATH=" + apkPath
                     + " app_process /system/bin"
                     + " com.diui.launcher.helper.HelperDaemon"
+                    + " " + appUid
                     + " 2>&1 &"
-                    + " DAEMON_PID=$!; sleep 3; kill $DAEMON_PID 2>/dev/null; wait $DAEMON_PID 2>/dev/null";
+                    + " DPID=$!; sleep 3; kill $DPID 2>/dev/null; wait $DPID 2>/dev/null";
+            sb.append("   cmd: CLASSPATH=...apk app_process /system/bin ...HelperDaemon ").append(appUid).append("\n");
             try {
-                AdbShellResponse startResp = dadb.shell(cmd);
+                AdbShellResponse startResp = dadb.shell(fgCmd);
                 String output = startResp.getAllOutput();
                 sb.append("   exit=").append(startResp.getExitCode()).append("\n");
                 if (output.length() > 0) {
@@ -503,11 +500,28 @@ public class AdbHelper {
                   .append(": ").append(e.getMessage()).append("\n");
             }
 
-            // 7. 后台启动（正式方式）
-            sb.append("\n7. 后台启动 daemon:\n");
+            // 7. SELinux audit 日志
+            sb.append("\n7. SELinux/dmesg (最近 denied):\n");
+            try {
+                AdbShellResponse dmesgResp = dadb.shell("dmesg 2>/dev/null | grep -iE 'avc.*denied|diui|helper|app_process' | tail -10 || echo '无权限或无记录'");
+                String dmesgOut = dmesgResp.getAllOutput().trim();
+                if (dmesgOut.length() > 0) {
+                    for (String line : dmesgOut.split("\n")) {
+                        sb.append("   ").append(line).append("\n");
+                    }
+                } else {
+                    sb.append("   (空)\n");
+                }
+            } catch (Exception e) {
+                sb.append("   查询失败: ").append(e.getMessage()).append("\n");
+            }
+
+            // 8. 后台启动（正式方式）
+            sb.append("\n8. 后台启动 daemon:\n");
             String bgCmd = "CLASSPATH=" + apkPath
                     + " nohup app_process /system/bin"
                     + " com.diui.launcher.helper.HelperDaemon"
+                    + " " + appUid
                     + " > /dev/null 2>&1 &";
             try {
                 AdbShellResponse bgResp = dadb.shell(bgCmd);
@@ -517,8 +531,8 @@ public class AdbHelper {
                 sb.append("   ✗ 异常: ").append(e.getMessage()).append("\n");
             }
 
-            // 8. 检查 binder 服务是否注册
-            sb.append("\n8. diui_helper binder 服务:\n");
+            // 9. 检查 binder 服务
+            sb.append("\n9. diui_helper binder:\n");
             try {
                 AdbShellResponse svcResp = dadb.shell("service list 2>/dev/null | grep diui_helper || echo '未注册'");
                 sb.append("   ").append(svcResp.getAllOutput().trim()).append("\n");
@@ -526,10 +540,10 @@ public class AdbHelper {
                 sb.append("   查询失败: ").append(e.getMessage()).append("\n");
             }
 
-            // 9. 再次检查进程
-            sb.append("\n9. daemon 进程（启动后）:\n");
+            // 10. 再次检查进程
+            sb.append("\n10. daemon 进程（启动后）:\n");
             try {
-                AdbShellResponse psResp2 = dadb.shell("ps -ef 2>/dev/null | grep HelperDaemon | grep -v grep || echo '无'");
+                AdbShellResponse psResp2 = dadb.shell("ps -ef 2>/dev/null | grep -E 'HelperDaemon|diui_helper' | grep -v grep || echo '无'");
                 sb.append("   ").append(psResp2.getAllOutput().trim()).append("\n");
             } catch (Exception e) {
                 sb.append("   查询失败: ").append(e.getMessage()).append("\n");
@@ -557,13 +571,15 @@ public class AdbHelper {
 
             try {
                 String apkPath = context.getApplicationInfo().sourceDir;
+                int appUid = context.getApplicationInfo().uid;
                 String cmd = "CLASSPATH=" + apkPath
                         + " nohup app_process /system/bin"
                         + " com.diui.launcher.helper.HelperDaemon"
+                        + " " + appUid
                         + " > /dev/null 2>&1 &";
 
                 dadb.shell(cmd);
-                Log.i(TAG, "HelperDaemon 已启动");
+                Log.i(TAG, "HelperDaemon 已启动 (uid=" + appUid + ")");
                 Thread.sleep(1000);
                 if (onStarted != null) onStarted.run();
             } catch (Exception e) {
