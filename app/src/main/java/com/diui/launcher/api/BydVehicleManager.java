@@ -255,7 +255,6 @@ public class BydVehicleManager {
 
         try {
             // ========== 车身数据 (BydBodyworkApi) ==========
-            // ADB 可用时跳过模拟模式的 API（模拟值会被 autoservice shell 覆盖前占位）
             if (bodyworkApi.isRealDevice()) {
                 s.batteryPercent = bodyworkApi.getBatteryCapacity();
                 s.powerLevel = bodyworkApi.getPowerLevel();
@@ -286,7 +285,8 @@ public class BydVehicleManager {
             }
 
             // ========== 统计数据 (BydStatisticApi) ==========
-            if (statisticApi.isAvailable() && !hasAdb) {
+            // 仍然尝试读取，失败则返回 -1，autoservice shell 会覆盖已知字段
+            if (statisticApi.isAvailable()) {
                 s.elecPercent = statisticApi.getElecPercentage();
                 s.evMileage = statisticApi.getEVMileage();
                 s.totalMileage = statisticApi.getTotalMileage();
@@ -305,7 +305,7 @@ public class BydVehicleManager {
             }
 
             // ========== 行驶状态 (BydDriveApi) ==========
-            if (driveApi.isRealDevice()) {
+            if (driveApi.isAvailable()) {
                 s.speed = driveApi.getSpeed();
                 s.gear = driveApi.getGear();
                 s.powerKw = driveApi.getPowerKw();
@@ -329,8 +329,17 @@ public class BydVehicleManager {
             Log.e(TAG, "Error reading vehicle status", e);
         }
 
-        // ========== ADB shell 优先：通过 service call 读取真实数据 ==========
-        if (AdbHelper.getSharedDadb() != null) {
+        // ========== 模拟数据兜底（填充所有仍为 -1 的字段）==========
+        // 顺序很重要：先填模拟值，再用 autoservice shell 覆盖已知字段
+        if (!driveApi.isRealDevice()) {
+            fillDriveSimulationData(s);
+        }
+        if (!tireApi.isRealDevice()) {
+            fillTireSimulationData(s);
+        }
+
+        // ========== ADB shell：覆盖已知字段为真实值 ==========
+        if (hasAdb) {
             fillFromAutoserviceShell(s);
         }
 
@@ -338,19 +347,11 @@ public class BydVehicleManager {
         try {
             if (helperClient.isAvailable()) {
                 fillExtrasFromHelper(s);
-            } else if (AdbHelper.getSharedDadb() != null) {
+            } else if (hasAdb) {
                 fillExtrasFromAutoservice(s);
             }
         } catch (Exception e) {
             Log.w(TAG, "Extra data fetch failed", e);
-        }
-
-        // ========== 仅对未拿到真实值的字段填模拟数据 ==========
-        if (!driveApi.isRealDevice() && AdbHelper.getSharedDadb() == null) {
-            fillDriveSimulationData(s);
-        }
-        if (!tireApi.isRealDevice() && AdbHelper.getSharedDadb() == null) {
-            fillTireSimulationData(s);
         }
 
         return s;

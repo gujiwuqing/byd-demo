@@ -89,6 +89,7 @@ public class SettingsPage {
         initVehicleDiag();
         initDaemonDiag();
         initFidScan();
+        initFidBruteScan();
         initApiProbe();
         initLayoutMode();
         initAppSlots();
@@ -490,6 +491,93 @@ public class SettingsPage {
                         .show();
             });
         });
+    }
+
+    // ── 暴力 FID 发现 ──
+
+    private void initFidBruteScan() {
+        rootView.findViewById(R.id.settings_fid_brute).setOnClickListener(v -> {
+            Context ctx = rootView.getContext();
+            String[] options = {"快速（已知范围附近 ±512）", "中量（±8192，约3分钟）", "全量（所有设备 ×50000，约15分钟）"};
+            new MaterialAlertDialogBuilder(ctx, R.style.AppAlertDialog)
+                    .setTitle("选择扫描范围")
+                    .setItems(options, (d, which) -> {
+                        int[] devTypes = {1000, 1001, 1004, 1006, 1007, 1009, 1011, 1012, 1013, 1014, 1016, 1023, 1032};
+
+                        int[] fids;
+                        String label;
+                        if (which == 0) {
+                            fids = buildCandidates(512);
+                            label = "快速扫描（约30秒）...";
+                        } else if (which == 1) {
+                            fids = buildCandidates(8192);
+                            label = "中量扫描（约3分钟）...";
+                        } else {
+                            fids = buildCandidates(50000);
+                            label = "全量扫描（约15分钟）...";
+                        }
+
+                        android.widget.Toast.makeText(ctx, label, android.widget.Toast.LENGTH_LONG).show();
+                        com.diui.launcher.api.AutoserviceClient.bruteForceScan(devTypes, fids, report -> showReport(ctx, "FID 发现结果", report));
+                    })
+                    .setNegativeButton("取消", null)
+                    .show();
+        });
+    }
+
+    /** 生成候选 FID 列表：已知 FID ± range，步长 2（BYD FID 对齐方式）*/
+    private int[] buildCandidates(int range) {
+        // 已知锚点 FID
+        int[] anchors = {
+            1077936144, 1077936148, 1077936156, 1077936168, 1077936184,
+            1031798832, 692060168, 692060184, 692060188, 947912728,
+            1267728400, 947912736, 947912752, 1074790416, 1128267816,
+            1246777400, 1246765072, 1145045032, 1148190752, 1148190736,
+            1147142192, 1147142160, 1032871984, -1807745016, 555745336,
+            339738656, 876609586, 876609592, 876609560, 666894360,
+            315621408, 555745294, 874512420, 950009866, 1231040528,
+            692060184, 1081081864, -1728052956, -1728052952, -1728052948, -1728052944
+        };
+
+        java.util.TreeSet<Integer> set = new java.util.TreeSet<>();
+        for (int anchor : anchors) {
+            for (int delta = -range; delta <= range; delta += 2) {
+                set.add(anchor + delta);
+            }
+        }
+        int[] result = new int[set.size()];
+        int i = 0;
+        for (int fid : set) result[i++] = fid;
+        return result;
+    }
+
+    private void showReport(Context ctx, String title, String report) {
+        TextView tv = new TextView(ctx);
+        tv.setTypeface(android.graphics.Typeface.MONOSPACE);
+        tv.setText(report);
+        tv.setTextSize(11f);
+        int pad = dpToPx(16);
+        tv.setPadding(pad, pad, pad, pad);
+        tv.setTextIsSelectable(true);
+
+        android.widget.ScrollView scroll = new android.widget.ScrollView(ctx);
+        scroll.addView(tv);
+
+        new MaterialAlertDialogBuilder(ctx, R.style.AppAlertDialog)
+                .setTitle(title)
+                .setView(scroll)
+                .setPositiveButton("复制", (d2, w2) -> {
+                    try {
+                        android.content.ClipboardManager cm = (android.content.ClipboardManager)
+                                ctx.getSystemService(Context.CLIPBOARD_SERVICE);
+                        if (cm != null) {
+                            cm.setPrimaryClip(android.content.ClipData.newPlainText("fid", report));
+                            android.widget.Toast.makeText(ctx, "已复制", android.widget.Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (Exception ignored) {}
+                })
+                .setNegativeButton("关闭", null)
+                .show();
     }
 
     // ── API 探测 ──

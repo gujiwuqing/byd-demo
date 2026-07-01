@@ -351,4 +351,76 @@ public class AutoserviceClient {
                     .post(() -> callback.onResult(report));
         }).start();
     }
+
+    // ---------- 暴力扫描（发现未知 FID）----------
+
+    /**
+     * 对指定设备类型，在给定 FID 列表中逐个探测（tx=5 和 tx=7 都试），
+     * 返回所有非哨兵、非零的值，帮助发现未知 FID。
+     *
+     * fidCandidates: 要尝试的 FID 整数数组（可以是已知值附近的范围）
+     */
+    public static void bruteForceScan(int[] devTypes, int[] fidCandidates, ScanCallback callback) {
+        new Thread(() -> {
+            StringBuilder sb = new StringBuilder();
+            sb.append("===== 暴力 FID 扫描 =====\n");
+            sb.append("设备数: ").append(devTypes.length)
+              .append("  FID候选数: ").append(fidCandidates.length).append("\n\n");
+
+            dadb.Dadb dadb = AdbHelper.getSharedDadb();
+            if (dadb == null) {
+                sb.append("✗ Dadb 未连接\n");
+                new android.os.Handler(android.os.Looper.getMainLooper())
+                        .post(() -> callback.onResult(sb.toString()));
+                return;
+            }
+
+            int found = 0;
+            for (int dev : devTypes) {
+                StringBuilder devSb = new StringBuilder();
+                int devFound = 0;
+
+                for (int fid : fidCandidates) {
+                    // 先试 tx=5 (int)
+                    try {
+                        String raw5 = dadb.shell(
+                                "service call autoservice 5 i32 " + dev + " i32 " + fid)
+                                .getAllOutput().trim();
+                        int val = parseParcelInt(raw5);
+                        if (!FidRegistry.isSentinel(val) && val != 0 && val != -1) {
+                            devSb.append("  [INT] fid=").append(fid)
+                                 .append(" → ").append(val).append("\n");
+                            devFound++;
+                        }
+                    } catch (Exception ignored) {}
+
+                    // 再试 tx=7 (float)
+                    try {
+                        String raw7 = dadb.shell(
+                                "service call autoservice 7 i32 " + dev + " i32 " + fid)
+                                .getAllOutput().trim();
+                        float fval = parseParcelFloat(raw7);
+                        if (!FidRegistry.isSentinelFloat(fval) && fval != 0f && fval > 0f) {
+                            devSb.append("  [FLT] fid=").append(fid)
+                                 .append(" → ").append(fval).append("\n");
+                            devFound++;
+                        }
+                    } catch (Exception ignored) {}
+                }
+
+                if (devFound > 0) {
+                    sb.append("── dev=").append(dev).append(" (").append(devFound).append(" 个新 FID) ──\n");
+                    sb.append(devSb);
+                    sb.append("\n");
+                    found += devFound;
+                }
+            }
+
+            sb.append("===== 共发现 ").append(found).append(" 个有效 FID =====");
+            String report = sb.toString();
+            android.util.Log.i("FidBrute", report);
+            new android.os.Handler(android.os.Looper.getMainLooper())
+                    .post(() -> callback.onResult(report));
+        }).start();
+    }
 }
