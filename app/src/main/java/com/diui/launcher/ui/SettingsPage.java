@@ -511,7 +511,7 @@ public class SettingsPage {
     private void initFidBruteScan() {
         rootView.findViewById(R.id.settings_fid_brute).setOnClickListener(v -> {
             Context ctx = rootView.getContext();
-            String[] options = {"快速（已知范围附近 ±512）", "中量（±8192，约3分钟）", "全量（所有设备 ×50000，约15分钟）"};
+            String[] options = {"快速（已知范围附近 ±32，约1分钟）", "中量（±512，约10分钟）", "全量（±8192，约1小时）"};
             new MaterialAlertDialogBuilder(ctx, R.style.AppAlertDialog)
                     .setTitle("选择扫描范围")
                     .setItems(options, (d, which) -> {
@@ -520,14 +520,14 @@ public class SettingsPage {
                         int[] fids;
                         String label;
                         if (which == 0) {
-                            fids = buildCandidates(512);
-                            label = "快速扫描（约30秒）...";
+                            fids = buildCandidates(32);
+                            label = "快速扫描（约1分钟）...";
                         } else if (which == 1) {
-                            fids = buildCandidates(8192);
-                            label = "中量扫描（约3分钟）...";
+                            fids = buildCandidates(512);
+                            label = "中量扫描（约10分钟）...";
                         } else {
-                            fids = buildCandidates(50000);
-                            label = "全量扫描（约15分钟）...";
+                            fids = buildCandidates(8192);
+                            label = "全量扫描（约1小时）...";
                         }
 
                         android.widget.Toast.makeText(ctx, label, android.widget.Toast.LENGTH_LONG).show();

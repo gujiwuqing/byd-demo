@@ -460,14 +460,12 @@ public class AutoserviceClient {
                     .post(() -> callback.onResult(report));
         }).start();
     }
-}
 
+    // ---------- 暴力扫描（发现未知 FID）----------
 
     /**
-     * 对指定设备类型，在给定 FID 列表中逐个探测（tx=5 和 tx=7 都试），
-     * 返回所有非哨兵、非零的值，帮助发现未知 FID。
-     *
-     * fidCandidates: 要尝试的 FID 整数数组（可以是已知值附近的范围）
+     * 批量暴力扫描：把 FID 列表写入临时文件，在车机 shell 本地循环。
+     * 每个设备类型只发两次 dadb.shell()，避免单 FID 网络往返。
      */
     public static void bruteForceScan(int[] devTypes, int[] fidCandidates, ScanCallback callback) {
         new Thread(() -> {
@@ -484,48 +482,86 @@ public class AutoserviceClient {
                 return;
             }
 
+            // 把 FID 列表写入车机临时文件（逐行），shell 脚本从文件读取
+            StringBuilder fidLines = new StringBuilder();
+            for (int fid : fidCandidates) fidLines.append(fid).append("\n");
+
+            try {
+                // 写 FID 列表到车机临时文件
+                dadb.shell("printf '" + fidLines.toString().replace("'", "") + "' > /data/local/tmp/_fids.txt");
+            } catch (Exception e) {
+                sb.append("✗ 写临时文件失败: ").append(e.getMessage()).append("\n");
+                new android.os.Handler(android.os.Looper.getMainLooper())
+                        .post(() -> callback.onResult(sb.toString()));
+                return;
+            }
+
             int found = 0;
             for (int dev : devTypes) {
-                StringBuilder devSb = new StringBuilder();
                 int devFound = 0;
+                StringBuilder devSb = new StringBuilder();
 
-                for (int fid : fidCandidates) {
-                    // 先试 tx=5 (int)
-                    try {
-                        String raw5 = dadb.shell(
-                                "service call autoservice 5 i32 " + dev + " i32 " + fid)
-                                .getAllOutput().trim();
-                        int val = parseParcelInt(raw5);
-                        if (!FidRegistry.isSentinel(val) && val != 0 && val != -1) {
-                            devSb.append("  [INT] fid=").append(fid)
-                                 .append(" → ").append(val).append("\n");
-                            devFound++;
-                        }
-                    } catch (Exception ignored) {}
+                // tx=5 (int) — 在车机本地循环
+                String cmd5 = "while IFS= read -r fid; do"
+                    + " r=$(service call autoservice 5 i32 " + dev + " i32 $fid 2>/dev/null);"
+                    + " v=$(echo \"$r\" | sed -n 's/.*Parcel([0-9a-f]* \\([0-9a-f]*\\).*/\\1/p');"
+                    + " case \"$v\" in 0000ffff|000fffff|ffffd8e3|ffffd8e5|00000000|ffffffff|'') ;;"
+                    + " *) echo \"I $fid $v\";; esac;"
+                    + " done < /data/local/tmp/_fids.txt";
 
-                    // 再试 tx=7 (float)
-                    try {
-                        String raw7 = dadb.shell(
-                                "service call autoservice 7 i32 " + dev + " i32 " + fid)
-                                .getAllOutput().trim();
-                        float fval = parseParcelFloat(raw7);
-                        if (!FidRegistry.isSentinelFloat(fval) && fval != 0f && fval > 0f) {
-                            devSb.append("  [FLT] fid=").append(fid)
-                                 .append(" → ").append(fval).append("\n");
-                            devFound++;
+                // tx=7 (float)
+                String cmd7 = "while IFS= read -r fid; do"
+                    + " r=$(service call autoservice 7 i32 " + dev + " i32 $fid 2>/dev/null);"
+                    + " v=$(echo \"$r\" | sed -n 's/.*Parcel([0-9a-f]* \\([0-9a-f]*\\).*/\\1/p');"
+                    + " case \"$v\" in 0000ffff|000fffff|ffffd8e3|ffffd8e5|00000000|ffffffff|bf800000|7fc00000|'') ;;"
+                    + " *) echo \"F $fid $v\";; esac;"
+                    + " done < /data/local/tmp/_fids.txt";
+
+                try {
+                    String out5 = dadb.shell(cmd5).getAllOutput().trim();
+                    for (String line : out5.split("\n")) {
+                        String[] p = line.trim().split("\\s+");
+                        if (p.length == 3 && p[0].equals("I")) {
+                            try {
+                                int fid = Integer.parseInt(p[1]);
+                                int val = (int) Long.parseLong(p[2], 16);
+                                devSb.append("  [INT] ").append(fid)
+                                     .append(" = ").append(val).append("\n");
+                                devFound++;
+                            } catch (Exception ignored) {}
                         }
-                    } catch (Exception ignored) {}
+                    }
+
+                    String out7 = dadb.shell(cmd7).getAllOutput().trim();
+                    for (String line : out7.split("\n")) {
+                        String[] p = line.trim().split("\\s+");
+                        if (p.length == 3 && p[0].equals("F")) {
+                            try {
+                                int fid = Integer.parseInt(p[1]);
+                                float fval = Float.intBitsToFloat((int) Long.parseLong(p[2], 16));
+                                if (fval > 0 && fval < 1e9f && !Float.isInfinite(fval)) {
+                                    devSb.append("  [FLT] ").append(fid)
+                                         .append(" = ").append(fval).append("\n");
+                                    devFound++;
+                                }
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                } catch (Exception e) {
+                    sb.append("dev=").append(dev).append(" ERR: ").append(e.getMessage()).append("\n");
                 }
 
                 if (devFound > 0) {
-                    sb.append("── dev=").append(dev).append(" (").append(devFound).append(" 个新 FID) ──\n");
+                    sb.append("── dev=").append(dev).append(" (").append(devFound).append(") ──\n");
                     sb.append(devSb);
-                    sb.append("\n");
                     found += devFound;
                 }
             }
 
-            sb.append("===== 共发现 ").append(found).append(" 个有效 FID =====");
+            // 清理临时文件
+            try { dadb.shell("rm /data/local/tmp/_fids.txt"); } catch (Exception ignored) {}
+
+            sb.append("\n===== 共发现 ").append(found).append(" 个有效 FID =====");
             String report = sb.toString();
             android.util.Log.i("FidBrute", report);
             new android.os.Handler(android.os.Looper.getMainLooper())
