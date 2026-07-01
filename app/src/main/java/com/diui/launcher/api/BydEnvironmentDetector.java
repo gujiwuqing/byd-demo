@@ -47,15 +47,21 @@ public class BydEnvironmentDetector {
 
         } catch (java.lang.reflect.InvocationTargetException e) {
             Throwable cause = e.getCause();
-            if (cause instanceof SecurityException) {
-                Log.i(TAG, "SecurityException → PERMISSION_NEEDED: " + cause.getMessage());
-                return Environment.PERMISSION_NEEDED;
+            // BYD API 类存在说明是真实车机。getInstance 调用失败无论 cause 是
+            // SecurityException 还是其他 RuntimeException（IllegalState/NullPoint 等），
+            // 多半是权限未授予或设备未就绪——一律判为 PERMISSION_NEEDED，触发 ADB 授权，
+            // 绝不误判为 SIMULATOR 导致授权流程不触发。
+            if (cause != null) {
+                Log.i(TAG, "InvocationTargetException cause=" + cause.getClass().getName()
+                        + " → PERMISSION_NEEDED: " + cause.getMessage());
+            } else {
+                Log.i(TAG, "InvocationTargetException (no cause) → PERMISSION_NEEDED");
             }
-            Log.w(TAG, "InvocationTargetException → SIMULATOR", e);
-            return Environment.SIMULATOR;
+            return Environment.PERMISSION_NEEDED;
         } catch (Exception e) {
-            Log.w(TAG, "Detection failed → SIMULATOR", e);
-            return Environment.SIMULATOR;
+            // 其他异常（如 NoSuchMethodException）说明 API 签名不符，仍按需要授权处理
+            Log.w(TAG, "Detection failed → PERMISSION_NEEDED: " + e.getMessage());
+            return Environment.PERMISSION_NEEDED;
         }
     }
 }

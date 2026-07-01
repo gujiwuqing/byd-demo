@@ -64,6 +64,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setupHiddenApiExemptions();
         ThemeManager.getInstance(this).applyTheme();
         super.onCreate(savedInstanceState);
 
@@ -128,10 +129,10 @@ public class MainActivity extends AppCompatActivity
         settingsPage.setOnAdbAuthorizeListener(() -> {
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                     .edit().putBoolean(KEY_ADB_GRANTED, false).apply();
-            if (detectedEnv == BydEnvironmentDetector.Environment.SIMULATOR) {
+            if (!AdbHelper.isAdbAvailable()) {
                 android.widget.Toast.makeText(this,
-                        "模拟器环境，ADB 授权仅在真实车机上有效",
-                        android.widget.Toast.LENGTH_SHORT).show();
+                        "本地 ADB 不可用，请确认车机已开启 ADB 调试",
+                        android.widget.Toast.LENGTH_LONG).show();
                 return;
             }
             startAdbGrant();
@@ -197,17 +198,23 @@ public class MainActivity extends AppCompatActivity
         }
 
         // 检查 BYD 车辆 API 权限
+        // 触发条件：ADB 可用（真车）且权限未全授予。不依赖 detectedEnv——
+        // 模拟器上 ADB 5555 不监听，isAdbAvailable() 返回 false，自然不触发。
         if (adbAlreadyGranted) {
             Log.i(TAG, "ADB permissions already granted, skipping check");
             AdbHelper.startHelperDaemon(this, () ->
                     Log.i(TAG, "HelperDaemon restarted on launch"));
-        } else if (detectedEnv == BydEnvironmentDetector.Environment.PERMISSION_NEEDED
-                || detectedEnv == BydEnvironmentDetector.Environment.REAL_DEVICE) {
+        } else if (AdbHelper.isAdbAvailable()
+                && !BydPermissionHelper.hasAllPermissions(this)) {
+            Log.i(TAG, "ADB available but permissions missing, auto granting (env=" + detectedEnv + ")");
             if (fromBoot) {
                 scheduleAdbGrantWithRetry(5, 0);
             } else {
                 autoAdbGrant();
             }
+        } else {
+            Log.i(TAG, "Skip ADB grant: available=" + AdbHelper.isAdbAvailable()
+                    + " env=" + detectedEnv);
         }
 
         // 检查是否为默认桌面
@@ -325,42 +332,6 @@ public class MainActivity extends AppCompatActivity
                 .setCancelable(false));
     }
 
-    private void showBydPermissionDialog() {
-        if (AdbHelper.isAdbAvailable()) {
-            showAdbAuthDialog();
-        } else {
-            showDimDialog(new MaterialAlertDialogBuilder(this, R.style.AppAlertDialog)
-                    .setTitle(R.string.perm_byd_title)
-                    .setMessage(R.string.perm_byd_message)
-                    .setPositiveButton(R.string.perm_btn_settings, (d, w) -> {
-                        try {
-                            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                            intent.setData(Uri.parse("package:" + getPackageName()));
-                            startActivity(intent);
-                        } catch (Exception e) {
-                            // 忽略
-                        }
-                    })
-                    .setNegativeButton(R.string.perm_btn_cancel, null));
-        }
-    }
-
-    private void showAdbAuthDialog() {
-        if (detectedEnv == BydEnvironmentDetector.Environment.SIMULATOR) {
-            showDimDialog(new MaterialAlertDialogBuilder(this, R.style.AppAlertDialog)
-                    .setTitle(R.string.perm_byd_title)
-                    .setMessage("当前为模拟器环境，ADB 授权仅在真实 BYD 车机上有效。\n\n模拟器中请使用模拟模式体验功能。")
-                    .setPositiveButton(R.string.perm_btn_ok, null));
-            return;
-        }
-        showDimDialog(new MaterialAlertDialogBuilder(this, R.style.AppAlertDialog)
-                .setTitle(R.string.perm_byd_title)
-                .setMessage(R.string.perm_byd_adb_message)
-                .setPositiveButton(R.string.perm_btn_auth, (d, w) -> startAdbGrant())
-                .setNegativeButton(R.string.perm_btn_cancel, null)
-                .setCancelable(false));
-    }
-
     private void startAdbGrant() {
         showSystemUI();
         AdbKeyManager.clearKeys(this);
@@ -451,6 +422,27 @@ public class MainActivity extends AppCompatActivity
     private void showSystemUI() {
         getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+    }
+
+    /**
+     * 豁免 hidden API 限制，使 app 进程能反射 ServiceManager.getService
+     * （HelperClient 解析 diui_helper binder service 需要）。
+     * 通过 VMRuntime.setHiddenApiExemptions(["L"]) 豁免所有类。
+     */
+    private void setupHiddenApiExemptions() {
+        try {
+            Class<?> vmRuntime = Class.forName("android.os.VMRuntime");
+            java.lang.reflect.Method getRuntime = vmRuntime.getMethod("getRuntime");
+            java.lang.reflect.Method setExemptions = vmRuntime.getMethod(
+                    "setHiddenApiExemptions", String[].class);
+            Object runtime = getRuntime.invoke(null);
+            if (runtime != null) {
+                setExemptions.invoke(runtime, new Object[]{new String[]{"L"}});
+                Log.i(TAG, "Hidden API exemptions installed");
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Hidden API exemption failed (may still work on targetSdk<=28): " + e.getMessage());
+        }
     }
 
     @Override

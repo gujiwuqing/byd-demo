@@ -93,7 +93,8 @@ public class AdbKeyManager {
 
     public String getAdbPublicKeyString() {
         byte[] encoded = encodeAdbPublicKey(publicKey);
-        return Base64.encodeToString(encoded, Base64.NO_WRAP) + " bydlauncher@byd\n";
+        // ADB 公钥格式：base64 + " " + user@host，末尾由调用方 nullTerminate 补 \0
+        return Base64.encodeToString(encoded, Base64.NO_WRAP) + " bydlauncher@byd";
     }
 
     /**

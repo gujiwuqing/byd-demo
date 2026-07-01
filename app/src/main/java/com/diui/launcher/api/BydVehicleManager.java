@@ -48,9 +48,7 @@ public class BydVehicleManager {
         this.driveApi = new BydDriveApi(appContext);
         this.autoserviceClient = new AutoserviceClient(appContext);
         this.helperClient = new com.diui.launcher.helper.HelperClient();
-        if (!helperClient.isAvailable() && AdbHelper.isAdbAvailable()) {
-            AdbHelper.startHelperDaemon(appContext, () -> helperClient.checkAvailability());
-        }
+        ensureHelperRunning(appContext);
 
         this.listenerManager = new BydListenerManager(new VehicleStatus());
         listenerManager.setCallback(() -> {
@@ -126,6 +124,72 @@ public class BydVehicleManager {
 
     public void setListener(VehicleStatusListener listener) {
         this.listener = listener;
+    }
+
+    private static final String HELPER_PREFS = "diui_helper";
+    private static final String KEY_SPAWNED_VERSION = "spawned_version_code";
+    private static final long NO_STORED_VERSION = -1L;
+
+    /**
+     * 确保 HelperDaemon 运行且与当前 app 版本一致：
+     *   1. 若 daemon 已存活且版本匹配 → 复用。
+     *   2. 若版本不匹配（app 更新过）→ kill 旧 daemon 再 spawn 新的。
+     *   3. 同版本但未运行（重启后）→ 直接 spawn。
+     * ADB 不可用时静默跳过（模拟器/未开 ADB）。
+     */
+    private void ensureHelperRunning(Context appContext) {
+        if (!AdbHelper.isAdbAvailable()) {
+            Log.i(TAG, "ADB unavailable, skip helper daemon");
+            return;
+        }
+
+        long wantVersion = installedVersionCode(appContext);
+        long spawnedVersion = appContext
+                .getSharedPreferences(HELPER_PREFS, Context.MODE_PRIVATE)
+                .getLong(KEY_SPAWNED_VERSION, NO_STORED_VERSION);
+
+        if (helperClient.isAvailable() && spawnedVersion == wantVersion) {
+            Log.i(TAG, "HelperDaemon alive (v" + spawnedVersion + "), reuse");
+            return;
+        }
+
+        if (spawnedVersion != NO_STORED_VERSION && spawnedVersion != wantVersion) {
+            Log.i(TAG, "Stale helper (spawned=" + spawnedVersion + " want=" + wantVersion + "), killing");
+            AdbHelper.killHelper(appContext, () -> {
+                try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+                spawnAndRecord(appContext, wantVersion);
+            });
+        } else {
+            spawnAndRecord(appContext, wantVersion);
+        }
+    }
+
+    private void spawnAndRecord(Context appContext, long wantVersion) {
+        AdbHelper.startHelperDaemon(appContext, () -> {
+            // spawn 后等 binder 注册完成再 ping
+            boolean alive = false;
+            for (int i = 0; i < 10; i++) {
+                try { Thread.sleep(300); } catch (InterruptedException ignored) {}
+                helperClient.checkAvailability();
+                if (helperClient.isAvailable()) { alive = true; break; }
+            }
+            if (alive) {
+                appContext.getSharedPreferences(HELPER_PREFS, Context.MODE_PRIVATE)
+                        .edit().putLong(KEY_SPAWNED_VERSION, wantVersion).apply();
+                Log.i(TAG, "HelperDaemon spawned & alive (v" + wantVersion + ")");
+            } else {
+                Log.w(TAG, "HelperDaemon not reachable after spawn");
+            }
+        });
+    }
+
+    private long installedVersionCode(Context appContext) {
+        try {
+            return appContext.getPackageManager()
+                    .getPackageInfo(appContext.getPackageName(), 0).versionCode;
+        } catch (Exception e) {
+            return NO_STORED_VERSION;
+        }
     }
 
     public void startPolling() {

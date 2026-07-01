@@ -16,6 +16,10 @@ public class AutoserviceClient {
     private static final Pattern PARCEL_HEX_PATTERN = Pattern.compile(
             "Result:\\s*Parcel\\(([0-9a-fA-F\\s]+)'");
 
+    /** 仅允许 service call autoservice 的 GET（tx 5/7/9），拦截一切写操作与任意命令。 */
+    private static final Pattern COMMAND_BARRIER = Pattern.compile(
+            "^service call autoservice [579] i32 \\d+ i32 -?\\d+$");
+
     private boolean available = false;
 
     public AutoserviceClient(Context context) {
@@ -83,6 +87,10 @@ public class AutoserviceClient {
     }
 
     private String execCommand(String cmd) {
+        if (!COMMAND_BARRIER.matcher(cmd).matches()) {
+            Log.w(TAG, "Refused command (write barrier): " + cmd);
+            return null;
+        }
         try {
             Process p = Runtime.getRuntime().exec(new String[]{"sh", "-c", cmd});
             BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
