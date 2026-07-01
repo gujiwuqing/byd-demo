@@ -88,6 +88,7 @@ public class SettingsPage {
         initAdbDiag();
         initVehicleDiag();
         initDaemonDiag();
+        initFidScan();
         initApiProbe();
         initLayoutMode();
         initAppSlots();
@@ -453,6 +454,44 @@ public class SettingsPage {
         });
     }
 
+    // ── FID 全量扫描 ──
+
+    private void initFidScan() {
+        rootView.findViewById(R.id.settings_fid_scan).setOnClickListener(v -> {
+            Context ctx = rootView.getContext();
+            android.widget.Toast.makeText(ctx, "正在扫描所有 FID（约 15 秒）...", android.widget.Toast.LENGTH_LONG).show();
+
+            com.diui.launcher.api.AutoserviceClient.scanAll(report -> {
+                TextView tv = new TextView(ctx);
+                tv.setTypeface(android.graphics.Typeface.MONOSPACE);
+                tv.setText(report);
+                tv.setTextSize(11f);
+                int pad = dpToPx(16);
+                tv.setPadding(pad, pad, pad, pad);
+                tv.setTextIsSelectable(true);
+
+                android.widget.ScrollView scroll = new android.widget.ScrollView(ctx);
+                scroll.addView(tv);
+
+                new MaterialAlertDialogBuilder(ctx, R.style.AppAlertDialog)
+                        .setTitle("FID 全量扫描")
+                        .setView(scroll)
+                        .setPositiveButton("复制", (d, w) -> {
+                            try {
+                                android.content.ClipboardManager cm = (android.content.ClipboardManager)
+                                        ctx.getSystemService(Context.CLIPBOARD_SERVICE);
+                                if (cm != null) {
+                                    cm.setPrimaryClip(android.content.ClipData.newPlainText("fid_scan", report));
+                                    android.widget.Toast.makeText(ctx, "扫描结果已复制", android.widget.Toast.LENGTH_SHORT).show();
+                                }
+                            } catch (Exception ignored) {}
+                        })
+                        .setNegativeButton("关闭", null)
+                        .show();
+            });
+        });
+    }
+
     // ── API 探测 ──
 
     private void initApiProbe() {
@@ -472,14 +511,38 @@ public class SettingsPage {
                     }
 
                     @Override
-                    public void onComplete(String filePath) {
+                    public void onComplete(String report) {
                         ((android.app.Activity) context).runOnUiThread(() -> {
                             if (probeTitle != null) {
                                 probeTitle.setText("API 探测");
                             }
-                            android.widget.Toast.makeText(context,
-                                    "探测完成，报告: " + filePath,
-                                    android.widget.Toast.LENGTH_LONG).show();
+
+                            TextView tv = new TextView(context);
+                            tv.setTypeface(android.graphics.Typeface.MONOSPACE);
+                            tv.setText(report);
+                            tv.setTextSize(10f);
+                            int pad = dpToPx(16);
+                            tv.setPadding(pad, pad, pad, pad);
+                            tv.setTextIsSelectable(true);
+
+                            android.widget.ScrollView scroll = new android.widget.ScrollView(context);
+                            scroll.addView(tv);
+
+                            new MaterialAlertDialogBuilder(context, R.style.AppAlertDialog)
+                                    .setTitle("API 探测报告")
+                                    .setView(scroll)
+                                    .setPositiveButton("复制", (d, w) -> {
+                                        try {
+                                            android.content.ClipboardManager cm = (android.content.ClipboardManager)
+                                                    context.getSystemService(Context.CLIPBOARD_SERVICE);
+                                            if (cm != null) {
+                                                cm.setPrimaryClip(android.content.ClipData.newPlainText("api_probe", report));
+                                                android.widget.Toast.makeText(context, "报告已复制", android.widget.Toast.LENGTH_SHORT).show();
+                                            }
+                                        } catch (Exception ignored) {}
+                                    })
+                                    .setNegativeButton("关闭", null)
+                                    .show();
                         });
                     }
                 });

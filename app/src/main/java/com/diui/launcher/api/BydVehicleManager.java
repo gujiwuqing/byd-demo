@@ -8,6 +8,8 @@ import android.util.Log;
 import com.diui.launcher.model.VehicleStatus;
 
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class BydVehicleManager {
 
@@ -196,53 +198,65 @@ public class BydVehicleManager {
         }
     }
 
+    private final ExecutorService pollExecutor = Executors.newSingleThreadExecutor();
+
     public void startPolling() {
         if (polling) return;
         polling = true;
-        handler.post(pollRunnable);
+        scheduleNextPoll(0);
     }
 
     public void stopPolling() {
         polling = false;
-        handler.removeCallbacks(pollRunnable);
+        handler.removeCallbacksAndMessages(null);
     }
 
-    private final Runnable pollRunnable = new Runnable() {
-        @Override
-        public void run() {
+    private void scheduleNextPoll(long delayMs) {
+        handler.postDelayed(() -> {
             if (!polling) return;
-            VehicleStatus status = readCurrentStatus();
+            pollExecutor.execute(pollTask);
+        }, delayMs);
+    }
 
-            boolean dataValid = (status.speed >= 0 || status.batteryPercent >= 0);
-            if (!dataValid) {
-                consecutiveFailures++;
-            } else {
-                consecutiveFailures = 0;
-            }
+    private final Runnable pollTask = () -> {
+        if (!polling) return;
 
-            currentPollState = PollState.classify(
-                    status.speed, status.gear, status.chargeGunState, dataValid);
+        VehicleStatus status = readCurrentStatus();
 
+        boolean dataValid = (status.speed >= 0 || status.batteryPercent >= 0);
+        if (!dataValid) {
+            consecutiveFailures++;
+        } else {
+            consecutiveFailures = 0;
+        }
+
+        currentPollState = PollState.classify(
+                status.speed, status.gear, status.chargeGunState, dataValid);
+
+        long interval = currentPollState.intervalMs;
+        if (consecutiveFailures > 0) {
+            interval = Math.min(
+                    (long) (interval * Math.pow(1.5, consecutiveFailures)),
+                    MAX_BACKOFF_INTERVAL);
+        }
+
+        final long nextDelay = interval;
+        handler.post(() -> {
             if (listener != null) {
                 listener.onStatusUpdated(status);
             }
-
-            long interval = currentPollState.intervalMs;
-            if (consecutiveFailures > 0) {
-                interval = Math.min(
-                        (long) (interval * Math.pow(1.5, consecutiveFailures)),
-                        MAX_BACKOFF_INTERVAL);
-            }
-
-            handler.postDelayed(this, interval);
-        }
+            scheduleNextPoll(nextDelay);
+        });
     };
 
     public VehicleStatus readCurrentStatus() {
         VehicleStatus s = new VehicleStatus();
+        boolean hasAdb = AdbHelper.getSharedDadb() != null;
+
         try {
             // ========== 车身数据 (BydBodyworkApi) ==========
-            if (bodyworkApi.isAvailable()) {
+            // ADB 可用时跳过模拟模式的 API（模拟值会被 autoservice shell 覆盖前占位）
+            if (bodyworkApi.isRealDevice()) {
                 s.batteryPercent = bodyworkApi.getBatteryCapacity();
                 s.powerLevel = bodyworkApi.getPowerLevel();
                 s.powerLevelText = bodyworkApi.getPowerLevelText();
@@ -253,8 +267,6 @@ public class BydVehicleManager {
                 s.doorRightRearOpen = bodyworkApi.isDoorOpen(BydBodyworkApi.DOOR_RIGHT_REAR);
                 s.trunkOpen = bodyworkApi.isDoorOpen(BydBodyworkApi.DOOR_TRUNK);
                 s.hoodOpen = bodyworkApi.isDoorOpen(BydBodyworkApi.DOOR_HOOD);
-
-                // 车窗状态
                 s.windowFL = bodyworkApi.getWindowFL();
                 s.windowFR = bodyworkApi.getWindowFR();
                 s.windowRL = bodyworkApi.getWindowRL();
@@ -263,7 +275,7 @@ public class BydVehicleManager {
             }
 
             // ========== 空调数据 (BydAcApi) ==========
-            if (acApi.isAvailable()) {
+            if (acApi.isRealDevice()) {
                 s.acOn = acApi.isOn();
                 s.acTemp = acApi.getMainTemp();
                 s.outsideTemp = acApi.getOutsideTemp();
@@ -274,14 +286,14 @@ public class BydVehicleManager {
             }
 
             // ========== 统计数据 (BydStatisticApi) ==========
-            if (statisticApi.isAvailable()) {
+            if (statisticApi.isAvailable() && !hasAdb) {
                 s.elecPercent = statisticApi.getElecPercentage();
                 s.evMileage = statisticApi.getEVMileage();
                 s.totalMileage = statisticApi.getTotalMileage();
             }
 
             // ========== 胎压胎温 (BydTireApi) ==========
-            if (tireApi.isAvailable()) {
+            if (tireApi.isRealDevice()) {
                 s.tirePressureFL = tireApi.getPressureFL();
                 s.tirePressureFR = tireApi.getPressureFR();
                 s.tirePressureRL = tireApi.getPressureRL();
@@ -293,7 +305,7 @@ public class BydVehicleManager {
             }
 
             // ========== 行驶状态 (BydDriveApi) ==========
-            if (driveApi.isAvailable()) {
+            if (driveApi.isRealDevice()) {
                 s.speed = driveApi.getSpeed();
                 s.gear = driveApi.getGear();
                 s.powerKw = driveApi.getPowerKw();
@@ -317,16 +329,8 @@ public class BydVehicleManager {
             Log.e(TAG, "Error reading vehicle status", e);
         }
 
-        // 当 DriveApi 或 TireApi 不可用时，补充模拟数据
-        if (!driveApi.isRealDevice()) {
-            fillDriveSimulationData(s);
-        }
-        if (!tireApi.isRealDevice()) {
-            fillTireSimulationData(s);
-        }
-
-        // ========== ADB shell 降级：BYD API 返回 -1 时通过 service call 补数据 ==========
-        if (AdbHelper.getSharedDadb() != null && autoserviceClient.isAvailable()) {
+        // ========== ADB shell 优先：通过 service call 读取真实数据 ==========
+        if (AdbHelper.getSharedDadb() != null) {
             fillFromAutoserviceShell(s);
         }
 
@@ -334,11 +338,19 @@ public class BydVehicleManager {
         try {
             if (helperClient.isAvailable()) {
                 fillExtrasFromHelper(s);
-            } else if (autoserviceClient.isAvailable()) {
+            } else if (AdbHelper.getSharedDadb() != null) {
                 fillExtrasFromAutoservice(s);
             }
         } catch (Exception e) {
             Log.w(TAG, "Extra data fetch failed", e);
+        }
+
+        // ========== 仅对未拿到真实值的字段填模拟数据 ==========
+        if (!driveApi.isRealDevice() && AdbHelper.getSharedDadb() == null) {
+            fillDriveSimulationData(s);
+        }
+        if (!tireApi.isRealDevice() && AdbHelper.getSharedDadb() == null) {
+            fillTireSimulationData(s);
         }
 
         return s;

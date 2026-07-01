@@ -170,7 +170,7 @@ public class BydApiExplorer {
 
     public interface ProbeProgressListener {
         void onProgress(int current, int total, String message);
-        void onComplete(String filePath);
+        void onComplete(String report);
     }
 
     public static void runFullProbe(android.content.Context context, ProbeProgressListener progressListener) {
@@ -240,25 +240,12 @@ public class BydApiExplorer {
                 report.append("\n");
             }
 
-            String fileName = "bydui_probe_" + System.currentTimeMillis() + ".txt";
-            String filePath = android.os.Environment.getExternalStorageDirectory() + "/" + fileName;
-            try {
-                java.io.FileWriter writer = new java.io.FileWriter(filePath);
-                writer.write(report.toString());
-                writer.close();
-                Log.i(TAG, "Probe report saved to " + filePath);
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to save probe report", e);
-                filePath = "保存失败: " + e.getMessage();
-            }
-
             for (String line : report.toString().split("\n")) {
                 Log.i(TAG, line);
             }
 
             if (progressListener != null) {
-                String finalPath = filePath;
-                progressListener.onComplete(finalPath);
+                progressListener.onComplete(report.toString());
             }
         }, "api-probe").start();
     }

@@ -187,4 +187,121 @@ public class AutoserviceClient {
         if (bits == -1) return -1.0f;
         return Float.intBitsToFloat(bits);
     }
+
+    // ---------- FID 全量扫描 ----------
+
+    public interface ScanCallback {
+        void onResult(String report);
+    }
+
+    /**
+     * 扫描所有已知设备和 FID，标注哪些返回真实值、哪些是哨兵。
+     */
+    public static void scanAll(ScanCallback callback) {
+        new Thread(() -> {
+            StringBuilder sb = new StringBuilder();
+            sb.append("===== FID 全量扫描 =====\n\n");
+
+            dadb.Dadb dadb = AdbHelper.getSharedDadb();
+            if (dadb == null) {
+                sb.append("✗ Dadb 未连接，请先完成 ADB 授权\n");
+                new android.os.Handler(android.os.Looper.getMainLooper())
+                        .post(() -> callback.onResult(sb.toString()));
+                return;
+            }
+
+            Object[][] sections = {
+                {"AC (1000)", FidRegistry.DEV_AC, new Object[][]{
+                    {"AC 开关", 5, FidRegistry.FID_AC_STATE},
+                    {"AC 温度", 5, FidRegistry.FID_AC_TEMP},
+                    {"车内温度", 5, FidRegistry.FID_CABIN_TEMP},
+                    {"车外温度", 5, FidRegistry.FID_OUTSIDE_TEMP},
+                    {"风量", 5, FidRegistry.FID_AC_WIND},
+                }},
+                {"Bodywork (1001)", FidRegistry.DEV_BODYWORK, new Object[][]{
+                    {"车门左前", 5, FidRegistry.FID_DOOR_FL},
+                    {"车门右前", 5, FidRegistry.FID_DOOR_FR},
+                    {"车门左后", 5, FidRegistry.FID_DOOR_RL},
+                    {"车门右后", 5, FidRegistry.FID_DOOR_RR},
+                    {"车窗左前", 5, FidRegistry.FID_WINDOW_FL},
+                    {"车窗右前", 5, FidRegistry.FID_WINDOW_FR},
+                    {"车窗左后", 5, FidRegistry.FID_WINDOW_RL},
+                    {"车窗右后", 5, FidRegistry.FID_WINDOW_RR},
+                    {"12V电压", 7, FidRegistry.FID_12V_VOLTAGE},
+                }},
+                {"Battery (1014)", FidRegistry.DEV_BATTERY, new Object[][]{
+                    {"电量SOC", 5, FidRegistry.FID_SOC},
+                    {"SOH", 5, FidRegistry.FID_SOH},
+                    {"里程", 5, FidRegistry.FID_MILEAGE},
+                    {"电池温max", 5, FidRegistry.FID_BATT_TEMP_MAX},
+                    {"电池温min", 5, FidRegistry.FID_BATT_TEMP_MIN},
+                    {"电芯压max", 5, FidRegistry.FID_CELL_VOLT_MAX},
+                    {"电芯压min", 5, FidRegistry.FID_CELL_VOLT_MIN},
+                    {"累计能耗", 5, FidRegistry.FID_ACCUM_ENERGY},
+                }},
+                {"Speed (1013)", FidRegistry.DEV_SPEED, new Object[][]{
+                    {"速度", 5, FidRegistry.FID_SPEED},
+                }},
+                {"Gearbox (1011)", FidRegistry.DEV_GEARBOX, new Object[][]{
+                    {"挡位", 5, FidRegistry.FID_GEAR},
+                }},
+                {"Tire (1016)", FidRegistry.DEV_TIRE, new Object[][]{
+                    {"胎压左前", 5, FidRegistry.FID_TIRE_FL},
+                    {"胎压右前", 5, FidRegistry.FID_TIRE_FR},
+                    {"胎压左后", 5, FidRegistry.FID_TIRE_RL},
+                    {"胎压右后", 5, FidRegistry.FID_TIRE_RR},
+                }},
+                {"Charge (1009)", FidRegistry.DEV_CHARGE, new Object[][]{
+                    {"充电枪", 5, FidRegistry.FID_CHARGE_GUN},
+                }},
+                {"Power (1023)", FidRegistry.DEV_POWER, new Object[][]{
+                    {"电源状态", 5, FidRegistry.FID_POWER_STATE},
+                }},
+                {"DriveMode (1006)", FidRegistry.DEV_DRIVE_MODE, new Object[][]{
+                    {"驱动模式", 5, FidRegistry.FID_DRIVE_MODE},
+                }},
+                {"Motor (1012)", FidRegistry.DEV_MOTOR, new Object[][]{
+                    {"电机功率", 5, FidRegistry.FID_MOTOR_POWER},
+                }},
+            };
+
+            for (Object[] section : sections) {
+                String devName = (String) section[0];
+                int dev = (int) section[1];
+                Object[][] fids = (Object[][]) section[2];
+
+                sb.append("── ").append(devName).append(" ──\n");
+                for (Object[] entry : fids) {
+                    String name = (String) entry[0];
+                    int tx = (int) entry[1];
+                    int fid = (int) entry[2];
+                    String cmd = "service call autoservice " + tx + " i32 " + dev + " i32 " + fid;
+                    try {
+                        dadb.AdbShellResponse resp = dadb.shell(cmd);
+                        String raw = resp.getAllOutput().trim();
+                        if (tx == 7) {
+                            float val = parseParcelFloat(raw);
+                            sb.append("  ").append(name).append(": ").append(val).append(" ✓\n");
+                        } else {
+                            int val = parseParcelInt(raw);
+                            if (FidRegistry.isSentinel(val)) {
+                                sb.append("  ").append(name).append(": ").append(val).append(" ✗\n");
+                            } else {
+                                sb.append("  ").append(name).append(": ").append(val).append(" ✓\n");
+                            }
+                        }
+                    } catch (Exception e) {
+                        sb.append("  ").append(name).append(": ERR ").append(e.getMessage()).append("\n");
+                    }
+                }
+                sb.append("\n");
+            }
+
+            sb.append("===== 扫描完成 =====");
+            String report = sb.toString();
+            android.util.Log.i("FidScan", report);
+            new android.os.Handler(android.os.Looper.getMainLooper())
+                    .post(() -> callback.onResult(report));
+        }).start();
+    }
 }
