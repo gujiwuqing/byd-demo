@@ -86,6 +86,7 @@ public class SettingsPage {
         initAdbAuthorize();
         initManualGrant();
         initAdbDiag();
+        initVehicleDiag();
         initApiProbe();
         initLayoutMode();
         initAppSlots();
@@ -365,6 +366,51 @@ public class SettingsPage {
                         .setNegativeButton("关闭", null)
                         .show();
             });
+        });
+    }
+
+    // ── 真车模式诊断 ──
+
+    private void initVehicleDiag() {
+        rootView.findViewById(R.id.settings_vehicle_diag).setOnClickListener(v -> {
+            Context ctx = rootView.getContext();
+            android.widget.Toast.makeText(ctx, "正在采集诊断数据...", android.widget.Toast.LENGTH_SHORT).show();
+
+            new Thread(() -> {
+                com.diui.launcher.api.BydVehicleManager vm =
+                        com.diui.launcher.api.BydVehicleManager.getInstance(ctx);
+                String report = vm.buildDiagReport();
+                android.util.Log.i("VehicleDiag", report);
+
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                    TextView tv = new TextView(ctx);
+                    tv.setTypeface(android.graphics.Typeface.MONOSPACE);
+                    tv.setText(report);
+                    tv.setTextSize(11f);
+                    int pad = dpToPx(16);
+                    tv.setPadding(pad, pad, pad, pad);
+                    tv.setTextIsSelectable(true);
+
+                    android.widget.ScrollView scroll = new android.widget.ScrollView(ctx);
+                    scroll.addView(tv);
+
+                    new MaterialAlertDialogBuilder(ctx, R.style.AppAlertDialog)
+                            .setTitle("真车模式诊断")
+                            .setView(scroll)
+                            .setPositiveButton("复制", (d, w) -> {
+                                try {
+                                    android.content.ClipboardManager cm = (android.content.ClipboardManager)
+                                            ctx.getSystemService(Context.CLIPBOARD_SERVICE);
+                                    if (cm != null) {
+                                        cm.setPrimaryClip(android.content.ClipData.newPlainText("vehicle_diag", report));
+                                        android.widget.Toast.makeText(ctx, "诊断结果已复制", android.widget.Toast.LENGTH_SHORT).show();
+                                    }
+                                } catch (Exception ignored) {}
+                            })
+                            .setNegativeButton("关闭", null)
+                            .show();
+                });
+            }).start();
         });
     }
 

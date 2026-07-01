@@ -433,4 +433,88 @@ public class BydVehicleManager {
         if (vehicleExtras.containsKey("motorPowerKw"))
             s.motorPowerKw = (int) vehicleExtras.get("motorPowerKw");
     }
+
+    /**
+     * 诊断报告：汇总所有 API 初始化状态、forceSimMode、设备对象、实际数据读取结果。
+     * 必须在后台线程调用。
+     */
+    public String buildDiagReport() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("===== 真车模式诊断 =====\n\n");
+
+        sb.append("forceSimMode: ").append(forceSimMode).append("\n\n");
+
+        sb.append("── API 初始化状态 ──\n");
+        sb.append("  AcApi:        real=").append(acApi.isRealDevice())
+          .append("  available=").append(acApi.isAvailable()).append("\n");
+        sb.append("  BodyworkApi:  real=").append(bodyworkApi.isRealDevice())
+          .append("  available=").append(bodyworkApi.isAvailable()).append("\n");
+        sb.append("  StatisticApi: available=").append(statisticApi.isAvailable()).append("\n");
+        sb.append("  DoorLockApi:  available=").append(doorLockApi.isAvailable()).append("\n");
+        sb.append("  TireApi:      real=").append(tireApi.isRealDevice())
+          .append("  available=").append(tireApi.isAvailable()).append("\n");
+        sb.append("  DriveApi:     real=").append(driveApi.isRealDevice())
+          .append("  available=").append(driveApi.isAvailable()).append("\n");
+        sb.append("  HelperClient: available=").append(helperClient.isAvailable()).append("\n");
+        sb.append("  Autoservice:  available=").append(autoserviceClient.isAvailable()).append("\n");
+
+        sb.append("\n── 环境检测 ──\n");
+        try {
+            Class<?> clazz = Class.forName("android.hardware.bydauto.ac.BYDAutoAcDevice");
+            sb.append("  BYDAutoAcDevice class: ✓ 存在\n");
+            try {
+                java.lang.reflect.Method getInstance = clazz.getMethod("getInstance", android.content.Context.class);
+                sb.append("  getInstance method: ✓ 存在\n");
+            } catch (Exception e) {
+                sb.append("  getInstance method: ✗ ").append(e.getMessage()).append("\n");
+            }
+        } catch (ClassNotFoundException e) {
+            sb.append("  BYDAutoAcDevice class: ✗ 不存在（非比亚迪车机）\n");
+        }
+
+        sb.append("\n── 实际数据读取 ──\n");
+        try {
+            if (acApi.isRealDevice()) {
+                sb.append("  AC startState: ").append(acApi.getStartState()).append("\n");
+                sb.append("  AC mainTemp:   ").append(acApi.getMainTemp()).append("\n");
+                sb.append("  AC outsideTemp: ").append(acApi.getOutsideTemp()).append("\n");
+                sb.append("  AC windLevel:  ").append(acApi.getWindLevel()).append("\n");
+            } else {
+                sb.append("  AC: 模拟模式，跳过真实读取\n");
+            }
+        } catch (Exception e) {
+            sb.append("  AC 读取异常: ").append(e.getMessage()).append("\n");
+        }
+
+        try {
+            if (bodyworkApi.isRealDevice()) {
+                sb.append("  Battery:  ").append(bodyworkApi.getBatteryCapacity()).append("%\n");
+                sb.append("  Power:    ").append(bodyworkApi.getPowerLevel()).append("\n");
+                sb.append("  Locked:   ").append(bodyworkApi.isLocked()).append("\n");
+            } else {
+                sb.append("  Bodywork: 模拟模式，跳过真实读取\n");
+            }
+        } catch (Exception e) {
+            sb.append("  Bodywork 读取异常: ").append(e.getMessage()).append("\n");
+        }
+
+        try {
+            if (driveApi.isRealDevice()) {
+                sb.append("  Speed:    ").append(driveApi.getSpeed()).append("\n");
+                sb.append("  Gear:     ").append(driveApi.getGear()).append("\n");
+            } else {
+                sb.append("  Drive: 模拟模式，跳过真实读取\n");
+            }
+        } catch (Exception e) {
+            sb.append("  Drive 读取异常: ").append(e.getMessage()).append("\n");
+        }
+
+        sb.append("\n── Polling 状态 ──\n");
+        sb.append("  polling: ").append(polling).append("\n");
+        sb.append("  pollState: ").append(currentPollState).append("\n");
+        sb.append("  consecutiveFailures: ").append(consecutiveFailures).append("\n");
+
+        sb.append("\n===== 诊断完成 =====");
+        return sb.toString();
+    }
 }
