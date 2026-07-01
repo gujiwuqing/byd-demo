@@ -376,7 +376,147 @@ public class AutoserviceClient {
     // ---------- Content Provider 读取 ----------
 
     /**
-     * 从 CarStatusProvider 读取保养数据。
+     * 探测所有可能的车辆数据通路，包括 AAOS CarPropertyManager、
+     * ICarPropertyService（DiCar）、CarSettingsProvider 等。
+     */
+    public static void probeContentProviders(ScanCallback callback) {
+        new Thread(() -> {
+            StringBuilder sb = new StringBuilder();
+            sb.append("===== Content Provider & Car API 探测 =====\n\n");
+
+            dadb.Dadb dadb = AdbHelper.getSharedDadb();
+            if (dadb == null) {
+                sb.append("✗ Dadb 未连接\n");
+                new android.os.Handler(android.os.Looper.getMainLooper())
+                        .post(() -> callback.onResult(sb.toString()));
+                return;
+            }
+
+            // 1. AAOS CarPropertyManager（最重要！）
+            sb.append("── AAOS CarPropertyManager 探测 ──\n");
+            try {
+                // 检查 android.car 包是否存在
+                dadb.AdbShellResponse r = dadb.shell(
+                    "dumpsys car_service 2>&1 | head -20 || echo 'car_service 不存在'");
+                sb.append(r.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("✗ ").append(e.getMessage()).append("\n");
+            }
+
+            // AAOS 标准属性 ID（VehicleProperty）
+            sb.append("\n── AAOS VehicleProperty 探测 ──\n");
+            try {
+                // 通过 dumpsys vehiclehal 查看支持的属性
+                dadb.AdbShellResponse r = dadb.shell(
+                    "dumpsys vehiclehal 2>&1 | grep -iE 'range|fuel|ev|battery|soc|speed|mileage' | head -30 || echo 'vehiclehal 不可用'");
+                sb.append(r.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("✗ ").append(e.getMessage()).append("\n");
+            }
+
+            // 2. ICarPropertyService (DiCar 路径)
+            sb.append("\n── ICarPropertyService (DiCar) ──\n");
+            try {
+                dadb.AdbShellResponse r = dadb.shell(
+                    "content query --uri content://com.byd.car.server.provider.CarServiceProvider/sync_binder 2>&1 | head -10");
+                sb.append(r.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("✗ ").append(e.getMessage()).append("\n");
+            }
+
+            // 3. CarStatusProvider（已知可用）
+            sb.append("\n── CarStatusProvider ──\n");
+            try {
+                dadb.AdbShellResponse r = dadb.shell(
+                    "content query --uri content://com.byd.carStatusProvider/car_status 2>&1 | grep -v 'travel_points' | head -30");
+                sb.append(r.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("✗ ").append(e.getMessage()).append("\n");
+            }
+
+            // 4. CarSettingsProvider 各路径
+            sb.append("\n── CarSettingsProvider 路径探测 ──\n");
+            String[] csPaths = {
+                "content://com.byd.providers.carsettings",
+                "content://com.byd.providers.carsettings/travel",
+                "content://com.byd.providers.carsettings/config",
+                "content://com.byd.providers.carsettings/global",
+                "content://com.byd.providers.carsettings/car",
+                "content://com.byd.providers.carsettings/vehicle",
+                "content://com.byd.providers.carsettings/range",
+                "content://com.byd.providers.carsettings/fuel",
+            };
+            for (String uri : csPaths) {
+                try {
+                    dadb.AdbShellResponse r = dadb.shell(
+                        "content query --uri " + uri + " 2>&1 | head -10");
+                    String out = r.getAllOutput().trim();
+                    if (!out.isEmpty() && !out.contains("Exception") && !out.contains("No result found")) {
+                        sb.append("\n✓ ").append(uri).append(":\n");
+                        sb.append(out).append("\n");
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            // 5. 查询所有已注册 ContentProvider 找线索
+            sb.append("\n── 系统注册的 Car 相关 Provider ──\n");
+            try {
+                dadb.AdbShellResponse r = dadb.shell(
+                    "dumpsys package providers 2>/dev/null | grep -iE 'byd|car|vehicle|fuel|range|energy' | grep -i 'provider\\|authority' | head -30");
+                sb.append(r.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("✗ ").append(e.getMessage()).append("\n");
+            }
+
+            // 6. dumpsys activity providers（找 BYD ContentProvider）
+            sb.append("\n── BYD Content Providers (authorities) ──\n");
+            try {
+                dadb.AdbShellResponse r = dadb.shell(
+                    "content query --uri content://settings/system/car_fuel_range 2>&1 | head -5\n" +
+                    "content query --uri content://settings/system/car_ev_range 2>&1 | head -5\n" +
+                    "content query --uri content://settings/global/car_fuel_level 2>&1 | head -5");
+                sb.append(r.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("✗ ").append(e.getMessage()).append("\n");
+            }
+
+            // 7. 查看 DiCarServer 暴露了哪些服务
+            sb.append("\n── DiCarServer 暴露的 Binder 服务 ──\n");
+            try {
+                dadb.AdbShellResponse r = dadb.shell(
+                    "service list 2>/dev/null | grep -iE 'byd|car|vehicle|property|dicar|diplus' | head -20");
+                sb.append(r.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("✗ ").append(e.getMessage()).append("\n");
+            }
+
+            // 8. 系统属性里的车辆数据
+            sb.append("\n── 系统属性（车辆数据）──\n");
+            try {
+                dadb.AdbShellResponse r = dadb.shell(
+                    "getprop 2>/dev/null | grep -iE 'fuel|range|ev|soc|battery|mileage|vehicle' | head -20");
+                sb.append(r.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("✗ ").append(e.getMessage()).append("\n");
+            }
+
+            // 9. 查 vehiclehal 支持的完整属性列表
+            sb.append("\n── VehicleHAL 属性列表 ──\n");
+            try {
+                dadb.AdbShellResponse r = dadb.shell(
+                    "dumpsys vehiclehal 2>&1 | grep 'prop:' | head -50 || echo '无 vehiclehal'");
+                sb.append(r.getAllOutput().trim()).append("\n");
+            } catch (Exception e) {
+                sb.append("✗ ").append(e.getMessage()).append("\n");
+            }
+
+            sb.append("\n===== 探测完成 =====");
+            String report = sb.toString();
+            android.util.Log.i("ContentProviderProbe", report);
+            new android.os.Handler(android.os.Looper.getMainLooper())
+                    .post(() -> callback.onResult(report));
+        }).start();
+    }
      * URI: content://com.byd.carStatusProvider/car_status
      * 无需特殊权限，ADB shell 直接可读。
      */
