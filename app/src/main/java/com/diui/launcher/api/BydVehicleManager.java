@@ -532,58 +532,63 @@ public class BydVehicleManager {
           .append("  available=").append(driveApi.isAvailable()).append("\n");
         sb.append("  HelperClient: available=").append(helperClient.isAvailable()).append("\n");
         sb.append("  Autoservice:  available=").append(autoserviceClient.isAvailable()).append("\n");
+        sb.append("  Dadb:         ").append(AdbHelper.getSharedDadb() != null ? "已连接" : "未连接").append("\n");
 
-        sb.append("\n── 环境检测 ──\n");
-        try {
-            Class<?> clazz = Class.forName("android.hardware.bydauto.ac.BYDAutoAcDevice");
-            sb.append("  BYDAutoAcDevice class: ✓ 存在\n");
-            try {
-                java.lang.reflect.Method getInstance = clazz.getMethod("getInstance", android.content.Context.class);
-                sb.append("  getInstance method: ✓ 存在\n");
-            } catch (Exception e) {
-                sb.append("  getInstance method: ✗ ").append(e.getMessage()).append("\n");
+        // ── service call autoservice 原始测试 ──
+        sb.append("\n── service call autoservice 测试 ──\n");
+        dadb.Dadb dadb = AdbHelper.getSharedDadb();
+        if (dadb == null) {
+            sb.append("  ✗ Dadb 未连接，无法测试\n");
+        } else {
+            String[][] tests = {
+                {"AC 开关",     "5", String.valueOf(FidRegistry.DEV_AC),      String.valueOf(FidRegistry.FID_AC_STATE)},
+                {"AC 温度",     "5", String.valueOf(FidRegistry.DEV_AC),      String.valueOf(FidRegistry.FID_AC_TEMP)},
+                {"车外温度",    "5", String.valueOf(FidRegistry.DEV_AC),      String.valueOf(FidRegistry.FID_OUTSIDE_TEMP)},
+                {"风量",        "5", String.valueOf(FidRegistry.DEV_AC),      String.valueOf(FidRegistry.FID_AC_WIND)},
+                {"电池电量",    "5", String.valueOf(FidRegistry.DEV_BATTERY), String.valueOf(FidRegistry.FID_SOC)},
+                {"SOH",         "5", String.valueOf(FidRegistry.DEV_BATTERY), String.valueOf(FidRegistry.FID_SOH)},
+                {"车门左前",    "5", String.valueOf(FidRegistry.DEV_BODYWORK),String.valueOf(FidRegistry.FID_DOOR_FL)},
+                {"车门右前",    "5", String.valueOf(FidRegistry.DEV_BODYWORK),String.valueOf(FidRegistry.FID_DOOR_FR)},
+                {"速度",        "5", String.valueOf(FidRegistry.DEV_SPEED),   String.valueOf(FidRegistry.FID_SPEED)},
+                {"挡位",        "5", String.valueOf(FidRegistry.DEV_GEARBOX), String.valueOf(FidRegistry.FID_GEAR)},
+                {"胎压左前",    "5", String.valueOf(FidRegistry.DEV_TIRE),    String.valueOf(FidRegistry.FID_TIRE_FL)},
+                {"12V电压",     "7", String.valueOf(FidRegistry.DEV_BODYWORK),String.valueOf(FidRegistry.FID_12V_VOLTAGE)},
+                {"充电枪",      "5", String.valueOf(FidRegistry.DEV_CHARGE),  String.valueOf(FidRegistry.FID_CHARGE_GUN)},
+                {"电源状态",    "5", String.valueOf(FidRegistry.DEV_POWER),   String.valueOf(FidRegistry.FID_POWER_STATE)},
+            };
+
+            for (String[] t : tests) {
+                String label = t[0];
+                String tx = t[1];
+                String dev = t[2];
+                String fid = t[3];
+                String cmd = "service call autoservice " + tx + " i32 " + dev + " i32 " + fid;
+                try {
+                    dadb.AdbShellResponse resp = dadb.shell(cmd);
+                    String raw = resp.getAllOutput().trim();
+                    // 解析值
+                    String parsed;
+                    if ("7".equals(tx)) {
+                        float val = AutoserviceClient.parseParcelFloat(raw);
+                        parsed = String.valueOf(val);
+                    } else {
+                        int val = AutoserviceClient.parseParcelInt(raw);
+                        if (FidRegistry.isSentinel(val)) {
+                            parsed = val + " (哨兵: " + describeSentinel(val) + ")";
+                        } else {
+                            parsed = String.valueOf(val);
+                        }
+                    }
+                    sb.append("  ").append(label).append(": ")
+                      .append(parsed)
+                      .append("  [").append(raw.replace("\n", " ")).append("]\n");
+                } catch (Exception e) {
+                    sb.append("  ").append(label).append(": ✗ ").append(e.getMessage()).append("\n");
+                }
             }
-        } catch (ClassNotFoundException e) {
-            sb.append("  BYDAutoAcDevice class: ✗ 不存在（非比亚迪车机）\n");
         }
 
-        sb.append("\n── 实际数据读取 ──\n");
-        try {
-            if (acApi.isRealDevice()) {
-                sb.append("  AC startState: ").append(acApi.getStartState()).append("\n");
-                sb.append("  AC mainTemp:   ").append(acApi.getMainTemp()).append("\n");
-                sb.append("  AC outsideTemp: ").append(acApi.getOutsideTemp()).append("\n");
-                sb.append("  AC windLevel:  ").append(acApi.getWindLevel()).append("\n");
-            } else {
-                sb.append("  AC: 模拟模式，跳过真实读取\n");
-            }
-        } catch (Exception e) {
-            sb.append("  AC 读取异常: ").append(e.getMessage()).append("\n");
-        }
-
-        try {
-            if (bodyworkApi.isRealDevice()) {
-                sb.append("  Battery:  ").append(bodyworkApi.getBatteryCapacity()).append("%\n");
-                sb.append("  Power:    ").append(bodyworkApi.getPowerLevel()).append("\n");
-                sb.append("  Locked:   ").append(bodyworkApi.isLocked()).append("\n");
-            } else {
-                sb.append("  Bodywork: 模拟模式，跳过真实读取\n");
-            }
-        } catch (Exception e) {
-            sb.append("  Bodywork 读取异常: ").append(e.getMessage()).append("\n");
-        }
-
-        try {
-            if (driveApi.isRealDevice()) {
-                sb.append("  Speed:    ").append(driveApi.getSpeed()).append("\n");
-                sb.append("  Gear:     ").append(driveApi.getGear()).append("\n");
-            } else {
-                sb.append("  Drive: 模拟模式，跳过真实读取\n");
-            }
-        } catch (Exception e) {
-            sb.append("  Drive 读取异常: ").append(e.getMessage()).append("\n");
-        }
-
+        // ── Polling 状态 ──
         sb.append("\n── Polling 状态 ──\n");
         sb.append("  polling: ").append(polling).append("\n");
         sb.append("  pollState: ").append(currentPollState).append("\n");
@@ -591,5 +596,13 @@ public class BydVehicleManager {
 
         sb.append("\n===== 诊断完成 =====");
         return sb.toString();
+    }
+
+    private static String describeSentinel(int val) {
+        if (val == FidRegistry.SENTINEL_NO_CAN) return "无CAN信号";
+        if (val == FidRegistry.SENTINEL_UNINIT) return "未初始化";
+        if (val == FidRegistry.SENTINEL_BAD_TX) return "错误事务码";
+        if (val == FidRegistry.SENTINEL_NO_WRITE) return "未注册";
+        return "未知";
     }
 }
