@@ -126,9 +126,14 @@ public class MainActivity extends AppCompatActivity
         boolean isSimulation = BydVehicleManager.isForceSimulation();
         settingsPage = new SettingsPage(pageSettingsView, isSimulation);
         settingsPage.setOnAdbAuthorizeListener(() -> {
-            // 重置已授权标记，重新触发授权流程
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                     .edit().putBoolean(KEY_ADB_GRANTED, false).apply();
+            if (detectedEnv == BydEnvironmentDetector.Environment.SIMULATOR) {
+                android.widget.Toast.makeText(this,
+                        "模拟器环境，ADB 授权仅在真实车机上有效",
+                        android.widget.Toast.LENGTH_SHORT).show();
+                return;
+            }
             startAdbGrant();
         });
         settingsPage.setOnSimModeChangedListener(this::reinitializeWithSimMode);
@@ -194,19 +199,14 @@ public class MainActivity extends AppCompatActivity
         // 检查 BYD 车辆 API 权限
         if (adbAlreadyGranted) {
             Log.i(TAG, "ADB permissions already granted, skipping check");
-        } else if (detectedEnv == BydEnvironmentDetector.Environment.PERMISSION_NEEDED) {
+            AdbHelper.startHelperDaemon(this, () ->
+                    Log.i(TAG, "HelperDaemon restarted on launch"));
+        } else if (detectedEnv == BydEnvironmentDetector.Environment.PERMISSION_NEEDED
+                || detectedEnv == BydEnvironmentDetector.Environment.REAL_DEVICE) {
             if (fromBoot) {
-                scheduleAdbCheckWithRetry(5, 0);
+                scheduleAdbGrantWithRetry(5, 0);
             } else {
-                showBydPermissionDialog();
-            }
-        } else if (detectedEnv == BydEnvironmentDetector.Environment.REAL_DEVICE) {
-            if (!BydPermissionHelper.hasAllPermissions(this)) {
-                if (fromBoot) {
-                    scheduleAdbCheckWithRetry(5, 0);
-                } else {
-                    showBydPermissionDialog();
-                }
+                autoAdbGrant();
             }
         }
 
@@ -220,24 +220,36 @@ public class MainActivity extends AppCompatActivity
     }
 
     /**
-     * 延迟重试检测 ADB 可用性（开机后 ADB 服务需要时间初始化）
+     * 开机后延迟重试 ADB 授权（ADB 服务需要时间初始化）
      */
-    private void scheduleAdbCheckWithRetry(int retriesLeft, int retryIndex) {
+    private void scheduleAdbGrantWithRetry(int retriesLeft, int retryIndex) {
         long delay = retryIndex < RETRY_DELAYS.length ? RETRY_DELAYS[retryIndex] : 10000;
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (isFinishing() || isDestroyed()) return;
 
             if (AdbHelper.isAdbAvailable()) {
-                Log.i(TAG, "ADB detected after delay");
-                showAdbAuthDialog();
+                Log.i(TAG, "ADB available after boot delay, auto granting...");
+                autoAdbGrant();
             } else if (retriesLeft > 1) {
                 Log.i(TAG, "ADB not ready, retrying... (" + (retriesLeft - 1) + " left)");
-                scheduleAdbCheckWithRetry(retriesLeft - 1, retryIndex + 1);
+                scheduleAdbGrantWithRetry(retriesLeft - 1, retryIndex + 1);
             } else {
-                Log.w(TAG, "ADB not available after all retries, showing manual dialog");
-                showBydPermissionDialog();
+                Log.w(TAG, "ADB not available after all retries");
             }
         }, delay);
+    }
+
+    /**
+     * 自动执行 ADB 授权，不弹应用内对话框。
+     * 系统的"允许 USB 调试？"对话框仍会由 adbd 自动弹出（首次需用户点允许）。
+     */
+    private void autoAdbGrant() {
+        if (!AdbHelper.isAdbAvailable()) {
+            Log.w(TAG, "ADB not available, skip auto grant");
+            return;
+        }
+        Log.i(TAG, "Auto ADB grant starting...");
+        startAdbGrant();
     }
 
     /**
@@ -334,6 +346,13 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void showAdbAuthDialog() {
+        if (detectedEnv == BydEnvironmentDetector.Environment.SIMULATOR) {
+            showDimDialog(new MaterialAlertDialogBuilder(this, R.style.AppAlertDialog)
+                    .setTitle(R.string.perm_byd_title)
+                    .setMessage("当前为模拟器环境，ADB 授权仅在真实 BYD 车机上有效。\n\n模拟器中请使用模拟模式体验功能。")
+                    .setPositiveButton(R.string.perm_btn_ok, null));
+            return;
+        }
         showDimDialog(new MaterialAlertDialogBuilder(this, R.style.AppAlertDialog)
                 .setTitle(R.string.perm_byd_title)
                 .setMessage(R.string.perm_byd_adb_message)
@@ -343,11 +362,9 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void startAdbGrant() {
-        // 키를 초기화하여 ADB 인증 다이얼로그가 반드시 표시되도록 한다
+        showSystemUI();
         AdbKeyManager.clearKeys(this);
         AdbHelper.grantPermissions(this, (success, granted, failed, signature) -> runOnUiThread(() -> {
-            // ADB 认证是否成功：只要 callback 带有任何结果（granted/failed/signature 任一非空），
-            // 说明认证通过了，pm grant 失败（权限未在 manifest 声明）不影响认证结果
             boolean authSucceeded = !granted.isEmpty() || !failed.isEmpty() || !signature.isEmpty();
             if (authSucceeded) {
                 new Handler(Looper.getMainLooper()).postDelayed(() -> {
@@ -359,6 +376,10 @@ public class MainActivity extends AppCompatActivity
                             .putBoolean(KEY_ADB_GRANTED, true)
                             .remove("sim_mode_manual")
                             .apply();
+
+                    AdbHelper.startHelperDaemon(this, () -> {
+                        Log.i(TAG, "HelperDaemon started after ADB auth");
+                    });
 
                     String msg;
                     if (!granted.isEmpty()) {
@@ -380,9 +401,11 @@ public class MainActivity extends AppCompatActivity
                     if (settingsPage != null) {
                         settingsPage.updateSimulationState(false);
                     }
+
+                    hideSystemUI();
                 }, 500);
             } else {
-                // 所有列表为空 = ADB 连接或认证本身失败（不是 pm grant 失败）
+                hideSystemUI();
                 android.widget.Toast.makeText(this,
                         getString(R.string.perm_byd_adb_fail),
                         android.widget.Toast.LENGTH_LONG).show();
@@ -423,6 +446,11 @@ public class MainActivity extends AppCompatActivity
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+    }
+
+    private void showSystemUI() {
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
     }
 
     @Override

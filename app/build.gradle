@@ -22,6 +22,8 @@ android {
                 keyPassword System.getenv("KEY_PASSWORD")
                 v1SigningEnabled true
                 v2SigningEnabled true
+                v3SigningEnabled false
+                v4SigningEnabled false
             }
         }
     }

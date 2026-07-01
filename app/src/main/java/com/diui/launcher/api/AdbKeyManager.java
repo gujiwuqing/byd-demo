@@ -75,10 +75,19 @@ public class AdbKeyManager {
         Log.i(TAG, "RSA key pair cleared — next auth will trigger ADB dialog");
     }
 
+    private static final byte[] SHA1_DIGEST_INFO_PREFIX = {
+            0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x0e,
+            0x03, 0x02, 0x1a, 0x05, 0x00, 0x04, 0x14
+    };
+
     public byte[] signToken(byte[] token) throws Exception {
-        Signature sig = Signature.getInstance("SHA1withRSA");
+        byte[] digestInfo = new byte[SHA1_DIGEST_INFO_PREFIX.length + token.length];
+        System.arraycopy(SHA1_DIGEST_INFO_PREFIX, 0, digestInfo, 0, SHA1_DIGEST_INFO_PREFIX.length);
+        System.arraycopy(token, 0, digestInfo, SHA1_DIGEST_INFO_PREFIX.length, token.length);
+
+        Signature sig = Signature.getInstance("NONEwithRSA");
         sig.initSign(privateKey);
-        sig.update(token);
+        sig.update(digestInfo);
         return sig.sign();
     }
 

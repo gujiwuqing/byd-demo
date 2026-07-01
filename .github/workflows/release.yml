@@ -34,12 +34,31 @@ jobs:
 
       - name: Decode keystore
         run: |
+          if [ -z "${{ secrets.SIGNING_KEY }}" ]; then
+            echo "::error::SIGNING_KEY secret is empty or not configured"
+            exit 1
+          fi
           echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > app/release.keystore
-          echo "SIGNING_AVAILABLE=true" >> $GITHUB_ENV
-        continue-on-error: true
+          FILESIZE=$(stat -c%s app/release.keystore 2>/dev/null || stat -f%z app/release.keystore)
+          if [ "$FILESIZE" -lt 100 ]; then
+            echo "::error::Decoded keystore file is too small ($FILESIZE bytes), base64 content may be invalid"
+            exit 1
+          fi
+          echo "Keystore decoded successfully ($FILESIZE bytes)"
+
+      - name: Validate keystore
+        run: |
+          keytool -list -v -keystore app/release.keystore \
+            -storepass "${{ secrets.KEY_STORE_PASSWORD }}" \
+            -alias "${{ secrets.KEY_ALIAS }}" \
+            -keypass "${{ secrets.KEY_PASSWORD }}" > /dev/null 2>&1
+          if [ $? -ne 0 ]; then
+            echo "::error::Keystore validation failed: wrong password or alias"
+            exit 1
+          fi
+          echo "Keystore validation passed"
 
       - name: Build Release APK
-        if: env.SIGNING_AVAILABLE == 'true'
         run: ./gradlew assembleRelease -PversionName=${{ steps.version.outputs.VERSION }} -PversionCode=${{ steps.version.outputs.VERSION_CODE }}
         env:
           KEYSTORE_PATH: app/release.keystore
@@ -47,11 +66,20 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
+      - name: Verify APK signature
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          if [ ! -f "$APK" ]; then
+            echo "::error::Release APK not found at $APK"
+            exit 1
+          fi
+          $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools/ | sort -V | tail -1)/apksigner verify -v "$APK"
+          echo "APK signature verification passed"
+
       - name: Build Debug APK
         run: ./gradlew assembleDebug -PversionName=${{ steps.version.outputs.VERSION }} -PversionCode=${{ steps.version.outputs.VERSION_CODE }}
 
       - name: Rename Release APK
-        if: env.SIGNING_AVAILABLE == 'true'
         run: |
           mv app/build/outputs/apk/release/app-release.apk \
             app/build/outputs/apk/release/DiUI-v${{ steps.version.outputs.VERSION }}.apk

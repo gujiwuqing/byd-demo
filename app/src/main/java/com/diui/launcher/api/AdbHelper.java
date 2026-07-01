@@ -71,7 +71,6 @@ public class AdbHelper {
 
                 List<String> signature = new ArrayList<>();
 
-                // 把所有 pm grant 合并成一条 shell 命令，避免多次 execShell 的 localId 冲突
                 String pkg = context.getPackageName();
                 StringBuilder script = new StringBuilder();
                 for (String perm : BydPermissionHelper.getAllPermissions()) {
@@ -83,8 +82,6 @@ public class AdbHelper {
                 String combinedResult = execShell(in, out, script.toString());
                 Log.i(TAG, "授权脚本输出: " + combinedResult);
 
-                // 根据组合输出判断哪些成功/失败
-                // 成功的 pm grant 无输出，失败的有 Exception 或 Error
                 for (String perm : BydPermissionHelper.getAllPermissions()) {
                     String shortName = perm.substring("android.permission.BYDAUTO_".length());
                     if (combinedResult != null && combinedResult.contains("not a changeable permission type")
@@ -92,7 +89,6 @@ public class AdbHelper {
                         Log.w(TAG, "  ⚠ " + shortName + ": signature 级别权限");
                         signature.add(shortName);
                     } else {
-                        // pm grant 成功时无输出，判断整体输出是否包含严重错误
                         boolean hasError = combinedResult != null &&
                                 (combinedResult.contains("SecurityException") ||
                                  combinedResult.contains("java.lang.Exception"));
@@ -177,51 +173,134 @@ public class AdbHelper {
         return socket;
     }
 
+    private static byte[] nullTerminate(String s) {
+        byte[] strBytes = s.getBytes(StandardCharsets.UTF_8);
+        byte[] result = new byte[strBytes.length + 1];
+        System.arraycopy(strBytes, 0, result, 0, strBytes.length);
+        result[strBytes.length] = 0;
+        return result;
+    }
+
+    private static byte[] buildCnxnBanner() {
+        return nullTerminate("host::");
+    }
+
     private static boolean authenticate(Socket socket, InputStream in, OutputStream out, Context context) throws Exception {
-        sendMessage(out, CMD_CNXN, VERSION, MAX_PAYLOAD, "host::features=shell_v2");
+        int maxAttempts = 2;
 
-        int[] msg = readMessage(in);
-        if (msg == null) return false;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            Log.i(TAG, "认证尝试 " + attempt + "/" + maxAttempts);
 
-        if (msg[0] == CMD_CNXN) {
-            readData(in, msg[3]);
-            return true;
-        }
+            try {
+                byte[] banner = buildCnxnBanner();
+                Log.d(TAG, "发送 CNXN banner (" + banner.length + " 字节)");
+                sendMessage(out, CMD_CNXN, VERSION, MAX_PAYLOAD, banner);
 
-        if (msg[0] != CMD_AUTH || msg[1] != AUTH_TOKEN) {
-            return false;
-        }
+                int[] msg = readMessage(in);
+                if (msg == null) {
+                    Log.e(TAG, "读取消息失败，未收到任何响应");
+                    if (attempt < maxAttempts) {
+                        Thread.sleep(1000);
+                        continue;
+                    }
+                    return false;
+                }
 
-        byte[] token = readData(in, msg[3]);
-        AdbKeyManager keyManager = new AdbKeyManager(context);
+                if (msg[0] != CMD_CNXN && msg[0] != CMD_AUTH) {
+                    Log.e(TAG, "收到意外消息类型: 0x" + Integer.toHexString(msg[0]));
+                    if (attempt < maxAttempts) {
+                        Thread.sleep(1000);
+                        continue;
+                    }
+                    return false;
+                }
 
-        byte[] sig = keyManager.signToken(token);
-        sendMessage(out, CMD_AUTH, AUTH_SIGNATURE, 0, sig);
+                if (msg[0] == CMD_CNXN) {
+                    readData(in, msg[3]);
+                    Log.i(TAG, "已授权，直接连接成功");
+                    return true;
+                }
 
-        msg = readMessage(in);
-        if (msg == null) return false;
-        if (msg[0] == CMD_CNXN) {
-            readData(in, msg[3]);
-            return true;
-        }
+                if (msg[1] != AUTH_TOKEN) {
+                    Log.e(TAG, "收到非 AUTH_TOKEN 的 AUTH 消息: type=" + msg[1]);
+                    if (attempt < maxAttempts) {
+                        Thread.sleep(1000);
+                        continue;
+                    }
+                    return false;
+                }
 
-        if (msg[0] == CMD_AUTH && msg[1] == AUTH_TOKEN) {
-            readData(in, msg[3]);
-            String pubKey = keyManager.getAdbPublicKeyString();
-            sendMessage(out, CMD_AUTH, AUTH_RSAPUBLICKEY, 0,
-                    pubKey.getBytes(StandardCharsets.UTF_8));
+                byte[] token = readData(in, msg[3]);
+                if (token == null || token.length != 20) {
+                    Log.e(TAG, "AUTH_TOKEN 长度错误: " + (token == null ? "null" : token.length));
+                    if (attempt < maxAttempts) {
+                        Thread.sleep(1000);
+                        continue;
+                    }
+                    return false;
+                }
 
-            Log.i(TAG, "已发送公钥，等待用户在弹窗中点击\"允许\"（最多 2 分钟）...");
-            // 用户需要时间看到弹窗、勾选「一律允许」、点击确认，延长超时到 2 分钟
-            socket.setSoTimeout(120000);
+                Log.d(TAG, "收到 AUTH_TOKEN (" + token.length + " 字节)，签名中...");
+                AdbKeyManager keyManager = new AdbKeyManager(context);
 
-            msg = readMessage(in);
-            if (msg != null && msg[0] == CMD_CNXN) {
+                byte[] sig = keyManager.signToken(token);
+                sendMessage(out, CMD_AUTH, AUTH_SIGNATURE, 0, sig);
+                Log.d(TAG, "已发送 AUTH_SIGNATURE (" + sig.length + " 字节)");
+
+                msg = readMessage(in);
+                if (msg == null) {
+                    Log.e(TAG, "签名后未收到响应");
+                    if (attempt < maxAttempts) {
+                        Thread.sleep(1000);
+                        continue;
+                    }
+                    return false;
+                }
+
+                if (msg[0] == CMD_CNXN) {
+                    readData(in, msg[3]);
+                    Log.i(TAG, "签名认证成功");
+                    return true;
+                }
+
+                if (msg[0] != CMD_AUTH || msg[1] != AUTH_TOKEN) {
+                    Log.e(TAG, "签名后收到意外消息: cmd=0x" + Integer.toHexString(msg[0]) + " type=" + msg[1]);
+                    if (attempt < maxAttempts) {
+                        Thread.sleep(1000);
+                        continue;
+                    }
+                    return false;
+                }
+
+                Log.i(TAG, "公钥未被信任，发送 AUTH_RSAPUBLICKEY...");
                 readData(in, msg[3]);
-                socket.setSoTimeout(15000); // 恢复正常超时用于后续 shell 命令
-                return true;
+
+                String pubKey = keyManager.getAdbPublicKeyString();
+                sendMessage(out, CMD_AUTH, AUTH_RSAPUBLICKEY, 0,
+                        nullTerminate(pubKey));
+                Log.i(TAG, "已发送公钥 (" + pubKey.length() + " 字节)，等待用户点击\"允许\"（最多 2 分钟）");
+
+                socket.setSoTimeout(120000);
+
+                msg = readMessage(in);
+                if (msg != null && msg[0] == CMD_CNXN) {
+                    readData(in, msg[3]);
+                    socket.setSoTimeout(15000);
+                    Log.i(TAG, "公钥认证成功");
+                    return true;
+                }
+
+                Log.e(TAG, "公钥认证未通过: " + (msg == null ? "无响应" : "cmd=0x" + Integer.toHexString(msg[0])));
+                if (attempt < maxAttempts) {
+                    socket.setSoTimeout(15000);
+                    Thread.sleep(2000);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "认证尝试 " + attempt + " 异常", e);
+                if (attempt < maxAttempts) {
+                    try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
+                }
             }
-            return false;
         }
 
         return false;
@@ -230,7 +309,7 @@ public class AdbHelper {
     private static String execShell(InputStream in, OutputStream out, String command) throws IOException {
         int localId = 1;
 
-        sendMessage(out, CMD_OPEN, localId, 0, "shell:" + command);
+        sendMessage(out, CMD_OPEN, localId, 0, nullTerminate("shell:" + command));
 
         int[] msg = readMessage(in);
         if (msg == null) return null;
@@ -240,7 +319,10 @@ public class AdbHelper {
             return "";
         }
 
-        if (msg[0] != CMD_OKAY) return null;
+        if (msg[0] != CMD_OKAY) {
+            Log.e(TAG, "execShell 未收到 OKAY: cmd=0x" + Integer.toHexString(msg[0]));
+            return null;
+        }
         int remoteId = msg[2];
 
         StringBuilder output = new StringBuilder();
@@ -295,6 +377,19 @@ public class AdbHelper {
         int arg0 = buf.getInt();
         int arg1 = buf.getInt();
         int length = buf.getInt();
+        int checksum = buf.getInt();
+        int magic = buf.getInt();
+
+        if (magic != ~cmd) {
+            Log.w(TAG, "消息 magic 校验失败: cmd=0x" + Integer.toHexString(cmd)
+                    + " magic=0x" + Integer.toHexString(magic)
+                    + " expected=0x" + Integer.toHexString(~cmd));
+        }
+
+        if (length < 0 || length > 1024 * 1024) {
+            Log.e(TAG, "消息长度异常: " + length);
+            return null;
+        }
 
         return new int[]{cmd, arg0, arg1, length};
     }
