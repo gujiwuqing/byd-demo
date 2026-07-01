@@ -210,22 +210,19 @@ public class MainActivity extends AppCompatActivity
         }
 
         // 检查 BYD 车辆 API 权限
-        // 触发条件：ADB 可用（真车）且权限未全授予。不依赖 detectedEnv——
-        // 模拟器上 ADB 5555 不监听，isAdbAvailable() 返回 false，自然不触发。
+        // 宋Plus DMi 上所有 BYDAUTO 权限都是 signature 级别，pm grant 无法授予，
+        // 所以不检查 hasAllPermissions（永远为 false），只看 ADB 是否已认证过
         if (adbAlreadyGranted) {
-            Log.i(TAG, "ADB permissions already granted, skipping check");
-            // HelperDaemon 由 BydVehicleManager.ensureHelperRunning() 统一管理，无需单独启动
-        } else if (AdbHelper.isAdbAvailable()
-                && !BydPermissionHelper.hasAllPermissions(this)) {
-            Log.i(TAG, "ADB available but permissions missing, auto granting (env=" + detectedEnv + ")");
+            Log.i(TAG, "ADB already granted, skipping auth");
+        } else if (AdbHelper.isAdbAvailable()) {
+            Log.i(TAG, "ADB available, starting auto auth (env=" + detectedEnv + ")");
             if (fromBoot) {
                 scheduleAdbGrantWithRetry(5, 0);
             } else {
                 autoAdbGrant();
             }
         } else {
-            Log.i(TAG, "Skip ADB grant: available=" + AdbHelper.isAdbAvailable()
-                    + " env=" + detectedEnv);
+            Log.i(TAG, "ADB not available, skip grant (env=" + detectedEnv + ")");
         }
 
         // 检查是否为默认桌面
@@ -375,45 +372,39 @@ public class MainActivity extends AppCompatActivity
 
             @Override
             public void onAuthGranted() {
-                Log.i(TAG, "ADB 认证成功，开始授权权限...");
-                AdbHelper.grantPermissions(MainActivity.this, (success, granted, failed, signature) ->
-                        runOnUiThread(() -> {
+                Log.i(TAG, "ADB 认证成功，启动 HelperDaemon...");
+                runOnUiThread(() -> {
                     getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                             .edit()
                             .putBoolean(KEY_ADB_GRANTED, true)
                             .remove("sim_mode_manual")
                             .apply();
 
-                    AdbHelper.startHelperDaemon(MainActivity.this, () ->
-                            Log.i(TAG, "HelperDaemon started after ADB auth"));
+                    AdbHelper.startHelperDaemon(MainActivity.this, () -> {
+                        Log.i(TAG, "HelperDaemon started after ADB auth");
+                        runOnUiThread(() -> {
+                            android.widget.Toast.makeText(MainActivity.this,
+                                    "ADB授权成功，车辆数据服务已启动",
+                                    android.widget.Toast.LENGTH_LONG).show();
 
-                    String msg;
-                    if (!granted.isEmpty()) {
-                        msg = "ADB授权成功，已授权 " + granted.size() + " 个权限";
-                    } else if (!signature.isEmpty()) {
-                        msg = "ADB授权成功，" + signature.size() + " 个需要平台签名（不影响功能）";
-                    } else {
-                        msg = "ADB授权成功";
-                    }
-                    android.widget.Toast.makeText(MainActivity.this, msg,
-                            android.widget.Toast.LENGTH_LONG).show();
+                            BydVehicleManager.setForceSimulation(false);
+                            BydVehicleManager.resetInstance();
+                            vehicleManager = BydVehicleManager.getInstance(MainActivity.this);
+                            vehicleManager.setListener(MainActivity.this);
+                            vehicleManager.startPolling();
 
-                    BydVehicleManager.setForceSimulation(false);
-                    BydVehicleManager.resetInstance();
-                    vehicleManager = BydVehicleManager.getInstance(MainActivity.this);
-                    vehicleManager.setListener(MainActivity.this);
-                    vehicleManager.startPolling();
+                            View pageControlsView = findViewById(R.id.page_controls);
+                            controlsPage = new ControlsPage(pageControlsView, vehicleManager.getAcApi());
 
-                    View pageControlsView = findViewById(R.id.page_controls);
-                    controlsPage = new ControlsPage(pageControlsView, vehicleManager.getAcApi());
+                            if (settingsPage != null) {
+                                settingsPage.updateSimulationState(false);
+                            }
 
-                    if (settingsPage != null) {
-                        settingsPage.updateSimulationState(false);
-                    }
-
-                    hideSystemUI();
-                    adbGrantInProgress.set(false);
-                }));
+                            hideSystemUI();
+                            adbGrantInProgress.set(false);
+                        });
+                    });
+                });
             }
 
             @Override
