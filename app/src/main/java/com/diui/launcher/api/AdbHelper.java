@@ -217,4 +217,29 @@ public class AdbHelper {
             }
         });
     }
+
+    public static void killHelper(Context context, Runnable onKilled) {
+        executor.execute(() -> {
+            Dadb dadb = sharedDadb.get();
+            if (dadb == null) {
+                dadb = tryConnect(context, 3000);
+                if (dadb != null) sharedDadb.set(dadb);
+            }
+
+            if (dadb == null) {
+                Log.e(TAG, "无法终止 HelperDaemon: ADB 未连接");
+                if (onKilled != null) onKilled.run();
+                return;
+            }
+
+            try {
+                dadb.shell("pkill -f HelperDaemon 2>/dev/null; sleep 0.5");
+                Log.i(TAG, "HelperDaemon 已终止");
+            } catch (Exception e) {
+                Log.w(TAG, "终止 HelperDaemon 失败: " + e.getMessage());
+            }
+
+            if (onKilled != null) onKilled.run();
+        });
+    }
 }
