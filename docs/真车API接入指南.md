@@ -1,16 +1,36 @@
 # 迪UI 真车 API 接入指南
 
-**文档日期**: 2026-06-28  
-**目标车型**: BYD 宋PLUS DM-i（DiLink 3.0）  
+**文档日期**: 2026-07-01
+**目标车型**: BYD 宋PLUS DM-i（DiLink 3.0）
 **目标**: 将迪UI从模拟模式升级为真实车辆数据接入
 
 ---
 
-## 一、连接真车 ADB
+## 一、整体架构
+
+迪UI 获取 BYD 真实车况数据有两条路径，都需要 **shell uid**（普通 app 签名拿不到）：
+
+| 路径 | 机制 | 覆盖数据 |
+|------|------|----------|
+| **反射 BYD API** | `pm grant` 授 `BYDAUTO_*` 权限 → 反射 `BYDAutoAcDevice` 等读数据 | 空调/车窗/车门/胎压/速度/挡位/里程 |
+| **autoservice 系统服务** | `service call autoservice <tx> i32 <dev> i32 <fid>` | 电池温度/电压/SOH/充电枪/驱动模式/电机功率 |
+
+获取 shell uid 的方式有两种：
+
+- **app 自动授权**（推荐）：app 内自连 `127.0.0.1:5555`，走 ADB RSA 认证，首次会弹"允许 USB 调试？"
+- **甲壳虫手动兜底**：用外部 ADB 工具直接执行 shell 命令，绕过 app 内协议实现
+
+### 关键点：app 自连用的是 `127.0.0.1:5555`
+
+app 跑在车机上，自连的是**本机回环地址** `127.0.0.1:5555`，**不依赖车机的实际 IP**——只要车机 adbd 监听 5555 端口即可。车机 IP 是 192.168.x.x 还是别的，对 app 无影响。
+
+---
+
+## 二、连接真车 ADB
 
 ### 前提条件
-1. 手机/电脑和车机连接**同一个 WiFi 热点**（用手机开热点，车机连接该热点）
-2. 已在车机上开启 ADB 调试（参考下方步骤）
+1. 已在车机上开启 ADB 调试（见下方）
+2. adbd 监听 5555 端口（开「无线调试」或 `adb tcpip 5555`）
 
 ### 开启车机 ADB（2407+ 固件）
 ```
@@ -21,19 +41,18 @@
 5. 输入密码启用 ADB
 ```
 
-### 连接命令
+### 外部连接（甲壳虫 / PC adb）
+
+外部工具从车机外部连接，需填车机真实 IP（以实际为准，端口 5555）：
+
 ```bash
-# WiFi 连接（推荐）
-adb connect 192.168.10.10:5555
-
-# 验证连接
+# 替换 <车机IP> 为车机实际 IP
+adb connect <车机IP>:5555
 adb devices
-
-# 预期输出
-# 192.168.10.10:5555    device
+# 预期：<车机IP>:5555    device
 ```
 
-### USB 安装 APK（备用方式）
+### USB 安装 APK（备用）
 ```
 1. U盘创建文件夹：Third Party Apps 55
 2. 将 app-debug.apk 放入该文件夹
@@ -43,286 +62,242 @@ adb devices
 
 ---
 
-## 二、安装迪UI到真车
+## 三、安装迪UI到真车
 
 ```bash
-# 构建 Debug APK
-cd /Users/feng/work/byd
+# 构建 Debug APK（本地，不要在车机执行）
 ./gradlew assembleDebug
 
-# 安装到真车
-adb -s 192.168.10.10:5555 install -r app/build/outputs/apk/debug/app-debug.apk
+# 安装（外部 adb，替换 <车机IP>）
+adb -s <车机IP>:5555 install -r app/build/outputs/apk/debug/app-debug.apk
 
 # 设为默认桌面（可选）
-adb -s 192.168.10.10:5555 shell cmd package set-home-activity com.bydlauncher/.MainActivity
+adb -s <车机IP>:5555 shell cmd package set-home-activity com.diui.launcher/.MainActivity
+```
+
+> 包名：`com.diui.launcher`
+
+---
+
+## 四、app 自动授权（推荐）
+
+安装后打开迪UI，启动时会自动检测：**ADB 可用（5555 监听）且 BYD 权限未全授予** → 自动触发授权流程：
+
+```
+启动 → checkPermissions → ADB可用 && 权限缺失
+     → startAdbGrant → 临时显示系统 UI（让弹窗可见）
+     → AdbHelper: VERSION=0x01000001 + host:: + NONEwithRSA 签名
+     → 首次: adbd 弹"允许 USB 调试？" → 用户点允许（勾选始终允许）
+     → pm grant 授全部 BYDAUTO_* 权限
+     → startHelperDaemon(setsid + poll-loop, binder + uid 鉴权)
+     → 切真车模式 → 读真实数据
+```
+
+首次授权后，RSA 公钥存入车机 `/data/misc/adb/adb_keys`，后续启动不再弹窗。
+
+### 设置页手动入口
+
+设置 → 车辆 → **ADB 权限授权**：与启动自动流程等价的「再试一次」入口。
+
+### 环境检测说明
+
+`BydEnvironmentDetector.detect()` 判断运行环境：
+- `Class.forName("android.hardware.bydauto.ac.BYDAutoAcDevice")` 失败 → SIMULATOR（真模拟器）
+- 类存在但调用异常 → PERMISSION_NEEDED（真车，权限/状态问题）
+- 调用返回正常值 → REAL_DEVICE
+
+授权触发条件**不依赖**此判断，改为「ADB 可用 + 权限缺失」即触发，避免误判。
+
+---
+
+## 五、甲壳虫手动授权（兜底，最可靠）
+
+当 app 自动授权怎么都不弹窗时，用甲壳虫等外部 ADB 工具手动执行——直接以 shell uid 把活干了，绕过 app 内 ADB 协议实现的所有问题。
+
+### 5.1 一键授权 BYD 权限（核心）
+
+甲壳虫连上车机后，在 shell 里粘贴执行：
+
+```sh
+PKG=com.diui.launcher
+for p in \
+  android.permission.BYDAUTO_AC_GET \
+  android.permission.BYDAUTO_AC_SET \
+  android.permission.BYDAUTO_AC_COMMON \
+  android.permission.BYDAUTO_BODYWORK_GET \
+  android.permission.BYDAUTO_BODYWORK_COMMON \
+  android.permission.BYDAUTO_DOOR_LOCK_GET \
+  android.permission.BYDAUTO_DOOR_LOCK_COMMON \
+  android.permission.BYDAUTO_POWER_GET \
+  android.permission.BYDAUTO_ENERGY_GET \
+  android.permission.BYDAUTO_PM2P5_GET \
+  android.permission.BYDAUTO_STATISTIC_GET \
+  android.permission.BYDAUTO_GEARBOX_GET \
+  android.permission.BYDAUTO_SPEED_GET \
+  android.permission.BYDAUTO_CHARGING_GET \
+  android.permission.BYDAUTO_TYRE_GET \
+  android.permission.BYDAUTO_LIGHT_GET \
+  android.permission.BYDAUTO_LIGHT_SET \
+  android.permission.BYDAUTO_SETTING_GET; do
+  pm grant $PKG $p 2>&1
+done
+```
+
+> 此脚本也已内置于 app：**设置 → 车辆 → 手动授权脚本**，点击弹窗可一键复制到剪贴板。
+
+执行后**杀掉 app 重新打开**即可进真车模式读 BYD API 数据。
+
+> `pm grant` 报 `not a changeable permission type` 是正常的——那是 signature 级权限，BYD 车机上大部分能授成功，报错的几条不影响其他数据。
+
+### 5.2 手动启动 HelperDaemon（读 autoservice 数据）
+
+pm grant 只解锁 BYD API 反射路径。若还要读 autoservice 系统服务的数据（电池温度/电压/SOH/充电枪/驱动模式），手动启动常驻 daemon：
+
+```sh
+PKG=com.diui.launcher
+APK=$(pm path $PKG | grep -o '/[^:]*base.apk' | head -1)
+APPUID=$(stat -c %u /data/data/$PKG)
+CLASSPATH=$APK setsid app_process /system/bin \
+  --nice-name=diui_helper com.diui.launcher.helper.HelperDaemon $APPUID \
+  </dev/null >/dev/null 2>&1 &
+for i in 1 2 3; do service list 2>/dev/null | grep -q diui_helper && break; sleep 1; done
+echo "HelperDaemon started, uid=$APPUID"
+```
+
+daemon 常驻后，app 通过 binder 自动连接它读 autoservice 数据。
+
+### 5.3 验证
+
+```sh
+# 查看授权结果
+dumpsys package com.diui.launcher | grep -A 50 "requested permissions:" | grep BYDAUTO
+
+# 查看 HelperDaemon 是否在跑
+ps -A | grep diui_helper
 ```
 
 ---
 
-## 三、验证现有 API 是否生效
+## 六、验证 API 是否生效
 
-安装后在车机上打开迪UI，同时在电脑运行：
+安装并授权后，打开迪UI，同时在电脑运行：
 
 ```bash
-# 实时查看 API 调用日志
-adb -s 192.168.10.10:5555 logcat -s BydVehicleManager:I BydAcApi:I BydBodyworkApi:I BydStatisticApi:I BydReflection:W
+# 替换 <车机IP>
+adb -s <车机IP>:5555 logcat -s BydVehicleManager:I BydAcApi:I BydBodyworkApi:I BydReflection:W BydPermissionHelper:I
 
-# 预期看到（非模拟模式）：
-# I BydVehicleManager: Initialized - AC:true Body:true Stat:true Lock:true
-# 如果看到 simulation mode 说明 API 未加载成功
+# 预期（真车模式）：
+# I BydVehicleManager: Initialized - AC:true Body:true Stat:true Lock:true Tire:true Drive:true
+# 出现 simulation mode 说明 API 未加载成功
 ```
+
+权限诊断（过滤 `BydPermissionHelper`）会列出每个 BYD 权限的授权状态。
 
 ---
 
-## 四、待接入的真实 API
+## 七、数据来源对照
 
-### 4.1 速度 + 挡位（BYDAutoGearboxDevice）
+### 7.1 反射 BYD API（pm grant 解锁后）
 
-**类名**: `android.hardware.bydauto.gearbox.BYDAutoGearboxDevice`
+| API 类 | 数据 |
+|--------|------|
+| `BYDAutoAcDevice` | 空调开关/温度/风量/出风/循环/车外温度 |
+| `BYDAutoBodyworkDevice` | 电量/车门/车窗/天窗/锁车 |
+| `BYDAutoStatisticDevice` | EV 里程/总里程/电耗百分比 |
+| `BYDAutoTyreDevice` | 四轮胎压(kPa)/胎温(°C) |
+| `BYDAutoGearboxDevice` 等 | 速度/挡位/功率/油耗/续航/行程 |
+| `BYDAutoDoorLockDevice` | 门锁状态 |
 
-需要在代码中新增 `BydGearboxApi.java`：
+### 7.2 autoservice 系统服务（HelperDaemon 读取）
 
-```java
-// 方法名（待验证）
-getGearPosition()        // 返回 0=P, 1=R, 2=N, 3=D
-getVehicleSpeed()        // 返回 km/h（整数或浮点）
-getEngineSpeed()         // 转速 RPM
-```
+通过 `service call autoservice <tx> i32 <dev> i32 <fid>`，device/fid 定义见 `FidRegistry.java`：
 
-**验证命令**（安装后运行 API 探测 APK）：
-```bash
-adb -s 192.168.10.10:5555 shell dumpsys activity com.bydlauncher
-```
+| 数据 | dev | fid |
+|------|-----|-----|
+| 电池温度 max/min | DEV_BATTERY(1014) | FID_BATT_TEMP_MAX/MIN |
+| 电芯电压 max/min | 1014 | FID_CELL_VOLT_MAX/MIN |
+| SOH | 1014 | FID_SOH |
+| 12V 电压 | DEV_BODYWORK(1001) | FID_12V_VOLTAGE |
+| 充电枪状态 | DEV_CHARGE(1009) | FID_CHARGE_GUN |
+| 电源状态 | DEV_POWER(1023) | FID_POWER_STATE |
+| 驱动模式 | DEV_DRIVE_MODE(1006) | FID_DRIVE_MODE |
+| 电机功率 | DEV_MOTOR(1012) | FID_MOTOR_POWER |
 
-### 4.2 胎压 + 胎温（BYDAutoTyreDevice）
-
-**类名**: `android.hardware.bydauto.tyre.BYDAutoTyreDevice`
-
-```java
-// 方法名（待验证）
-getTyrePressure(int area)   // area: 1=左前, 2=右前, 3=左后, 4=右后
-getTyreTemp(int area)       // 对应胎温
-```
-
-返回值单位：`kPa * 10` 或 `PSI * 10`，需要在真车上确认换算关系。
-
-### 4.3 空气质量（BYDAutoPm25Device）
-
-**类名**: `android.hardware.bydauto.pm25.BYDAutoPm25Device`
-
-```java
-// 方法名（待验证）
-getOutPm25Value()    // 室外 PM2.5 数值
-getInPm25Value()     // 室内 PM2.5 数值
-getAqiLevel()        // AQI 等级
-```
-
-### 4.4 实时功率（BYDAutoEnergyDevice）
-
-**类名**: `android.hardware.bydauto.energy.BYDAutoEnergyDevice`
-
-```java
-// 方法名（待验证）
-getMotorPower()          // 电机功率 kW
-getRegenPower()          // 回收功率 kW
-getBatteryVoltage()      // 电池电压
-getBatteryCurrent()      // 电池电流
-```
+返回值哨兵：`65535` = 无 CAN 信号，`-10011` = 未注册，`0xFFFFD8E3` = 错误事务码。
 
 ---
 
-## 五、探测车窗/座椅控制 FeatureId
+## 八、HelperDaemon 架构（安全模型）
 
-BYD 的底层控制通过 `set(deviceType, featureId, value)` 方法实现。
-空调风量的 featureId 已知为 `0x1DE0000C`，车窗/座椅需要在真车上探测。
+为避免任意 app 通过本地端口控制车辆，HelperDaemon 采用 **binder + uid 鉴权**：
 
-### 探测步骤
-
-#### 方法一：抓取系统日志（推荐）
-
-在车机上手动操作车窗，同时抓取系统日志：
-
-```bash
-# 清除旧日志
-adb -s 192.168.10.10:5555 logcat -c
-
-# 在车机上操作：手动打开/关闭车窗
-
-# 抓取日志（过滤 BYD 相关）
-adb -s 192.168.10.10:5555 logcat | grep -i "byd\|bodywork\|window\|feature\|0x1"
-```
-
-#### 方法二：运行 FeatureId 扫描工具
-
-在 `BydBodyworkApi.java` 中临时加入以下探测代码，安装后查看 logcat：
-
-```java
-// 临时探测代码 - 找到 featureId 后删除
-public void probeWindowFeatureIds() {
-    if (device == null) return;
-    for (int featureId = 0x1DE00001; featureId <= 0x1DE000FF; featureId++) {
-        try {
-            int result = ReflectionHelper.setViaBaseClass(device, DEVICE_TYPE, featureId, 0);
-            if (result >= 0) {
-                Log.i("BYD_PROBE", "Found featureId: 0x" + Integer.toHexString(featureId) + " result=" + result);
-            }
-        } catch (Exception e) {
-            // 跳过无效 featureId
-        }
-    }
-}
-```
-
----
-
-## 六、接入后需修改的文件
-
-| 文件 | 改动内容 |
-|------|----------|
-| `api/BydGearboxApi.java` | 新建：速度+挡位 API |
-| `api/BydTyreApi.java` | 新建：胎压+胎温 API |
-| `api/BydPm25Api.java` | 新建：空气质量 API |
-| `api/BydEnergyApi.java` | 新建：实时功率 API |
-| `api/BydBodyworkApi.java` | 新增：车窗控制 setWindowState() |
-| `api/BydVehicleManager.java` | 注册新 API + readCurrentStatus() 补充 |
-| `model/VehicleStatus.java` | 已完善，字段已预留 |
-| `ui/StatusPage.java` | 解除模拟数据，接入真实值 |
-| `ui/WindowControlDialog.java` | 接入真实 setWindowState() |
-| `AndroidManifest.xml` | 新增权限声明 |
-
-### 需要新增的权限（AndroidManifest.xml）
-
-```xml
-<uses-permission android:name="android.permission.BYDAUTO_GEARBOX_GET" />
-<uses-permission android:name="android.permission.BYDAUTO_TYRE_GET" />
-<uses-permission android:name="android.permission.BYDAUTO_SPEED_GET" />
-```
-
-> 注：`BYDAUTO_ENERGY_GET` 和 `BYDAUTO_PM2P5_GET` 已在 Manifest 中声明。
-
----
-
-## 七、验证清单
-
-真车测试时逐项确认：
-
-- [ ] adb 成功连接 `192.168.10.10:5555`
-- [ ] 安装迪UI后 logcat 显示 `AC:true Body:true`（非模拟模式）
-- [ ] 空调开关在车机上实际生效
-- [ ] 温度调节实际生效（车内温度变化）
-- [ ] 锁车按钮实际生效
-- [ ] 电量/续航显示与仪表盘一致
-- [ ] 速度在行驶时实时更新（接入 GearboxApi 后）
-- [ ] 胎压与仪表盘数值一致（接入 TyreApi 后）
-- [ ] 车窗控制实际控制车窗升降
-
----
-
-## 八、权限自动授权机制
-
-迪UI 内置了本地 ADB 自动授权功能，原理如下：
-
-```
-应用启动 → 检查 BYD 权限 → 权限缺失
-         → 检测本地 ADB（127.0.0.1:5555）是否可用
-         → 弹出授权对话框 → 用户点击"授权"
-         → 连接本机 ADB 守护进程
-         → 系统弹出标准 ADB 授权弹窗（RSA 密钥确认）
-         → 用户点击"允许"
-         → 应用通过 ADB shell 执行 pm grant 命令
-         → 所有 BYDAUTO_* 权限自动授权
-         → 重新初始化车辆管理器 → 获取真实车辆数据
-```
+- daemon 以 shell uid 运行（`app_process` + `CLASSPATH=app.apk`）
+- 通过 `ServiceManager.addService("diui_helper")` 注册 binder service
+- `onTransact` 检查 `Binder.getCallingUid() == appUid`，拒绝其他 app
+- 写操作额外经 `WriteAllowlist` 限制（仅空调/车身/门锁 dev 可写）
+- app 端 `HelperClient` 反射 `ServiceManager.getService("diui_helper")` 调用
+- 版本管理：记录 `spawned_version_code`，app 更新后自动 kill 旧 daemon 再 spawn
 
 ### 相关文件
 
 | 文件 | 职责 |
 |------|------|
-| `api/AdbHelper.java` | 本地 ADB 客户端，实现 ADB 协议、认证、shell 命令执行 |
-| `api/AdbKeyManager.java` | RSA 密钥管理，生成/存储/签名，编码为 ADB mincrypt 格式 |
-| `api/BydPermissionHelper.java` | 权限诊断，检查授权状态，输出缺失权限 |
-
-### 首次授权流程
-
-1. 首次运行时，`AdbKeyManager` 生成 2048 位 RSA 密钥对并持久化到 SharedPreferences
-2. 连接本机 ADB 后发送公钥，系统弹出"允许 USB 调试？"对话框
-3. 用户点击"允许"后，密钥被保存在车机的 `~/.android/adb_keys` 中
-4. 后续启动不再弹出授权弹窗，直接连接
-
-### 注意事项
-
-- 如果 `pm grant` 报错 "not a changeable permission type"，说明该权限为 `signature` 级别，需要平台签名
-- 约 30 天后 BYD 车机自动清除第三方应用权限，需重新授权（ADB 密钥不会丢失，只需重新执行 pm grant）
-- 如果 ADB 未开启，应用会退回到手动授权模式（提示用户去系统设置）
+| `api/AdbHelper.java` | 本地 ADB 客户端：协议、RSA 认证、shell 执行、daemon spawn/kill |
+| `api/AdbKeyManager.java` | RSA 密钥管理：生成/存储/签名（NONEwithRSA+DigestInfo）/524 字节公钥编码 |
+| `api/BydPermissionHelper.java` | 权限诊断，检查授权状态 |
+| `api/BydEnvironmentDetector.java` | 运行环境检测（真车/需权限/模拟器） |
+| `helper/HelperDaemon.java` | shell-uid binder 守护进程 |
+| `helper/HelperClient.java` | app 端 binder 客户端 |
+| `helper/HelperBinderProtocol.java` | binder 线协议常量 |
+| `helper/WriteAllowlist.java` | 写操作 dev 白名单 |
 
 ---
 
-## 九、常见问题
+## 九、验证清单
 
-**Q: logcat 显示 simulation mode，真车上也这样？**  
-A: 说明 `Class.forName("android.hardware.bydauto.ac.BYDAutoAcDevice")` 失败，可能是权限问题。检查 `BydPermissionContext` 是否正确包裹 context。
+真车测试时逐项确认：
 
-**Q: logcat 出现 SecurityException: UID xxx does not have permission to access content://com.byd.vehicle.data.provider/data？**  
-A: 这是 BYD 车机权限未授权导致的。BYD SDK 内部通过 ContentProvider 进行跨进程 IPC 调用，`BydPermissionContext` 无法拦截远程权限检查。
+- [ ] adb 成功连接 `<车机IP>:5555`
+- [ ] 安装迪UI后 logcat 显示 `AC:true Body:true`（非模拟模式）
+- [ ] 空调开关在车机上实际生效
+- [ ] 温度调节实际生效（车内温度变化）
+- [ ] 锁车按钮实际生效
+- [ ] 电量/续航显示与仪表盘一致
+- [ ] 速度在行驶时实时更新
+- [ ] 胎压与仪表盘数值一致（kPa）
+- [ ] 车窗控制实际控制车窗升降
+- [ ] `ps -A | grep diui_helper` 显示 daemon 在跑
 
-**自动授权（推荐）**：迪UI 已内置本地 ADB 自动授权功能。应用启动后检测到权限缺失时，会弹出授权对话框，用户点击"授权"按钮，系统会弹出 ADB 调试授权弹窗，点击"允许"后应用自动执行所有权限授权。
+---
 
-> 前提条件：车机已开启 ADB 调试（见上方"开启车机 ADB"章节）
+## 十、常见问题
 
-**手动授权**：如果自动授权不可用，可通过 adb 手动授权：
+**Q: 启动时不弹"允许 USB 调试？"**
+A: 检查 `logcat -s AdbHelper:I MainActivity:I BydEnvDetector:I`。可能原因：
+- adbd 未监听 5555（开无线调试或 `adb tcpip 5555`）
+- 签名/版本号问题（已修复：NONEwithRSA + 0x01000001）
+- 改用甲壳虫手动授权（第五节）兜底
 
-```bash
-# 连接车机
-adb connect 192.168.10.10:5555
+**Q: logcat 显示 simulation mode，真车上也这样？**
+A: `Class.forName("android.hardware.bydauto.ac.BYDAutoAcDevice")` 失败，或调用异常被误判。检查权限是否已 `pm grant`，`BydPermissionContext` 是否正确包裹 context。
 
-# 进入 adb shell
-adb shell
+**Q: `pm grant` 报 "not a changeable permission type"**
+A: 该权限为 signature 级，BYD 车机上大部分能授成功，报错的几条不影响其他数据。全部失败才需平台签名。
 
-# 逐条执行以下授权命令
-pm grant com.bydlauncher android.permission.BYDAUTO_AC_GET
-pm grant com.bydlauncher android.permission.BYDAUTO_AC_SET
-pm grant com.bydlauncher android.permission.BYDAUTO_AC_COMMON
-pm grant com.bydlauncher android.permission.BYDAUTO_BODYWORK_GET
-pm grant com.bydlauncher android.permission.BYDAUTO_BODYWORK_COMMON
-pm grant com.bydlauncher android.permission.BYDAUTO_DOOR_LOCK_GET
-pm grant com.bydlauncher android.permission.BYDAUTO_DOOR_LOCK_COMMON
-pm grant com.bydlauncher android.permission.BYDAUTO_POWER_GET
-pm grant com.bydlauncher android.permission.BYDAUTO_ENERGY_GET
-pm grant com.bydlauncher android.permission.BYDAUTO_PM2P5_GET
-pm grant com.bydlauncher android.permission.BYDAUTO_STATISTIC_GET
-pm grant com.bydlauncher android.permission.BYDAUTO_GEARBOX_GET
-pm grant com.bydlauncher android.permission.BYDAUTO_SPEED_GET
-pm grant com.bydlauncher android.permission.BYDAUTO_CHARGING_GET
-pm grant com.bydlauncher android.permission.BYDAUTO_TYRE_GET
-pm grant com.bydlauncher android.permission.BYDAUTO_LIGHT_GET
-pm grant com.bydlauncher android.permission.BYDAUTO_LIGHT_SET
-pm grant com.bydlauncher android.permission.BYDAUTO_SETTING_GET
+**Q: API 返回 -10011？**
+A: 未注册到 BYD 服务，车机重启后重试。
 
-# 退出 shell
-exit
-
-# 重启应用
-adb shell am force-stop com.bydlauncher
-```
-
-> 提示：应用启动时会自动运行权限诊断，在 logcat 中过滤 `BydPermissionHelper` 可查看哪些权限缺失以及需要执行的具体命令。
-
-> 注意：如果 `pm grant` 报错 "not a changeable permission type"，说明该权限为 signature 级别，需要使用 BYD 平台签名重新签名 APK 或安装为系统应用。
-
-**Q: API 返回 -10011？**  
-A: 未注册到 BYD 服务，车机重启后重试，或检查权限声明。
-
-**Q: API 返回 65535？**  
+**Q: API 返回 65535？**
 A: 该功能在当前车型不支持。
 
-**Q: 约 30 天后功能失效？**  
-A: BYD 车机会定期清除第三方应用权限，需重新执行上述 `pm grant` 命令或重新安装 APK。
+**Q: 约 30 天后功能失效？**
+A: BYD 车机定期清除第三方应用权限，需重新执行 `pm grant`（ADB 密钥不丢，daemon 需重启）。app 内会自动重新授权。
 
 ---
 
-## 十、参考资料
+## 十一、参考资料
 
+- [AndyShaman/BYDMate](https://github.com/AndyShaman/BYDMate) — ADB 协议/HelperDaemon 架构参考
 - [wheregoes/byd-apps](https://github.com/wheregoes/byd-apps) — 社区 API 文档（featureId 参考）
 - [ahmada3mar/BYD](https://github.com/ahmada3mar/BYD) — ADB 开启工具
-- [Kinex Launcher](https://kinex.lexwah.com/) — 功能参考实现
 - BYD DiLink 3.0 SDK 文档（车厂内部，社区整理版见 wheregoes）

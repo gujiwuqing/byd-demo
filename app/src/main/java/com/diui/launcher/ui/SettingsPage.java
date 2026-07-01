@@ -9,6 +9,8 @@ import android.widget.TextView;
 
 import androidx.core.content.ContextCompat;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
 import com.diui.launcher.LogActivity;
 import com.diui.launcher.R;
 import com.diui.launcher.api.BydApiExplorer;
@@ -23,6 +25,10 @@ public class SettingsPage {
         void onAdbAuthorize();
     }
 
+    public interface OnDirectGrantListener {
+        void onDirectGrant();
+    }
+
     public interface OnSimModeChangedListener {
         void onSimModeChanged(boolean isSimulation);
     }
@@ -33,6 +39,7 @@ public class SettingsPage {
     private final SharedPreferences prefs;
 
     private OnAdbAuthorizeListener adbAuthorizeListener;
+    private OnDirectGrantListener directGrantListener;
     private OnSimModeChangedListener simModeChangedListener;
     private AppSlotManager appSlotManager;
     private TextView btnLayoutStandard, btnLayoutUnbounded;
@@ -77,6 +84,7 @@ public class SettingsPage {
         initDefaultLauncher();
         initLogViewer();
         initAdbAuthorize();
+        initManualGrant();
         initApiProbe();
         initLayoutMode();
         initAppSlots();
@@ -88,6 +96,10 @@ public class SettingsPage {
 
     public void setOnAdbAuthorizeListener(OnAdbAuthorizeListener listener) {
         this.adbAuthorizeListener = listener;
+    }
+
+    public void setOnDirectGrantListener(OnDirectGrantListener listener) {
+        this.directGrantListener = listener;
     }
 
     public void setOnLayoutModeChangedListener(OnLayoutModeChangedListener listener) {
@@ -233,6 +245,88 @@ public class SettingsPage {
                 adbAuthorizeListener.onAdbAuthorize();
             }
         });
+    }
+
+    // ── 手动授权脚本（甲壳虫兜底） ──
+
+    /**
+     * 甲壳虫等外部 ADB 工具连上车机后，在 shell 里粘贴执行的一键授权脚本。
+     * 以 shell uid 执行 pm grant，等价于 app 内自动授权的 pm grant 步骤。
+     */
+    private static final String MANUAL_GRANT_SCRIPT =
+            "PKG=com.diui.launcher\n" +
+            "for p in \\\n" +
+            "  android.permission.BYDAUTO_AC_GET \\\n" +
+            "  android.permission.BYDAUTO_AC_SET \\\n" +
+            "  android.permission.BYDAUTO_AC_COMMON \\\n" +
+            "  android.permission.BYDAUTO_BODYWORK_GET \\\n" +
+            "  android.permission.BYDAUTO_BODYWORK_COMMON \\\n" +
+            "  android.permission.BYDAUTO_DOOR_LOCK_GET \\\n" +
+            "  android.permission.BYDAUTO_DOOR_LOCK_COMMON \\\n" +
+            "  android.permission.BYDAUTO_POWER_GET \\\n" +
+            "  android.permission.BYDAUTO_ENERGY_GET \\\n" +
+            "  android.permission.BYDAUTO_PM2P5_GET \\\n" +
+            "  android.permission.BYDAUTO_STATISTIC_GET \\\n" +
+            "  android.permission.BYDAUTO_GEARBOX_GET \\\n" +
+            "  android.permission.BYDAUTO_SPEED_GET \\\n" +
+            "  android.permission.BYDAUTO_CHARGING_GET \\\n" +
+            "  android.permission.BYDAUTO_TYRE_GET \\\n" +
+            "  android.permission.BYDAUTO_LIGHT_GET \\\n" +
+            "  android.permission.BYDAUTO_LIGHT_SET \\\n" +
+            "  android.permission.BYDAUTO_SETTING_GET; do\n" +
+            "  pm grant $PKG $p 2>&1\n" +
+            "done";
+
+    private void initManualGrant() {
+        rootView.findViewById(R.id.settings_manual_grant).setOnClickListener(v -> {
+            Context ctx = rootView.getContext();
+
+            TextView hint = new TextView(ctx);
+            hint.setText(R.string.settings_manual_grant_dialog_hint);
+            hint.setTextSize(13f);
+            int pad = dpToPx(16);
+            hint.setPadding(pad, pad, pad, dpToPx(8));
+
+            TextView script = new TextView(ctx);
+            script.setTypeface(android.graphics.Typeface.MONOSPACE);
+            script.setText(MANUAL_GRANT_SCRIPT);
+            script.setTextSize(12f);
+            script.setPadding(pad, 0, pad, pad);
+
+            android.widget.ScrollView scroll = new android.widget.ScrollView(ctx);
+            scroll.addView(script);
+
+            android.widget.LinearLayout container = new android.widget.LinearLayout(ctx);
+            container.setOrientation(android.widget.LinearLayout.VERTICAL);
+            container.addView(hint);
+            container.addView(scroll);
+
+            new MaterialAlertDialogBuilder(ctx, R.style.AppAlertDialog)
+                    .setTitle(R.string.settings_manual_grant_dialog_title)
+                    .setView(container)
+                    .setPositiveButton(R.string.settings_manual_grant_copy, (d, w) -> copyScript(ctx))
+                    .setNeutralButton(R.string.settings_manual_grant_run, (d, w) -> {
+                        if (directGrantListener != null) directGrantListener.onDirectGrant();
+                    })
+                    .setNegativeButton(R.string.perm_btn_cancel, null)
+                    .show();
+        });
+    }
+
+    private void copyScript(Context ctx) {
+        try {
+            android.content.ClipboardManager cm = (android.content.ClipboardManager)
+                    ctx.getSystemService(Context.CLIPBOARD_SERVICE);
+            android.content.ClipData clip = android.content.ClipData.newPlainText(
+                    "byd_grant_script", MANUAL_GRANT_SCRIPT);
+            if (cm != null) cm.setPrimaryClip(clip);
+            android.widget.Toast.makeText(ctx,
+                    R.string.settings_manual_grant_copied,
+                    android.widget.Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            android.widget.Toast.makeText(ctx, "复制失败: " + e.getMessage(),
+                    android.widget.Toast.LENGTH_SHORT).show();
+        }
     }
 
     // ── API 探测 ──

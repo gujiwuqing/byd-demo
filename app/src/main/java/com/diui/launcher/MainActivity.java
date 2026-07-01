@@ -137,6 +137,16 @@ public class MainActivity extends AppCompatActivity
             }
             startAdbGrant();
         });
+        settingsPage.setOnDirectGrantListener(() -> {
+            if (!AdbHelper.isAdbAvailable()) {
+                android.widget.Toast.makeText(this,
+                        "本地 ADB 不可用，请确认车机已开启 ADB 调试",
+                        android.widget.Toast.LENGTH_LONG).show();
+                return;
+            }
+            // 不重置密钥：已认证过则静默执行 pm grant，未认证过则触发首次认证弹窗
+            startAdbGrant(false);
+        });
         settingsPage.setOnSimModeChangedListener(this::reinitializeWithSimMode);
 
         // 无界模式初始化
@@ -333,8 +343,19 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void startAdbGrant() {
+        startAdbGrant(true);
+    }
+
+    /**
+     * @param clearKeys true=重置 RSA 密钥强制重新弹"允许USB调试"（完整重新认证）；
+     *                  false=复用已信任的密钥静默执行 pm grant（已认证过则不弹窗，
+     *                  未认证过仍会触发首次认证弹窗）。
+     */
+    private void startAdbGrant(boolean clearKeys) {
         showSystemUI();
-        AdbKeyManager.clearKeys(this);
+        if (clearKeys) {
+            AdbKeyManager.clearKeys(this);
+        }
         AdbHelper.grantPermissions(this, (success, granted, failed, signature) -> runOnUiThread(() -> {
             boolean authSucceeded = !granted.isEmpty() || !failed.isEmpty() || !signature.isEmpty();
             if (authSucceeded) {

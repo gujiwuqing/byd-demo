@@ -60,6 +60,13 @@
 
     <string name="settings_adb_authorize">ADB 权限授权</string>
     <string name="settings_adb_authorize_desc">手动触发 ADB 授权，获取车辆数据权限</string>
+    <string name="settings_manual_grant">手动授权脚本</string>
+    <string name="settings_manual_grant_desc">复制 ADB 授权命令，用甲壳虫等工具执行（兜底）</string>
+    <string name="settings_manual_grant_dialog_title">甲壳虫手动授权脚本</string>
+    <string name="settings_manual_grant_dialog_hint">甲壳虫等 ADB 工具连上车机（端口 5555）后，在 shell 里粘贴执行，完成后重启迪UI。</string>
+    <string name="settings_manual_grant_copy">复制到剪贴板</string>
+    <string name="settings_manual_grant_run">在 app 内执行</string>
+    <string name="settings_manual_grant_copied">脚本已复制，粘贴到 ADB shell 执行</string>
 
     <!-- 权限提示 -->
     <string name="perm_byd_title">车辆权限</string>
