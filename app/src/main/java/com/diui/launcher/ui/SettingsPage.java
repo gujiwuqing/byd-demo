@@ -85,6 +85,7 @@ public class SettingsPage {
         initLogViewer();
         initAdbAuthorize();
         initManualGrant();
+        initAdbDiag();
         initApiProbe();
         initLayoutMode();
         initAppSlots();
@@ -327,6 +328,44 @@ public class SettingsPage {
             android.widget.Toast.makeText(ctx, "复制失败: " + e.getMessage(),
                     android.widget.Toast.LENGTH_SHORT).show();
         }
+    }
+
+    // ── ADB 网络诊断 ──
+
+    private void initAdbDiag() {
+        rootView.findViewById(R.id.settings_adb_diag).setOnClickListener(v -> {
+            Context ctx = rootView.getContext();
+            android.widget.Toast.makeText(ctx, "正在探测 ADB 网络...", android.widget.Toast.LENGTH_SHORT).show();
+
+            com.diui.launcher.api.AdbHelper.runDiagnostics(ctx, report -> {
+                TextView tv = new TextView(ctx);
+                tv.setTypeface(android.graphics.Typeface.MONOSPACE);
+                tv.setText(report);
+                tv.setTextSize(12f);
+                int pad = dpToPx(16);
+                tv.setPadding(pad, pad, pad, pad);
+                tv.setTextIsSelectable(true);
+
+                android.widget.ScrollView scroll = new android.widget.ScrollView(ctx);
+                scroll.addView(tv);
+
+                new MaterialAlertDialogBuilder(ctx, R.style.AppAlertDialog)
+                        .setTitle("ADB 网络诊断")
+                        .setView(scroll)
+                        .setPositiveButton("复制", (d, w) -> {
+                            try {
+                                android.content.ClipboardManager cm = (android.content.ClipboardManager)
+                                        ctx.getSystemService(Context.CLIPBOARD_SERVICE);
+                                if (cm != null) {
+                                    cm.setPrimaryClip(android.content.ClipData.newPlainText("adb_diag", report));
+                                    android.widget.Toast.makeText(ctx, "诊断结果已复制", android.widget.Toast.LENGTH_SHORT).show();
+                                }
+                            } catch (Exception ignored) {}
+                        })
+                        .setNegativeButton("关闭", null)
+                        .show();
+            });
+        });
     }
 
     // ── API 探测 ──

@@ -131,7 +131,7 @@ public class MainActivity extends AppCompatActivity
         settingsPage.setOnAdbAuthorizeListener(() -> {
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                     .edit().putBoolean(KEY_ADB_GRANTED, false).apply();
-            AdbHelper.checkAvailableAsync(available -> {
+            AdbHelper.checkAvailableAsync(this, available -> {
                 if (!available) {
                     android.widget.Toast.makeText(this,
                             "本地 ADB 不可用，请确认车机已开启 ADB 调试",
@@ -142,7 +142,7 @@ public class MainActivity extends AppCompatActivity
             });
         });
         settingsPage.setOnDirectGrantListener(() -> {
-            AdbHelper.checkAvailableAsync(available -> {
+            AdbHelper.checkAvailableAsync(this, available -> {
                 if (!available) {
                     android.widget.Toast.makeText(this,
                             "本地 ADB 不可用，请确认车机已开启 ADB 调试",
@@ -213,7 +213,7 @@ public class MainActivity extends AppCompatActivity
         }
 
         // ADB 授权诊断（异步，避免主线程 Socket 操作）
-        AdbHelper.checkAvailableAsync(adbAvailable -> {
+        AdbHelper.checkAvailableAsync(this, adbAvailable -> {
             Log.i(TAG, "ADB诊断: available=" + adbAvailable
                     + " alreadyGranted=" + adbAlreadyGranted
                     + " env=" + detectedEnv
@@ -258,7 +258,7 @@ public class MainActivity extends AppCompatActivity
                 return;
             }
 
-            AdbHelper.checkAvailableAsync(available -> {
+            AdbHelper.checkAvailableAsync(this, available -> {
                 if (available) {
                     Log.i(TAG, "ADB available after boot delay, auto granting...");
                     autoAdbGrant();
@@ -381,7 +381,7 @@ public class MainActivity extends AppCompatActivity
 
             @Override
             public void onAuthGranted() {
-                Log.i(TAG, "ADB 认证成功，启动 HelperDaemon...");
+                Log.i(TAG, "ADB 认证成功");
                 runOnUiThread(() -> {
                     getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                             .edit()
@@ -389,29 +389,30 @@ public class MainActivity extends AppCompatActivity
                             .remove("sim_mode_manual")
                             .apply();
 
+                    android.widget.Toast.makeText(MainActivity.this,
+                            "ADB授权成功，正在切换到真车模式...",
+                            android.widget.Toast.LENGTH_LONG).show();
+
+                    // 先切换到真车模式（不依赖 HelperDaemon 是否启动成功）
+                    BydVehicleManager.setForceSimulation(false);
+                    BydVehicleManager.resetInstance();
+                    vehicleManager = BydVehicleManager.getInstance(MainActivity.this);
+                    vehicleManager.setListener(MainActivity.this);
+                    vehicleManager.startPolling();
+
+                    View pageControlsView = findViewById(R.id.page_controls);
+                    controlsPage = new ControlsPage(pageControlsView, vehicleManager.getAcApi());
+
+                    if (settingsPage != null) {
+                        settingsPage.updateSimulationState(false);
+                    }
+
+                    hideSystemUI();
+                    adbGrantInProgress.set(false);
+
+                    // 后台尝试启动 HelperDaemon（提供电池温度/SOH等额外数据）
                     AdbHelper.startHelperDaemon(MainActivity.this, () -> {
                         Log.i(TAG, "HelperDaemon started after ADB auth");
-                        runOnUiThread(() -> {
-                            android.widget.Toast.makeText(MainActivity.this,
-                                    "ADB授权成功，车辆数据服务已启动",
-                                    android.widget.Toast.LENGTH_LONG).show();
-
-                            BydVehicleManager.setForceSimulation(false);
-                            BydVehicleManager.resetInstance();
-                            vehicleManager = BydVehicleManager.getInstance(MainActivity.this);
-                            vehicleManager.setListener(MainActivity.this);
-                            vehicleManager.startPolling();
-
-                            View pageControlsView = findViewById(R.id.page_controls);
-                            controlsPage = new ControlsPage(pageControlsView, vehicleManager.getAcApi());
-
-                            if (settingsPage != null) {
-                                settingsPage.updateSimulationState(false);
-                            }
-
-                            hideSystemUI();
-                            adbGrantInProgress.set(false);
-                        });
                     });
                 });
             }

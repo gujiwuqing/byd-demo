@@ -1,6 +1,7 @@
 package com.diui.launcher.api;
 
 import android.content.Context;
+import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -53,9 +54,9 @@ public class AdbHelper {
 
     /**
      * 同步探测——必须在后台线程调用。
-     * 依次尝试 127.0.0.1 + 本机所有非回环 IPv4 地址，返回第一个 5555 端口可达的地址。
+     * 依次尝试 127.0.0.1 → Wi-Fi IP → 所有非回环 IPv4，返回第一个 5555 端口可达的地址。
      */
-    public static String findAdbHost() {
+    public static String findAdbHost(Context context) {
         if (resolvedHost != null && probePort(resolvedHost, ADB_PORT)) {
             return resolvedHost;
         }
@@ -63,6 +64,27 @@ public class AdbHelper {
 
         List<String> candidates = new ArrayList<>();
         candidates.add("127.0.0.1");
+
+        // WifiManager 获取 Wi-Fi IP（比 NetworkInterface 更可靠）
+        try {
+            WifiManager wm = (WifiManager) context.getApplicationContext()
+                    .getSystemService(Context.WIFI_SERVICE);
+            if (wm != null) {
+                int ip = wm.getConnectionInfo().getIpAddress();
+                if (ip != 0) {
+                    String wifiIp = String.format("%d.%d.%d.%d",
+                            ip & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff);
+                    if (!candidates.contains(wifiIp)) {
+                        candidates.add(wifiIp);
+                        Log.i(TAG, "Wi-Fi IP: " + wifiIp);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "获取 Wi-Fi IP 失败", e);
+        }
+
+        // NetworkInterface 枚举所有网络接口 IP
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             while (interfaces != null && interfaces.hasMoreElements()) {
@@ -71,7 +93,10 @@ public class AdbHelper {
                 while (addrs.hasMoreElements()) {
                     InetAddress addr = addrs.nextElement();
                     if (!addr.isLoopbackAddress() && addr instanceof Inet4Address) {
-                        candidates.add(addr.getHostAddress());
+                        String hostAddr = addr.getHostAddress();
+                        if (!candidates.contains(hostAddr)) {
+                            candidates.add(hostAddr);
+                        }
                     }
                 }
             }
@@ -79,31 +104,34 @@ public class AdbHelper {
             Log.w(TAG, "枚举网络接口失败", e);
         }
 
+        Log.i(TAG, "ADB 探测候选地址: " + candidates);
+
         for (String host : candidates) {
             if (probePort(host, ADB_PORT)) {
                 resolvedHost = host;
                 Log.i(TAG, "ADB 可达: " + host + ":" + ADB_PORT);
                 return host;
             }
+            Log.d(TAG, "ADB 不可达: " + host + ":" + ADB_PORT);
         }
 
-        Log.w(TAG, "ADB 不可达，已尝试: " + candidates);
+        Log.w(TAG, "ADB 所有候选地址均不可达");
         return null;
     }
 
     /**
      * 同步检测——必须在后台线程调用。
      */
-    public static boolean isAdbAvailable() {
-        return findAdbHost() != null;
+    public static boolean isAdbAvailable(Context context) {
+        return findAdbHost(context) != null;
     }
 
     /**
      * 异步检测——可安全在主线程调用，结果回调到主线程。
      */
-    public static void checkAvailableAsync(AvailableCallback callback) {
+    public static void checkAvailableAsync(Context context, AvailableCallback callback) {
         executor.execute(() -> {
-            String host = findAdbHost();
+            String host = findAdbHost(context);
             mainHandler.post(() -> callback.onResult(host != null));
         });
     }
@@ -119,6 +147,111 @@ public class AdbHelper {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    // ---------- 诊断 ----------
+
+    public interface DiagCallback {
+        void onResult(String report);
+    }
+
+    /**
+     * 异步执行完整 ADB 网络诊断，结果回调到主线程。
+     * 报告包含所有候选 IP、端口探测结果、已缓存 host 等信息。
+     */
+    public static void runDiagnostics(Context context, DiagCallback callback) {
+        executor.execute(() -> {
+            StringBuilder sb = new StringBuilder();
+            sb.append("===== ADB 网络诊断 =====\n\n");
+
+            // 已缓存的 host
+            sb.append("缓存 host: ").append(resolvedHost != null ? resolvedHost : "无").append("\n\n");
+
+            // Wi-Fi IP
+            String wifiIp = null;
+            try {
+                WifiManager wm = (WifiManager) context.getApplicationContext()
+                        .getSystemService(Context.WIFI_SERVICE);
+                if (wm != null) {
+                    int ip = wm.getConnectionInfo().getIpAddress();
+                    if (ip != 0) {
+                        wifiIp = String.format("%d.%d.%d.%d",
+                                ip & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff);
+                    }
+                }
+            } catch (Exception ignored) {}
+            sb.append("Wi-Fi IP: ").append(wifiIp != null ? wifiIp : "未获取到").append("\n\n");
+
+            // 所有网络接口
+            sb.append("── 网络接口 ──\n");
+            try {
+                Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+                while (interfaces != null && interfaces.hasMoreElements()) {
+                    NetworkInterface intf = interfaces.nextElement();
+                    Enumeration<InetAddress> addrs = intf.getInetAddresses();
+                    while (addrs.hasMoreElements()) {
+                        InetAddress addr = addrs.nextElement();
+                        if (addr instanceof Inet4Address) {
+                            sb.append("  ").append(intf.getName())
+                              .append(" → ").append(addr.getHostAddress())
+                              .append(addr.isLoopbackAddress() ? " (loopback)" : "")
+                              .append("\n");
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                sb.append("  枚举失败: ").append(e.getMessage()).append("\n");
+            }
+
+            // 端口探测
+            sb.append("\n── 端口探测 (TCP ").append(ADB_PORT).append(") ──\n");
+            List<String> candidates = new ArrayList<>();
+            candidates.add("127.0.0.1");
+            if (wifiIp != null && !candidates.contains(wifiIp)) candidates.add(wifiIp);
+            try {
+                Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+                while (interfaces != null && interfaces.hasMoreElements()) {
+                    NetworkInterface intf = interfaces.nextElement();
+                    Enumeration<InetAddress> addrs = intf.getInetAddresses();
+                    while (addrs.hasMoreElements()) {
+                        InetAddress addr = addrs.nextElement();
+                        if (!addr.isLoopbackAddress() && addr instanceof Inet4Address) {
+                            String h = addr.getHostAddress();
+                            if (!candidates.contains(h)) candidates.add(h);
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+
+            for (String host : candidates) {
+                long start = System.currentTimeMillis();
+                boolean ok = probePort(host, ADB_PORT);
+                long elapsed = System.currentTimeMillis() - start;
+                sb.append("  ").append(host).append(":").append(ADB_PORT)
+                  .append(" → ").append(ok ? "✓ 可达" : "✗ 不可达")
+                  .append(" (").append(elapsed).append("ms)")
+                  .append("\n");
+            }
+
+            // Dadb 连接状态
+            Dadb dadb = sharedDadb.get();
+            sb.append("\n── Dadb 连接 ──\n");
+            sb.append("  当前连接: ").append(dadb != null ? "有" : "无").append("\n");
+            if (dadb != null) {
+                try {
+                    AdbShellResponse resp = dadb.shell("echo ok");
+                    sb.append("  shell echo: ").append(resp.getExitCode() == 0 ? "✓ 正常" : "✗ 失败").append("\n");
+                } catch (Exception e) {
+                    sb.append("  shell echo: ✗ 异常 ").append(e.getMessage()).append("\n");
+                }
+            }
+
+            sb.append("\n===== 诊断完成 =====");
+
+            String report = sb.toString();
+            Log.i(TAG, report);
+            mainHandler.post(() -> callback.onResult(report));
+        });
     }
 
     // ---------- 密钥管理 ----------
@@ -185,7 +318,7 @@ public class AdbHelper {
 
     public static void connectAndAuth(Context context, AuthCallback callback) {
         executor.execute(() -> {
-            String host = findAdbHost();
+            String host = findAdbHost(context);
             if (host == null) {
                 Log.w(TAG, "ADB 端口未开放");
                 callback.onAuthFailed("ADB 未开启，请在设置中开启无线 ADB 调试");

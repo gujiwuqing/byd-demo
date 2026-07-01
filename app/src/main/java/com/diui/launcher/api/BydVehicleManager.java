@@ -138,7 +138,7 @@ public class BydVehicleManager {
      * ADB 不可用时静默跳过（模拟器/未开 ADB）。
      */
     private void ensureHelperRunning(Context appContext) {
-        AdbHelper.checkAvailableAsync(available -> {
+        AdbHelper.checkAvailableAsync(appContext, available -> {
             if (!available) {
                 Log.i(TAG, "ADB unavailable, skip helper daemon");
                 return;
