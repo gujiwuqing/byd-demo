@@ -96,6 +96,17 @@ public final class FidRegistry {
     // ========== Lock (dev=1032) ==========
     public static final int FID_LOCK_FL = 1081081864;          // tx=5, 门锁
 
+    // ========== Door Lock (dev=1041, byd-apps CAN scan 发现) ==========
+    // 来源: wheregoes/byd-apps manager scan, Dolphin DiLink 3.0 实测
+    // 注意: 主门锁 getDoorLockStatus() 返回 INVALID(0), 仅儿童锁可读
+    public static final int FID_DOORLOCK_ONLINE = 1101004800;  // 0x41A00000, tx=5, 在线=1
+    public static final int FID_DOORLOCK_STATUS_1 = 1101004808;// 0x41A00008, tx=5, 锁状态位掩码 (Dolphin=255)
+    public static final int FID_DOORLOCK_STATUS_2 = 1101004816;// 0x41A00010, tx=5, 锁状态位掩码 (Dolphin=255)
+    public static final int FID_DOORLOCK_UNK_18 = 1101004824;  // 0x41A00018, tx=5, Dolphin=65535(N/A)
+    public static final int FID_DOORLOCK_UNK_20 = 1101004832;  // 0x41A00020, tx=5, Dolphin=0
+    public static final int FID_DOORLOCK_COUNT = 1101004844;   // 0x41A0002C, tx=5, 可能=车门数(Dolphin=5)
+    public static final int FID_DOORLOCK_UNK_30 = 1101004848;  // 0x41A00030, tx=5, Dolphin=65535(N/A)
+
     // ========== Tire (dev=1016) ==========
     public static final int FID_TIRE_FL = -1728052956;         // tx=5, kPa
     public static final int FID_TIRE_FR = -1728052952;
@@ -111,6 +122,8 @@ public final class FidRegistry {
     public static final int WFID_AC_TEMP = 501219368;       // value=16~30°C ✓
     public static final int WFID_AC_CYCLE = 501219355;      // value=0=外循环 1=内循环 ✓
     public static final int WFID_AC_DEFROST_REAR = 501219357; // value=0=off 1=on ✓
+    // byd-apps 实测: set(1000, 0x1DE0000C, level) 可写风量，命名方法 setAcWindLevel 反而不可用
+    public static final int WFID_AC_FAN = 501219340;        // 0x1DE0000C, value=0~7 ✓ (Dolphin 实测)
 
     // 车窗写入 (dev=1001) — 枚举方式（competitor-actions.json，更广泛支持）
     // value: 1=开 2=关 3=停 4=半开 5=微开

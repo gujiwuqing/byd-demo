@@ -1,8 +1,8 @@
 # autoservice Feature ID 参考手册
 
-**维护日期**: 2026-07-01
+**维护日期**: 2026-07-02
 **目标车型**: BYD 宋PLUS DM-i 21款（DiLink 3.0, msm8953, Android 10）
-**数据来源**: BYDMate FidMap + wheregoes/byd-apps + 车机实测
+**数据来源**: BYDMate FidMap + wheregoes/byd-apps API Reference + 车机实测
 
 > 本文档持续维护。每次在车机上跑「FID 全量扫描」后，根据 ✓/✗ 结果更新状态列。
 > 对应代码文件：`app/src/main/java/com/diui/launcher/api/FidRegistry.java`
@@ -170,6 +170,21 @@ service call autoservice 7 i32 <dev> i32 <fid>
 |--------|-----|----|------|------|-----------|
 | FID_LOCK_FL | 1081081864 | 5(int) | 左前门锁 | 0=未锁 1=已锁 | 待验证 |
 
+### 门锁 CAN 特征 ID（dev=1041，byd-apps 反向工程）
+
+> 来源：wheregoes/byd-apps manager scan，在 Dolphin DiLink 3.0 上发现
+> 注意：主门锁 `getDoorLockStatus()` 对 area 1~5 返回 INVALID(0)，仅儿童锁可读
+
+| 常量名 | FID | hex | tx | Dolphin 值 | 说明 |
+|--------|-----|-----|-----|-----------|------|
+| FID_DOORLOCK_ONLINE | 1101004800 | 0x41A00000 | 5(int) | 1 | 在线/已连接 |
+| FID_DOORLOCK_STATUS_1 | 1101004808 | 0x41A00008 | 5(int) | 255 (0xFF) | 锁状态位掩码 |
+| FID_DOORLOCK_STATUS_2 | 1101004816 | 0x41A00010 | 5(int) | 255 (0xFF) | 锁状态位掩码 |
+| FID_DOORLOCK_UNK_18 | 1101004824 | 0x41A00018 | 5(int) | 65535 | N/A |
+| FID_DOORLOCK_UNK_20 | 1101004832 | 0x41A00020 | 5(int) | 0 | 未知 |
+| FID_DOORLOCK_COUNT | 1101004844 | 0x41A0002C | 5(int) | 5 | 可能=车门数量 |
+| FID_DOORLOCK_UNK_30 | 1101004848 | 0x41A00030 | 5(int) | 65535 | N/A |
+
 ### 轮胎（dev=1016）
 
 | 常量名 | FID | tx | 说明 | 取值 | 21款宋Plus |
@@ -211,6 +226,15 @@ service call autoservice 7 i32 <dev> i32 <fid>
 ---
 
 ## 五、更新日志
+
+### 2026-07-02
+
+**byd-apps API Reference 整合**
+
+- 新增 WFID_AC_FAN = 501219340（0x1DE0000C），风量写入 FID（Dolphin 实测可用，命名方法 setAcWindLevel 不可用）
+- 新增 7 个门锁 CAN 特征 ID（dev=1041），来自 byd-apps manager scan
+- 记录 byd-apps 发现：BYDAutoDoorLockDevice 主门锁 area 1~5 返回 INVALID(0)，仅儿童锁可读
+- 记录 byd-apps 发现：BYDAutoPanoramaDevice 权限绕过在服务端被拦截，第三方无法访问全景摄像头
 
 ### 2026-07-01
 
@@ -259,6 +283,7 @@ service call autoservice 7 i32 <dev> i32 <fid>
 | WFID_AC_TEMP | 501219368 | 16~30°C | ✓ |
 | WFID_AC_CYCLE | 501219355 | 0=外循环 1=内循环 | ✓ |
 | WFID_AC_DEFROST_REAR | 501219357 | 0=关 1=开后除雾 | ✓ |
+| WFID_AC_FAN | 501219340 | 0~7 风量 | ✓ Dolphin 实测（byd-apps: 命名方法 setAcWindLevel 不可用，需通过 base set() 调用） |
 
 ### 车窗写入（dev=1001）— 百分比 0~100
 
