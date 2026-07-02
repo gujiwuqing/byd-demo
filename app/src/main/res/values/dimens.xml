@@ -84,4 +84,14 @@
     <dimen name="settings_switch_track_width">44dp</dimen>
     <dimen name="settings_switch_track_height">24dp</dimen>
     <dimen name="settings_switch_thumb_size">20dp</dimen>
+
+    <!-- P1 重构 token -->
+    <dimen name="radius_card_lg">16dp</dimen>
+    <dimen name="radius_card_sm">12dp</dimen>
+    <dimen name="spacing_token_4">4dp</dimen>
+    <dimen name="spacing_token_8">8dp</dimen>
+    <dimen name="spacing_token_12">12dp</dimen>
+    <dimen name="spacing_token_16">16dp</dimen>
+    <dimen name="spacing_token_24">24dp</dimen>
+    <dimen name="gauge_stroke">6dp</dimen>
 </resources>

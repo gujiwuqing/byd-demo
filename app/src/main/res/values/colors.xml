@@ -53,6 +53,14 @@
     <color name="nav_text">#80B0BCCC</color>
     <color name="nav_text_active">#FFF0F4FF</color>
 
+    <!-- P1 重构 token -->
+    <color name="surface_glass">#1E0E1A2A</color>
+    <color name="surface_glass_highlight">#33FFFFFF</color>
+    <color name="accent_cool">#FF00C8F0</color>
+    <color name="accent_warn">#FFFF7A00</color>
+    <color name="gauge_track">#14FFFFFF</color>
+    <color name="gauge_progress">#FF00C8F0</color>
+
     <!-- 车辆图 -->
     <color name="vehicle_body">#1EFFFFFF</color>
     <color name="vehicle_body_stroke">#3FFFFFFF</color>

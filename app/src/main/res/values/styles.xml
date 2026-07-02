@@ -88,4 +88,19 @@
     <style name="AppAlertDialogShape" parent="ShapeAppearance.MaterialComponents.MediumComponent">
         <item name="cornerSize">16dp</item>
     </style>
+
+    <!-- P1 重构复用样式 -->
+    <style name="Card.Glass" parent="">
+        <item name="android:background">@drawable/bg_card_glass</item>
+        <item name="android:padding">@dimen/card_padding</item>
+    </style>
+    <style name="DataLabel.Primary">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">@dimen/data_value_size</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    <style name="DataLabel.Secondary">
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textSize">@dimen/data_label_size</item>
+    </style>
 </resources>
