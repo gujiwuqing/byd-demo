@@ -21,7 +21,8 @@
             android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
             android:background="@drawable/bg_nav_tab" android:gravity="center" android:orientation="vertical"
             android:layout_marginEnd="3dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🏠" android:textSize="@dimen/nav_tab_icon" />
+            <ImageView android:layout_width="@dimen/nav_tab_icon" android:layout_height="@dimen/nav_tab_icon"
+                android:src="@drawable/ic_tab_home" android:tint="@color/nav_text" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="主页" android:textColor="@color/nav_text" style="@style/NavTabText" />
         </LinearLayout>
 
@@ -29,7 +30,8 @@
             android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
             android:background="@drawable/bg_nav_tab" android:gravity="center" android:orientation="vertical"
             android:layout_marginEnd="3dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="❄" android:textSize="@dimen/nav_tab_icon" />
+            <ImageView android:layout_width="@dimen/nav_tab_icon" android:layout_height="@dimen/nav_tab_icon"
+                android:src="@drawable/ic_ac" android:tint="@color/nav_text" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="空调" android:textColor="@color/nav_text" style="@style/NavTabText" />
         </LinearLayout>
 
@@ -37,14 +39,16 @@
             android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
             android:background="@drawable/bg_nav_tab" android:gravity="center" android:orientation="vertical"
             android:layout_marginEnd="3dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⊞" android:textSize="@dimen/nav_tab_icon" android:textColor="@color/nav_text" />
+            <ImageView android:layout_width="@dimen/nav_tab_icon" android:layout_height="@dimen/nav_tab_icon"
+                android:src="@drawable/ic_apps" android:tint="@color/nav_text" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="应用" android:textColor="@color/nav_text" style="@style/NavTabText" />
         </LinearLayout>
 
         <LinearLayout android:id="@+id/tab_settings"
             android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
             android:background="@drawable/bg_nav_tab" android:gravity="center" android:orientation="vertical">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⚙" android:textSize="@dimen/nav_tab_icon" android:textColor="@color/nav_text" />
+            <ImageView android:layout_width="@dimen/nav_tab_icon" android:layout_height="@dimen/nav_tab_icon"
+                android:src="@drawable/ic_settings" android:tint="@color/nav_text" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="设置" android:textColor="@color/nav_text" style="@style/NavTabText" />
         </LinearLayout>
     </LinearLayout>
@@ -68,7 +72,9 @@
             android:gravity="center"
             android:paddingStart="10dp"
             android:paddingEnd="10dp"
-            android:text="❄ AC"
+            android:text="AC"
+            android:drawableStart="@drawable/ic_ac"
+            android:drawableTint="@color/accent"
             android:textColor="@color/accent"
             android:textSize="12sp"
             android:textStyle="bold"
@@ -97,12 +103,12 @@
             android:text="+"
             android:layout_marginEnd="10dp" />
 
-        <TextView
+        <ImageView
             android:id="@+id/nav_ac_wind_icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🌀"
-            android:textSize="13sp"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:src="@drawable/ic_wind"
+            android:tint="@color/text_secondary"
             android:layout_marginEnd="3dp" />
 
         <TextView
@@ -130,7 +136,8 @@
             android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
             android:background="@drawable/bg_nav_tab" android:gravity="center" android:orientation="vertical"
             android:layout_marginEnd="3dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔄" android:textSize="@dimen/nav_tab_icon" />
+            <ImageView android:layout_width="@dimen/nav_tab_icon" android:layout_height="@dimen/nav_tab_icon"
+                android:src="@drawable/ic_cycle" android:tint="@color/nav_text" />
             <TextView android:id="@+id/nav_cycle_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="内循环" android:textColor="@color/nav_text" style="@style/NavTabText" />
         </LinearLayout>
 
@@ -138,14 +145,16 @@
             android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
             android:background="@drawable/bg_nav_tab" android:gravity="center" android:orientation="vertical"
             android:layout_marginEnd="3dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🪟" android:textSize="@dimen/nav_tab_icon" />
+            <ImageView android:layout_width="@dimen/nav_tab_icon" android:layout_height="@dimen/nav_tab_icon"
+                android:src="@drawable/ic_window" android:tint="@color/nav_text" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="车窗" android:textColor="@color/nav_text" style="@style/NavTabText" />
         </LinearLayout>
 
         <LinearLayout android:id="@+id/nav_btn_seat"
             android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
             android:background="@drawable/bg_nav_tab" android:gravity="center" android:orientation="vertical">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="💺" android:textSize="@dimen/nav_tab_icon" />
+            <ImageView android:layout_width="@dimen/nav_tab_icon" android:layout_height="@dimen/nav_tab_icon"
+                android:src="@drawable/ic_seat" android:tint="@color/nav_text" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="座椅" android:textColor="@color/nav_text" style="@style/NavTabText" />
         </LinearLayout>
     </LinearLayout>
