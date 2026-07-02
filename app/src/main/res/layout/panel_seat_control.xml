@@ -17,10 +17,14 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="💺 座椅控制"
+            android:text="座椅控制"
+            android:drawableStart="@drawable/ic_seat"
+            android:drawableTint="@color/accent"
+            android:drawablePadding="8dp"
             android:textColor="@color/text_primary"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:gravity="center_vertical" />
         <TextView
             android:id="@+id/seat_close_dialog"
             android:layout_width="32dp"

@@ -17,10 +17,14 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="❄  空调控制"
+            android:text="空调控制"
+            android:drawableStart="@drawable/ic_ac"
+            android:drawableTint="@color/accent"
+            android:drawablePadding="8dp"
             android:textColor="@color/text_primary"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:gravity="center_vertical" />
 
         <TextView
             android:id="@+id/dialog_ac_close"
@@ -252,8 +256,12 @@
         android:layout_width="match_parent"
         android:layout_height="40dp"
         android:gravity="center"
-        android:text="❄  已开启"
+        android:text="已开启"
+        android:drawableStart="@drawable/ic_ac"
+        android:drawableTint="@color/accent"
+        android:drawablePadding="6dp"
         android:textSize="14sp"
         android:textStyle="bold"
-        android:background="@drawable/bg_switch_btn" />
+        android:background="@drawable/bg_switch_btn"
+        android:gravity="center" />
 </LinearLayout>
