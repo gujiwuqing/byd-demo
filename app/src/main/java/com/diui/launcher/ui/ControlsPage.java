@@ -15,7 +15,9 @@ public class ControlsPage {
     private final BydAcApi acApi;
 
     private final TextView btnAcPower, tvAcTemp, tvAcStatus;
-    private final TextView[] windBtns;
+    private WindLevelView windView;
+    private TextView windLabel;
+    private int currentWindLevel = 0;
     private final TextView btnModeFace, btnModeFoot, btnModeDefrost;
     private final TextView btnCycleInner, btnCycleOuter;
     private final TextView btnAuto, btnManual;
@@ -30,12 +32,8 @@ public class ControlsPage {
         tvAcTemp = rootView.findViewById(R.id.ctrl_ac_temp);
         tvAcStatus = rootView.findViewById(R.id.ctrl_ac_status);
 
-        windBtns = new TextView[]{
-                rootView.findViewById(R.id.ctrl_wind_0), rootView.findViewById(R.id.ctrl_wind_1),
-                rootView.findViewById(R.id.ctrl_wind_2), rootView.findViewById(R.id.ctrl_wind_3),
-                rootView.findViewById(R.id.ctrl_wind_4), rootView.findViewById(R.id.ctrl_wind_5),
-                rootView.findViewById(R.id.ctrl_wind_6), rootView.findViewById(R.id.ctrl_wind_7)
-        };
+        windView = rootView.findViewById(R.id.ctrl_wind_view);
+        windLabel = rootView.findViewById(R.id.ctrl_wind_label);
 
         btnModeFace = rootView.findViewById(R.id.ctrl_mode_face);
         btnModeFoot = rootView.findViewById(R.id.ctrl_mode_foot);
@@ -62,11 +60,10 @@ public class ControlsPage {
             tvAcTemp.setText(currentTemp + "°C");
         });
 
-        for (int i = 0; i < windBtns.length; i++) {
-            final int level = i;
-            windBtns[i].setOnClickListener(v -> {
-                acApi.setWindLevel(level);
-                highlightWind(level);
+        if (windView != null) {
+            windView.setOnClickListener(v -> {
+                int next = (currentWindLevel + 1) % 8;
+                acApi.setWindLevel(next);
             });
         }
 
@@ -104,11 +101,9 @@ public class ControlsPage {
     }
 
     private void highlightWind(int level) {
-        for (int i = 0; i < windBtns.length; i++) {
-            windBtns[i].setSelected(i == level);
-            windBtns[i].setTextColor(ContextCompat.getColor(rootView.getContext(),
-                    i == level ? R.color.accent : R.color.text_primary));
-        }
+        currentWindLevel = level;
+        if (windView != null) windView.setLevel(level);
+        if (windLabel != null) windLabel.setText(level + " / 7");
     }
 
     private void highlightWindMode(int mode) {
