@@ -22,7 +22,7 @@
     <!-- 油量 + 油量L -->
     <ImageView
         android:layout_width="@dimen/top_bar_icon" android:layout_height="@dimen/top_bar_icon"
-        android:src="@drawable/ic_battery" android:tint="@color/status_fair" />
+        android:src="@drawable/ic_fuel" android:tint="@color/status_fair" />
     <TextView android:id="@+id/top_fuel" android:layout_width="wrap_content" android:layout_height="wrap_content"
         android:text="37%" android:textColor="@color/text_primary" android:textSize="@dimen/top_bar_text" android:textStyle="bold" android:layout_marginStart="3dp" />
     <TextView android:id="@+id/top_fuel_amount" android:layout_width="wrap_content" android:layout_height="wrap_content"

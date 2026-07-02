@@ -193,8 +193,7 @@ public class VehicleDiagramView extends View {
 
     private void drawTire(Canvas canvas, float cx, float cy, int pressure, int temp, boolean warn) {
         if (pressure < 0) return;
-        Paint pPaint = warn ? tireWarnPaint : tireTextPaint;
-        // 告警时文字用 warn 色
+        // 告警时文字用 warn 色,否则用 primary
         if (warn) {
             tireTextPaint.setColor(ContextCompat.getColor(getContext(), R.color.accent_warn));
         } else {
