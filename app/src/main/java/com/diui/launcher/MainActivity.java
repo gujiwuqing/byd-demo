@@ -521,7 +521,7 @@ public class MainActivity extends AppCompatActivity
             controlsPage.updateStatus(status);
             navBar.updateAcState(status.acOn, status.acTemp, status.acWindLevel);
             navBar.updateCycleState(status.acCycleMode);
-            topBar.updateMediaSource("");
+            topBar.update(status);
             WindowPanelController.updateFromStatus(
                     status.windowFL, status.windowFR, status.windowRL, status.windowRR,
                     status.trunkOpen, status.hoodOpen,
