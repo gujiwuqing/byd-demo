@@ -517,6 +517,8 @@ public class AutoserviceClient {
                     .post(() -> callback.onResult(report));
         }).start();
     }
+
+    /**
      * URI: content://com.byd.carStatusProvider/car_status
      * 无需特殊权限，ADB shell 直接可读。
      */
