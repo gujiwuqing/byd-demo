@@ -207,6 +207,8 @@ public class DiplusClient {
                 if (sep > 0 && sep < pair.length() - 1) {
                     String key = pair.substring(0, sep).trim();
                     String val = pair.substring(sep + 1).trim();
+                    // 占位符过滤:服务端未替换的 {中文名} 原样返回时跳过,避免污染数据
+                    if (val.contains("{") || val.isEmpty()) continue;
                     map.put(key, val);
                 }
             }
@@ -441,6 +443,51 @@ public class DiplusClient {
             if (filled) count++;
         }
 
+        return count;
+    }
+
+    /**
+     * 从 Diplus 填充车门/车窗/空调/门锁字段(无条件覆盖)。
+     * 由 BydVehicleManager 在 FID 原生 API 不可用时调用,故采用无条件覆盖。
+     * 占位符字段已在 parseDiPars 过滤,不会进入 data。
+     * @return 填充字段数;-1 表示 Diplus 无响应
+     */
+    public static int fillBodywork(com.diui.launcher.model.VehicleStatus s) {
+        String ping = httpGet(BASE_URL + "/api/getVal?name=test");
+        if (ping == null) return -1;
+
+        String textParam = buildTextParam(SENSORS);
+        String batchOut = httpGet(BASE_URL + "/api/getDiPars?text=" + encode(textParam));
+        Map<String, String> data = parseDiPars(batchOut);
+        if (data.isEmpty()) return 0;
+
+        int count = 0;
+        for (Map.Entry<String, String> entry : data.entrySet()) {
+            String key = entry.getKey();
+            double raw;
+            try { raw = Double.parseDouble(entry.getValue()); } catch (Exception ex) { continue; }
+            int iv = (int) Math.round(raw);
+            switch (key) {
+                // 车门 0/1
+                case "door_fl":  s.doorLeftFrontOpen  = (iv == 1); count++; break;
+                case "door_fr":  s.doorRightFrontOpen = (iv == 1); count++; break;
+                case "door_rl":  s.doorLeftRearOpen   = (iv == 1); count++; break;
+                case "door_rr":  s.doorRightRearOpen  = (iv == 1); count++; break;
+                case "hood":     s.hoodOpen           = (iv == 1); count++; break;
+                case "trunk":    s.trunkOpen          = (iv == 1); count++; break;
+                // 车窗:Diplus 为 0-100 百分比,FID 模型为 0/1,转成开/关
+                case "window_fl": s.windowFL = (iv > 0 ? 1 : 0); count++; break;
+                case "window_fr": s.windowFR = (iv > 0 ? 1 : 0); count++; break;
+                case "window_rl": s.windowRL = (iv > 0 ? 1 : 0); count++; break;
+                case "window_rr": s.windowRR = (iv > 0 ? 1 : 0); count++; break;
+                // 空调风量 0-7、循环 0/1
+                case "ac_wind_level":  s.acWindLevel  = iv; count++; break;
+                case "ac_cycle_mode":  s.acCycleMode  = iv; count++; break;
+                // 门锁 0/1
+                case "lock_fl":  s.isLocked = (iv == 1); count++; break;
+                default: break;
+            }
+        }
         return count;
     }
 }

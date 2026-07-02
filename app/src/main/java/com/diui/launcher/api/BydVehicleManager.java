@@ -32,6 +32,7 @@ public class BydVehicleManager {
     private int consecutiveFailures = 0;
     private static final int MAX_BACKOFF_INTERVAL = 60000;
     private int maintenancePollTick = 0; // 保养数据每 20 次轮询读取一次（约5分钟）
+    private int diplusPollTick = 0; // Diplus 补充每 3 次轮询一次，FID 不可用时填充
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private VehicleStatusListener listener;
@@ -362,6 +363,20 @@ public class BydVehicleManager {
                 s.maintenanceDaysLeft = maint.daysLeft;
                 s.maintenanceMileLeft = maint.mileLeft;
                 s.maintenanceIssueNum = maint.issueNum;
+            }
+        }
+
+        // ========== Diplus 补充（FID 优先 → Diplus 兜底，每3次轮询一次）==========
+        // 先补 -1 默认字段（电量/速度/胎压等）；若 FID 原生子系统不可用，再补车门/车窗/空调/门锁
+        if (++diplusPollTick % 3 == 0) {
+            try {
+                int filled = DiplusClient.fillVehicleStatus(s);
+                if (filled >= 0
+                        && (!bodyworkApi.isAvailable() || !acApi.isAvailable() || !doorLockApi.isAvailable())) {
+                    DiplusClient.fillBodywork(s);
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Diplus fill failed: " + e.getMessage());
             }
         }
 
