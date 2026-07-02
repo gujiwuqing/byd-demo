@@ -23,36 +23,23 @@ public class StatusPage {
         this.appSlotManager = manager;
     }
 
-    // 电量油量续航
-    private final TextView tvBattery, tvEvRange, tvFuel, tvFuelAmount, tvTotalRange;
-    private final ProgressBar progressBattery;
-
     // 速度挡位功率温度
     private final TextView tvSpeed, tvOutsideTemp, tvPowerKw;
     private final TextView gearP, gearR, gearN, gearD;
 
     // 能耗
-    private final TextView tvElecConsumption, tvFuelConsumption;
-
-    // 胎压胎温
-    private final TextView tireFLPressure, tireFRPressure, tireRLPressure, tireRRPressure;
-    private final TextView tireFLTemp, tireFRTemp, tireRLTemp, tireRRTemp;
+    private final TextView tvElecConsumption;
 
     // 行程里程
     private final TextView tvTripDistance, tvTripTime;
-    private final TextView tvSmartCharge, tvRecoveryMode;
     private final TextView tvTotalMileage, tvHevMileage;
+
+    // 车图(整合胎压 + 车门)
+    private VehicleDiagramView vehicleDiagram;
 
     public StatusPage(View rootView) {
         this.rootView = rootView;
         this.context = rootView.getContext();
-
-        tvBattery = rootView.findViewById(R.id.tv_battery);
-        tvEvRange = rootView.findViewById(R.id.tv_ev_range);
-        progressBattery = rootView.findViewById(R.id.progress_battery);
-        tvFuel = rootView.findViewById(R.id.tv_fuel);
-        tvFuelAmount = rootView.findViewById(R.id.tv_fuel_amount);
-        tvTotalRange = rootView.findViewById(R.id.tv_total_range);
 
         tvSpeed = rootView.findViewById(R.id.tv_speed);
         tvOutsideTemp = rootView.findViewById(R.id.tv_outside_temp);
@@ -63,23 +50,13 @@ public class StatusPage {
         gearD = rootView.findViewById(R.id.gear_d);
 
         tvElecConsumption = rootView.findViewById(R.id.tv_elec_consumption);
-        tvFuelConsumption = rootView.findViewById(R.id.tv_fuel_consumption);
-
-        tireFLPressure = rootView.findViewById(R.id.tv_tire_fl_pressure);
-        tireFRPressure = rootView.findViewById(R.id.tv_tire_fr_pressure);
-        tireRLPressure = rootView.findViewById(R.id.tv_tire_rl_pressure);
-        tireRRPressure = rootView.findViewById(R.id.tv_tire_rr_pressure);
-        tireFLTemp = rootView.findViewById(R.id.tv_tire_fl_temp);
-        tireFRTemp = rootView.findViewById(R.id.tv_tire_fr_temp);
-        tireRLTemp = rootView.findViewById(R.id.tv_tire_rl_temp);
-        tireRRTemp = rootView.findViewById(R.id.tv_tire_rr_temp);
 
         tvTripDistance = rootView.findViewById(R.id.tv_trip_distance);
         tvTripTime = rootView.findViewById(R.id.tv_trip_time);
-        tvSmartCharge = rootView.findViewById(R.id.tv_smart_charge);
-        tvRecoveryMode = rootView.findViewById(R.id.tv_recovery_mode);
         tvTotalMileage = rootView.findViewById(R.id.tv_total_mileage);
         tvHevMileage = rootView.findViewById(R.id.tv_hev_mileage);
+
+        vehicleDiagram = rootView.findViewById(R.id.vehicle_diagram);
 
         initPipArea();
     }
@@ -127,20 +104,6 @@ public class StatusPage {
     }
 
     public void updateStatus(VehicleStatus s) {
-        // 电量
-        tvBattery.setText(s.getBatteryText());
-        progressBattery.setProgress(s.getBatteryValue());
-        tvEvRange.setText(s.getEvMileageText());
-
-        // 油量
-        if (s.fuelPercent >= 0) {
-            tvFuel.setText(s.fuelPercent + "%");
-        }
-        tvFuelAmount.setText(s.getFuelText());
-
-        // 总续航
-        tvTotalRange.setText(s.getTotalRangeText());
-
         // 速度
         tvSpeed.setText(s.getSpeedText());
         tvOutsideTemp.setText(s.getOutsideTempText());
@@ -159,32 +122,26 @@ public class StatusPage {
         if (s.currentElecConsumption >= 0) {
             tvElecConsumption.setText(String.format("%.1f度", s.currentElecConsumption));
         }
-        if (s.currentFuelConsumption >= 0) {
-            tvFuelConsumption.setText(String.format("当前：%.1f", s.currentFuelConsumption));
-        }
-
-        // 胎压胎温
-        if (s.tirePressureFL >= 0) {
-            tireFLPressure.setText(s.tirePressureFL + " kPa");
-            tireFRPressure.setText(s.tirePressureFR + " kPa");
-            tireRLPressure.setText(s.tirePressureRL + " kPa");
-            tireRRPressure.setText(s.tirePressureRR + " kPa");
-            tireFLTemp.setText(s.tireTempFL + "°C");
-            tireFRTemp.setText(s.tireTempFR + "°C");
-            tireRLTemp.setText(s.tireTempRL + "°C");
-            tireRRTemp.setText(s.tireTempRR + "°C");
-        }
 
         // 行程
         tvTripDistance.setText(String.format("%.1fkm", s.tripDistance));
         tvTripTime.setText(s.tripTime);
 
-        // 能量模式
-        tvSmartCharge.setText("智保" + s.smartChargePercent + "%");
-        tvRecoveryMode.setText(s.recoveryMode);
-
         // 里程
         tvTotalMileage.setText(s.getTotalMileageText());
         tvHevMileage.setText(s.getHevMileageText());
+
+        // 车图:胎压 + 车门(VehicleStatus 字段为 public,直接访问)
+        if (vehicleDiagram != null) {
+            vehicleDiagram.setTireData(
+                    s.tirePressureFL, s.tireTempFL,
+                    s.tirePressureFR, s.tireTempFR,
+                    s.tirePressureRL, s.tireTempRL,
+                    s.tirePressureRR, s.tireTempRR);
+            vehicleDiagram.setDoorStates(
+                    s.doorLeftFrontOpen, s.doorRightFrontOpen,
+                    s.doorLeftRearOpen, s.doorRightRearOpen,
+                    s.trunkOpen, s.hoodOpen);
+        }
     }
 }
