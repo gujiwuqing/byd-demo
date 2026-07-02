@@ -14,6 +14,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.diui.launcher.LogActivity;
 import com.diui.launcher.R;
 import com.diui.launcher.api.BydApiExplorer;
+import com.diui.launcher.api.DiplusClient;
 import com.diui.launcher.theme.ThemeManager;
 
 public class SettingsPage {
@@ -92,6 +93,8 @@ public class SettingsPage {
         initContentProbe();
         initFidBruteScan();
         initApiProbe();
+        initDiplusTest();
+        initDiplusSensors();
         initLayoutMode();
         initAppSlots();
     }
@@ -649,6 +652,36 @@ public class SettingsPage {
                 });
             });
         }
+    }
+
+    // ── Diplus 连接测试 ──
+
+    private void initDiplusTest() {
+        View btn = rootView.findViewById(R.id.settings_diplus_test);
+        if (btn == null) return;
+        btn.setOnClickListener(v -> {
+            android.widget.Toast.makeText(context, "正在测试 Diplus 连接...", android.widget.Toast.LENGTH_SHORT).show();
+            new Thread(() -> {
+                String report = DiplusClient.testConnection();
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                        showReport(context, "Diplus 连接测试", report));
+            }).start();
+        });
+    }
+
+    // ── Diplus 传感器扫描 ──
+
+    private void initDiplusSensors() {
+        View btn = rootView.findViewById(R.id.settings_diplus_sensors);
+        if (btn == null) return;
+        btn.setOnClickListener(v -> {
+            android.widget.Toast.makeText(context, "正在扫描 Diplus 传感器（约30秒）...", android.widget.Toast.LENGTH_LONG).show();
+            new Thread(() -> {
+                String report = DiplusClient.fetchAllSensors();
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                        showReport(context, "Diplus 传感器列表", report));
+            }).start();
+        });
     }
 
     // ── 布局模式 ──
