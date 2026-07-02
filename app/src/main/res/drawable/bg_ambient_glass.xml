@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 底色 -->
+    <item android:drawable="@color/bg_primary" />
+    <!-- 顶部径向高光,模拟玻璃环境光 -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="720"
+                android:centerX="0.5"
+                android:centerY="0.0">
+                <item android:offset="0.0" android:color="#22264A6E" />
+                <item android:offset="1.0" android:color="#00000000" />
+            </gradient>
+        </shape>
+    </item>
+</layer-list>

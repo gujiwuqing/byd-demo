@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_primary">
+    android:background="@drawable/bg_ambient_glass">
 
     <!-- 主内容：顶部栏 + 内容区 + 底部栏 -->
     <LinearLayout
