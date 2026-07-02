@@ -21,6 +21,17 @@ public class VehicleDiagramView extends View {
 
     private boolean doorLF, doorRF, doorLR, doorRR, trunk, hood;
 
+    // 胎压/胎温数据(单位:kPa / ℃),-1 表示不可用
+    private int tireFLP = -1, tireFLT = -1;
+    private int tireFRP = -1, tireFRT = -1;
+    private int tireRLP = -1, tireRLT = -1;
+    private int tireRRP = -1, tireRRT = -1;
+    private boolean tireWarnFL, tireWarnFR, tireWarnRL, tireWarnRR;
+
+    private final Paint tireTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint tireTempPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint tireWarnPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
     public VehicleDiagramView(Context context) {
         super(context);
         initPaints();
@@ -53,6 +64,19 @@ public class VehicleDiagramView extends View {
         doorHighlightPaint.setColor(ContextCompat.getColor(getContext(), R.color.door_open));
         doorHighlightPaint.setStyle(Paint.Style.STROKE);
         doorHighlightPaint.setStrokeWidth(4f);
+
+        tireTextPaint.setColor(ContextCompat.getColor(getContext(), R.color.text_primary));
+        tireTextPaint.setTextSize(28f);
+        tireTextPaint.setTextAlign(Paint.Align.CENTER);
+        tireTextPaint.setFakeBoldText(true);
+
+        tireTempPaint.setColor(ContextCompat.getColor(getContext(), R.color.text_tertiary));
+        tireTempPaint.setTextSize(18f);
+        tireTempPaint.setTextAlign(Paint.Align.CENTER);
+
+        tireWarnPaint.setColor(ContextCompat.getColor(getContext(), R.color.accent_warn));
+        tireWarnPaint.setStyle(Paint.Style.STROKE);
+        tireWarnPaint.setStrokeWidth(3f);
     }
 
     public void setDoorStates(boolean lf, boolean rf, boolean lr, boolean rr, boolean trk, boolean hd) {
@@ -63,6 +87,25 @@ public class VehicleDiagramView extends View {
         this.trunk = trk;
         this.hood = hd;
         invalidate();
+    }
+
+    public void setTireData(int flP, int flT, int frP, int frT,
+                            int rlP, int rlT, int rrP, int rrT) {
+        this.tireFLP = flP; this.tireFLT = flT;
+        this.tireFRP = frP; this.tireFRT = frT;
+        this.tireRLP = rlP; this.tireRLT = rlT;
+        this.tireRRP = rrP; this.tireRRT = rrT;
+        // 告警:压力 < 200 或 > 320,或温度 > 90
+        this.tireWarnFL = isTireAbnormal(flP, flT);
+        this.tireWarnFR = isTireAbnormal(frP, frT);
+        this.tireWarnRL = isTireAbnormal(rlP, rlT);
+        this.tireWarnRR = isTireAbnormal(rrP, rrT);
+        invalidate();
+    }
+
+    private boolean isTireAbnormal(int p, int t) {
+        if (p < 0) return false;
+        return p < 200 || p > 320 || (t > 90 && t >= 0);
     }
 
     @Override
@@ -135,5 +178,31 @@ public class VehicleDiagramView extends View {
         if (trunk) {
             canvas.drawLine(left + carW * 0.2f, bottom - doorStrokeInset, right - carW * 0.2f, bottom - doorStrokeInset, doorHighlightPaint);
         }
+
+        // ===== 胎压/胎温 四角外置 =====
+        float tireTextOffset = carW * 0.18f;
+        // 左前(车头左上角外侧)
+        drawTire(canvas, left - tireTextOffset, top + carH * 0.15f, tireFLP, tireFLT, tireWarnFL);
+        // 右前
+        drawTire(canvas, right + tireTextOffset, top + carH * 0.15f, tireFRP, tireFRT, tireWarnFR);
+        // 左后
+        drawTire(canvas, left - tireTextOffset, bottom - carH * 0.15f, tireRLP, tireRLT, tireWarnRL);
+        // 右后
+        drawTire(canvas, right + tireTextOffset, bottom - carH * 0.15f, tireRRP, tireRRT, tireWarnRR);
+    }
+
+    private void drawTire(Canvas canvas, float cx, float cy, int pressure, int temp, boolean warn) {
+        if (pressure < 0) return;
+        Paint pPaint = warn ? tireWarnPaint : tireTextPaint;
+        // 告警时文字用 warn 色
+        if (warn) {
+            tireTextPaint.setColor(ContextCompat.getColor(getContext(), R.color.accent_warn));
+        } else {
+            tireTextPaint.setColor(ContextCompat.getColor(getContext(), R.color.text_primary));
+        }
+        canvas.drawText(String.valueOf(pressure), cx, cy, tireTextPaint);
+        canvas.drawText(temp >= 0 ? (temp + "°") : "--", cx, cy + 22f, tireTempPaint);
+        // 恢复文字色,避免影响后续
+        tireTextPaint.setColor(ContextCompat.getColor(getContext(), R.color.text_primary));
     }
 }
