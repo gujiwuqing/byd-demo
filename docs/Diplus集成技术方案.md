@@ -1,10 +1,15 @@
 # Diplus 集成技术方案
 
+**维护日期**: 2026-07-02
+**数据来源**: jkaberg/byd-hass（Go 源码）+ cnjackchen/diplus-www（PHP 源码）+ 实车测试
+
 ## Context
 
-当前项目通过 autoservice FID 读取车辆数据，已知 FID 约 50 个，但油量百分比、续航里程、瞬时能耗、发动机/电机转速等关键数据的 FID 未知且无法通过反编译获取。车上已安装 Diplus（迪加）应用，它封装了 BYD SDK 并暴露了本地 HTTP API（端口 8988），可作为补充数据源。
+当前项目通过 autoservice FID 读取车辆数据，已知 FID 约 50 个，但油量百分比、续航里程、瞬时能耗、发动机/电机转速等关键数据的 FID 未知。车上已安装 Diplus（迪加）应用，它封装了 BYD SDK 并暴露了本地 HTTP API（端口 8988），可作为补充数据源。
 
-**核心约束**：Diplus 必须在车机上处于运行状态才能响应 API 请求，因此不适合作为自动轮询数据源，需要用户手动触发。
+**核心约束**：Diplus 必须在车机上处于运行状态才能响应 API 请求，因此需用户手动触发刷新。
+
+**关键发现**：Diplus 监听 `0.0.0.0:8988`（所有网络接口），app 本身运行在车机上，可直接用 `HttpURLConnection` 请求 `localhost:8988`，**无需通过 ADB shell 调 curl**。
 
 ---
 
@@ -14,10 +19,10 @@
 
 ```
 用户点击「Diplus 刷新」按钮
-  → ADB shell: curl http://localhost:8988/api/getDiPars
-  → 解析 JSON 响应
-  → 将可用字段写入 VehicleStatus
-  → 触发 UI 刷新（与现有 onStatusUpdated 回调一致）
+  → HttpURLConnection 请求 http://localhost:8988/api/getDiPars?text=...
+  → 解析 {"success":true, "val":"key:value|key:value"} 响应
+  → 将可用字段写入 VehicleStatus（仅补充 FID 未覆盖的 -1 字段）
+  → 触发 UI 刷新
 ```
 
 ### 与现有体系的关系
@@ -30,207 +35,246 @@
              ↓ 合并到同一个 VehicleStatus ↓
 ┌──────────── 手动触发（新增） ────────────┐
 │ Diplus HTTP API (localhost:8988)          │
-│ 用户手动点击按钮触发，一次性读取           │
-│ 补充 FID 无法获取的字段                   │
+│ 直接 HttpURLConnection，无需 ADB         │
+│ FID 优先，Diplus 仅补充仍为 -1 的字段     │
 └───────────────────────────────────────────┘
 ```
 
-Diplus 数据**不替换**现有 FID 数据，只补充 FID 读不到的字段（`VehicleStatus` 中值仍为 `-1` 的字段）。
-
 ---
 
-## 二、Diplus API 规格
+## 二、API 规格（源码级验证）
 
-### 端点
+### 端点列表
 
-| 接口 | 方法 | 说明 |
+| 端点 | 方法 | 说明 |
 |------|------|------|
-| `/api/getVal?name=<中文名>&status=true` | GET | 查询单个传感器，返回 `{"val": <数值>}` |
-| `/api/getDiPars` | GET | 批量查询所有传感器，返回完整 JSON |
+| `/api/getVal` | GET | 查询单个传感器 |
+| `/api/getDiPars` | GET | 批量查询传感器（核心接口） |
+| `/api/sendCmd` | GET | 发送小迪语音指令 |
+| `/api/setTrigger` | POST | 设置自动化触发器 |
+| `/api/setXD` | POST | 小迪扩展设置 |
+| `/api/videoDirs` | GET | 获取视频目录 |
+| `/api/videoFiles` | GET | 获取视频文件列表 |
+| `/api/videoInfo` | GET | 获取视频信息 |
+| `/api/videoStream` | GET | 视频 MP4 流 |
 
-- **地址**：`http://localhost:8988`（车机内部访问）
-- **通过 ADB 调用**：`adb shell "curl -s 'http://localhost:8988/api/getDiPars'"`
-- **响应时间**：通常 < 100ms
-- **前提**：Diplus 应用必须在车机上运行中
+### getVal 接口
 
-### 传感器名称（中文）
+```
+GET http://localhost:8988/api/getVal?name=<URL编码的中文名>&status=true
+```
 
-> 以下为社区已知列表，需在实车上通过 `getDiPars` 返回结果确认
+成功响应：
+```json
+{"val": 67.5}
+```
 
-**高价值（FID 未覆盖）：**
+失败响应：
+```json
+{"success": false}
+```
 
-| 中文名 | 含义 | 缩放因子 | 映射到 VehicleStatus 字段 |
-|--------|------|---------|--------------------------|
-| `油量百分比` | 燃油百分比 | 1 | `fuelPercent` |
-| `续航里程` | 总续航 | 1 | `totalRange` |
-| `纯电续航里程` | 纯电续航 | 1 | `evMileage` |
-| `瞬时电耗` | 当前电耗 | 1 | `currentElecConsumption` |
-| `瞬时油耗` | 当前油耗 | 1 | `currentFuelConsumption` |
-| `平均电耗` | 平均电耗 | 1 | `avgElecConsumption` |
-| `平均油耗` | 平均油耗 | 1 | `avgFuelConsumption` |
-| `发动机转速` | 发动机 RPM | 1 | 新增字段 `engineRpm` |
-| `电机转速` | 电机 RPM | 1 | 新增字段 `motorRpm` |
-| `方向角` | 方向盘角度 | 1 | 新增字段 `steeringAngle` |
-| `行驶时间` | 行驶时长 | 1 | `tripTime` |
-| `钥匙电量` | 遥控钥匙电量 | 1 | 新增字段 `keyBattery` |
-| `水温` | 发动机水温 | 1 | 新增字段 `waterTemp` |
+### getDiPars 接口（核心）
 
-**验证用（FID 已覆盖，可交叉对比）：**
+```
+GET http://localhost:8988/api/getDiPars?text=<URL编码的模板>
+```
 
-| 中文名 | 含义 | 缩放因子 | 映射到 VehicleStatus 字段 |
-|--------|------|---------|--------------------------|
-| `电量百分比` | SOC | 1 | `batteryPercent` |
-| `车速` | 车速 | 1 | `speed` |
-| `里程` | 总里程 | 0.1 | `totalMileage` |
-| `车外温度` | 环境温度 | 1 | `outsideTemp` |
-| `左前胎压` / `右前胎压` / `左后胎压` / `右后胎压` | 胎压 | 0.01 | `tirePressureFL/FR/RL/RR` |
+**模板格式**：`key:{中文名}|key:{中文名}`
+
+括号含义：
+- `{中文名}` → 返回**数值**
+- `[中文名]` → 返回**文本描述**（如档位返回"D"而非数字）
+
+**请求示例**：
+```
+text=soc:{电量百分比}|spd:{车速}|gear:[档位]|fuel:{油量百分比}
+```
+
+**响应格式**（⚠ val 是字符串，不是 JSON 对象）：
+```json
+{"success": true, "val": "soc:85.5|spd:60|gear:D|fuel:37"}
+```
+
+**解析方法**：
+1. 提取 `val` 字符串
+2. 按 `|` 拆分得到各 `key:value` 对
+3. 按 `:` 拆分键值
+
+diplus-www 项目使用 `|!|` 作为分组分隔符（等效于 `|`，两种均有效）。
+
+### auth 参数
+
+部分 Diplus 版本需要 `auth` 参数（存储在 Diplus 配置 `DIPLUS_AUTH` 中）。`getVal` 通常不需要，`getDiPars` 可选。
 
 ---
 
-## 三、实现方案
+## 三、完整传感器列表（109+ 个）
 
-### 3.1 新增文件
+来源：cnjackchen/diplus-www 的 `diplus_param_list.php`
 
-**`api/DiplusClient.java`**（已创建）
+### 核心行驶数据
 
-核心方法：
-- `testConnection()` — 连接测试（检查进程、端口、基础传感器）
-- `fetchAllSensors()` — 获取完整传感器列表（诊断用）
-- `readVehicleData()` — **新增**，读取 Diplus 数据并填充到 VehicleStatus
+| ID | 中文名 | 说明 | 缩放 | 类型 |
+|----|--------|------|------|------|
+| 1 | `电源状态` | 电源状态 | 1 | `{}` |
+| 2 | `车速` | km/h | 1 | `{}` |
+| 3 | `里程` | 总里程 | **0.1** | `{}` |
+| 4 | `档位` | P/R/N/D | 1 | `[]` |
+| 5 | `发动机转速` | RPM | 1 | `{}` |
+| 6 | `刹车深度` | 刹车踏板 % | 1 | `{}` |
+| 7 | `加速踏板深度` | 油门踏板 % | 1 | `{}` |
+| 8 | `前电机转速` | RPM | 1 | `{}` |
+| 9 | `后电机转速` | RPM | 1 | `{}` |
+| 10 | `发动机功率` | kW | 1 | `{}` |
+| 11 | `前电机扭矩` | Nm | 1 | `{}` |
+| 12 | `充电枪插枪状态` | 0/1 | 1 | `{}` |
+| 13 | `百公里电耗` | kWh/100km | 1 | `{}` |
 
-```java
-/**
- * 通过 Diplus API 读取车辆数据，填充到 VehicleStatus。
- * 仅覆盖仍为默认值（-1）的字段，不覆盖 FID 已成功读取的字段。
- *
- * @param status 要填充的 VehicleStatus 对象
- * @return 成功读取的传感器数量，-1 表示连接失败
- */
-public static int fillVehicleStatus(VehicleStatus status)
-```
+### 电池
 
-实现逻辑：
-1. 通过 `AdbHelper.getSharedDadb()` 执行 `curl -s http://localhost:8988/api/getDiPars`
-2. 解析 JSON 响应
-3. 对每个已知传感器名称，提取值 × 缩放因子
-4. 仅在 VehicleStatus 对应字段为 `-1`（未填充）时写入
-5. 返回成功读取的数量
+| ID | 中文名 | 说明 | 缩放 | 类型 |
+|----|--------|------|------|------|
+| 14 | `最高电池温度` | °C | 1 | `{}` |
+| 15 | `平均电池温度` | °C | 1 | `{}` |
+| 16 | `最低电池温度` | °C | 1 | `{}` |
+| 17 | `最高电池电压` | V | 1 | `{}` |
+| 18 | `最低电池电压` | V | 1 | `{}` |
 
-### 3.2 修改文件
+### 温度 / 电量 / 油量
 
-**`api/BydVehicleManager.java`**
+| ID | 中文名 | 说明 | 缩放 |
+|----|--------|------|------|
+| 25 | `车内温度` | °C | 1 |
+| 26 | `车外温度` | °C | 1 |
+| 27 | `主驾驶空调温度` | °C | 1 |
+| 29 | `电池容量` | kWh | 1 |
+| 30 | `方向盘转角` | 度 | 1 |
+| 32 | `总电耗` | kWh | 1 |
+| 33 | `电量百分比` | % | 1 |
+| 34 | `油量百分比` | % | 1 |
+| 35 | `总燃油消耗` | L | 1 |
+| 39 | `蓄电池电压` | V（12V） | 1 |
 
-新增方法：
+### 胎压（⚠ 注意中文名含"轮"字）
 
-```java
-/**
- * 手动触发一次 Diplus 数据读取，补充现有 VehicleStatus。
- * 在后台线程执行，完成后通过 listener 回调 UI。
- *
- * @param callback 结果回调（主线程），参数为成功读取的传感器数量，-1 表示失败
- */
-public void refreshFromDiplus(java.util.function.IntConsumer callback)
-```
+| ID | 中文名 | 说明 | 缩放 |
+|----|--------|------|------|
+| 53 | `左前轮气压` | bar | **0.01** |
+| 54 | `右前轮气压` | bar | **0.01** |
+| 55 | `左后轮气压` | bar | **0.01** |
+| 56 | `右后轮气压` | bar | **0.01** |
 
-实现逻辑：
-1. 在 `pollExecutor` 上执行
-2. 先调用 `readCurrentStatus()` 获取当前状态（含 FID 数据）
-3. 调用 `DiplusClient.fillVehicleStatus(status)` 补充 Diplus 数据
-4. 通过 `handler.post()` 回调 `listener.onStatusUpdated(status)` + `callback`
+### 车窗 / 天窗
 
-**`ui/StatusPage.java`**
+| ID | 中文名 | 说明 |
+|----|--------|------|
+| 61-64 | `左前/右前/左后/右后车窗打开百分比` | % |
+| 65 | `天窗打开百分比` | % |
 
-在状态页面顶部（或合适位置）添加一个「Diplus 刷新」按钮：
-- 点击 → Toast "正在读取 Diplus 数据..." → 调用 `vm.refreshFromDiplus(count -> ...)`
-- 成功 → Toast "已更新 N 个传感器"
-- 失败 → Toast "Diplus 未响应，请确认迪加已启动"
+### 空调
 
-**`res/layout/page_status.xml`**
+| ID | 中文名 | 说明 |
+|----|--------|------|
+| 77 | `空调状态` | 开/关 |
+| 78 | `空调风量` | 0~7 |
+| 79 | `空调循环` | 内/外 |
+| 80 | `空调出风模式` | 吹面/吹脚/除霜 |
 
-在适当位置添加刷新按钮的 XML 布局。
+### 车门 / 车锁 / 灯光
 
-**`model/VehicleStatus.java`**（可选）
+| ID | 中文名 | 说明 |
+|----|--------|------|
+| 81-84 | `左前门` / `右前门` / `左后门` / `右后门` | 开/关 |
+| 85 | `引擎盖` | 开/关 |
+| 86 | `后备箱` | 开/关 |
+| 93 | `主驾驶车门锁` | 锁/开 |
+| 100 | `近光灯` | 开/关 |
+| 101 | `远光灯` | 开/关 |
+| 107 | `日行灯` | 开/关 |
+| 108 | `发动机水温` | °C |
+| 109 | `双闪` | 开/关 |
 
-如需显示 Diplus 独有数据（发动机转速、电机转速、方向角、钥匙电量、水温），新增对应字段：
+### Diplus 专有（1000+ 系列）
 
-```java
-public int engineRpm = -1;
-public int motorRpm = -1;
-public double steeringAngle = -1;
-public int keyBattery = -1;
-public int waterTemp = -1;
-```
-
-及对应的 display-text 方法。
-
----
-
-## 四、交互流程
-
-### 用户视角
-
-1. 启动车辆，打开迪加(Diplus)应用
-2. 打开本桌面软件，正常显示 FID 数据（自动轮询）
-3. 部分字段显示 "—"（FID 未覆盖的数据）
-4. 点击「Diplus 刷新」按钮
-5. 显示 Toast "正在读取 Diplus 数据..."
-6. 1~2 秒后，之前显示 "—" 的字段被填充真实值
-7. 显示 Toast "已更新 12 个传感器"
-
-### 异常情况
-
-| 情况 | 表现 | 处理 |
-|------|------|------|
-| Diplus 未安装 | 连接失败 | Toast 提示 "Diplus 未响应" |
-| Diplus 未启动 | 端口不可达 | Toast 提示 "请先启动迪加应用" |
-| ADB 未连接 | dadb 为 null | Toast 提示 "请先连接 ADB" |
-| 传感器名不匹配 | 返回空值 | 跳过该字段，不影响其他 |
+| ID | 中文名 | 说明 |
+|----|--------|------|
+| 1001 | `全景状态` | 全景摄像头 |
+| 1003 | `哨兵状态` | 哨兵模式 |
+| 1007 | `WIFI状态` | WiFi 连接 |
+| 1101 | `无线ADB开关` | ADB 开关状态 |
 
 ---
 
-## 五、数据合并策略
+## 四、传感器名称纠正记录
+
+以下是初版文档中使用的错误中文名，已在代码中修正：
+
+| 初版错误名 | 正确名称 | 说明 |
+|-----------|---------|------|
+| `左前胎压` | `左前轮气压` | 含"轮"字 |
+| `右前胎压` | `右前轮气压` | 含"轮"字 |
+| `左后胎压` | `左后轮气压` | 含"轮"字 |
+| `右后胎压` | `右后轮气压` | 含"轮"字 |
+| `方向角` | `方向盘转角` | 全称 |
+| `电芯最高电压` | `最高电池电压` | Diplus 用语 |
+| `电芯最低电压` | `最低电池电压` | Diplus 用语 |
+| `电机转速` | `前电机转速` | 区分前后电机 |
+| `水温` | `发动机水温` | 全称 |
+| `瞬时电耗` | `百公里电耗` | Diplus 用语 |
+
+---
+
+## 五、实现方案
+
+### 已完成
+
+| 文件 | 说明 |
+|------|------|
+| `api/DiplusClient.java` | HTTP API 客户端（HttpURLConnection，无需 ADB） |
+| `res/layout/page_settings.xml` | 🔌 Diplus 连接测试 + 📋 传感器扫描 按钮 |
+| `ui/SettingsPage.java` | 两个诊断按钮的点击事件 |
+| `AndroidManifest.xml` | 新增 `usesCleartextTraffic=true` |
+
+### 待实现（传感器扫描结果确认后）
+
+| 文件 | 说明 |
+|------|------|
+| `api/BydVehicleManager.java` | 新增 `refreshFromDiplus()` 方法 |
+| `ui/StatusPage.java` | 添加 Diplus 刷新按钮 |
+| `res/layout/page_status.xml` | 刷新按钮 XML |
+| `model/VehicleStatus.java` | 新增 Diplus 独有字段（可选） |
+
+---
+
+## 六、数据合并策略
 
 **原则：FID 优先，Diplus 补充**
 
-```
-if (status.fuelPercent < 0 && diplusData.contains("油量百分比")) {
-    status.fuelPercent = diplusData.getInt("油量百分比");
+```java
+// 仅在 FID 未填充时使用 Diplus 值
+if (status.fuelPercent < 0 && diplusData.containsKey("fuel_percent")) {
+    status.fuelPercent = diplusData.getInt("fuel_percent");
 }
 ```
 
-对于 FID 和 Diplus 都能提供的字段（如电量百分比、车速），以 FID 为准（实时性更好），Diplus 仅在 FID 值为 `-1` 时作为降级。
-
 ---
 
-## 六、验证步骤
+## 七、验证步骤
 
-1. 在设置页点击「🔌 Diplus 连接测试」→ 确认 API 可达
-2. 在设置页点击「📋 Diplus 传感器扫描」→ 记录所有可用传感器名称
-3. 根据实际返回的传感器名称，调整 `DiplusClient` 中的映射表
-4. 在状态页点击「Diplus 刷新」→ 确认之前显示 "—" 的字段被正确填充
-5. 对比 Diplus 和 FID 的重叠字段（电量、车速、里程），验证数据一致性
-
----
-
-## 七、文件清单
-
-| 操作 | 文件 | 说明 |
-|------|------|------|
-| 已创建 | `api/DiplusClient.java` | Diplus HTTP API 客户端 |
-| 已修改 | `res/layout/page_settings.xml` | 两个诊断按钮 |
-| 已修改 | `ui/SettingsPage.java` | 两个诊断按钮的点击事件 |
-| 待修改 | `api/DiplusClient.java` | 新增 `fillVehicleStatus()` |
-| 待修改 | `api/BydVehicleManager.java` | 新增 `refreshFromDiplus()` |
-| 待修改 | `ui/StatusPage.java` | 添加 Diplus 刷新按钮 |
-| 待修改 | `res/layout/page_status.xml` | 刷新按钮 XML |
-| 待修改 | `model/VehicleStatus.java` | 新增 Diplus 独有字段（可选） |
+1. 设置页 → 🔌 Diplus 连接测试 → 确认 API 可达 + getVal/getDiPars 格式正确
+2. 设置页 → 📋 Diplus 传感器扫描 → 记录宋Plus DMi 上实际可用的传感器列表
+3. 根据扫描结果调整 `DiplusClient.SENSORS` 中的中文名
+4. 实现 StatusPage 刷新按钮 → 确认 FID 未覆盖的字段被正确填充
+5. 对比重叠字段（电量、车速、里程）验证数据一致性
 
 ---
 
 ## 八、风险与限制
 
-1. **Diplus 版本差异**：不同版本的 Diplus 可能调整 API 路径或传感器名称，需定期验证
-2. **车型差异**：传感器名称可能因车型不同而有差异（如纯电车无"油量百分比"）
-3. **非实时性**：手动触发模式下数据不会自动更新，适合停车/充电场景查看
-4. **依赖第三方**：Diplus 是第三方应用，如果停止维护或被 BYD OTA 封锁则此方案失效
-5. **curl 可用性**：车机上需要有 `curl` 或 `wget` 命令，部分精简系统可能没有，需降级为 `cat < /dev/tcp/127.0.0.1/8988` 方式
+1. **Diplus 必须运行**：API 仅在 Diplus 进程存活时可用
+2. **版本差异**：不同 Diplus 版本可能变更 API 路径或传感器名称
+3. **车型差异**：纯电车型无"油量百分比"等燃油相关传感器
+4. **非实时性**：手动触发，适合停车/充电时查看
+5. **auth 参数**：部分版本可能需要认证凭据
+6. **第三方依赖**：Diplus 如被 BYD OTA 封锁则方案失效
