@@ -262,6 +262,5 @@
         android:drawablePadding="6dp"
         android:textSize="14sp"
         android:textStyle="bold"
-        android:background="@drawable/bg_switch_btn"
-        android:gravity="center" />
+        android:background="@drawable/bg_switch_btn" />
 </LinearLayout>
