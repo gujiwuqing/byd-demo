@@ -23,15 +23,27 @@
             android:layout_marginBottom="@dimen/spacing_xl" />
 
         <!-- ═══ 显示 ═══ -->
-        <TextView
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/settings_display"
-            android:textColor="@color/text_secondary"
-            android:textSize="@dimen/settings_section_title_size"
-            android:textAllCaps="true"
-            android:letterSpacing="0.08"
-            android:layout_marginBottom="@dimen/spacing_md" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="@dimen/spacing_md">
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_settings"
+                android:tint="@color/text_secondary"
+                android:layout_marginEnd="6dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_display"
+                android:textColor="@color/text_secondary"
+                android:textSize="@dimen/settings_section_title_size"
+                android:textAllCaps="true"
+                android:letterSpacing="0.08" />
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -271,7 +283,7 @@
             android:layout_marginBottom="@dimen/spacing_xl">
 
             <LinearLayout android:id="@+id/settings_slot_nav" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/settings_item_min_height" android:gravity="center_vertical" android:orientation="horizontal" android:background="?android:attr/selectableItemBackground">
-                <TextView android:layout_width="@dimen/settings_icon_size" android:layout_height="wrap_content" android:text="🗺" android:textSize="@dimen/settings_icon_text_size" android:gravity="center" />
+                <ImageView android:layout_width="@dimen/settings_icon_size" android:layout_height="@dimen/settings_icon_size" android:src="@drawable/ic_map" android:tint="@color/text_secondary" android:scaleType="centerInside" />
                 <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/settings_app_nav" android:textColor="@color/text_primary" android:textSize="@dimen/settings_item_title_size" android:layout_marginStart="@dimen/spacing_md" />
                 <TextView android:id="@+id/settings_slot_nav_value" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/settings_app_not_set" android:textColor="@color/text_secondary" android:textSize="12sp" android:layout_marginEnd="@dimen/spacing_sm" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="›" android:textColor="@color/text_tertiary" android:textSize="20sp" />
@@ -280,7 +292,7 @@
             <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@drawable/bg_settings_divider" android:layout_marginStart="@dimen/settings_divider_indent" />
 
             <LinearLayout android:id="@+id/settings_slot_music" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/settings_item_min_height" android:gravity="center_vertical" android:orientation="horizontal" android:background="?android:attr/selectableItemBackground">
-                <TextView android:layout_width="@dimen/settings_icon_size" android:layout_height="wrap_content" android:text="🎵" android:textSize="@dimen/settings_icon_text_size" android:gravity="center" />
+                <ImageView android:layout_width="@dimen/settings_icon_size" android:layout_height="@dimen/settings_icon_size" android:src="@drawable/ic_music" android:tint="@color/text_secondary" android:scaleType="centerInside" />
                 <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/settings_app_music" android:textColor="@color/text_primary" android:textSize="@dimen/settings_item_title_size" android:layout_marginStart="@dimen/spacing_md" />
                 <TextView android:id="@+id/settings_slot_music_value" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/settings_app_not_set" android:textColor="@color/text_secondary" android:textSize="12sp" android:layout_marginEnd="@dimen/spacing_sm" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="›" android:textColor="@color/text_tertiary" android:textSize="20sp" />
@@ -289,7 +301,7 @@
             <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@drawable/bg_settings_divider" android:layout_marginStart="@dimen/settings_divider_indent" />
 
             <LinearLayout android:id="@+id/settings_slot_video" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/settings_item_min_height" android:gravity="center_vertical" android:orientation="horizontal" android:background="?android:attr/selectableItemBackground">
-                <TextView android:layout_width="@dimen/settings_icon_size" android:layout_height="wrap_content" android:text="📺" android:textSize="@dimen/settings_icon_text_size" android:gravity="center" />
+                <ImageView android:layout_width="@dimen/settings_icon_size" android:layout_height="@dimen/settings_icon_size" android:src="@drawable/ic_video" android:tint="@color/text_secondary" android:scaleType="centerInside" />
                 <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/settings_app_video" android:textColor="@color/text_primary" android:textSize="@dimen/settings_item_title_size" android:layout_marginStart="@dimen/spacing_md" />
                 <TextView android:id="@+id/settings_slot_video_value" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/settings_app_not_set" android:textColor="@color/text_secondary" android:textSize="12sp" android:layout_marginEnd="@dimen/spacing_sm" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="›" android:textColor="@color/text_tertiary" android:textSize="20sp" />
@@ -298,7 +310,7 @@
             <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@drawable/bg_settings_divider" android:layout_marginStart="@dimen/settings_divider_indent" />
 
             <LinearLayout android:id="@+id/settings_slot_phone" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/settings_item_min_height" android:gravity="center_vertical" android:orientation="horizontal" android:background="?android:attr/selectableItemBackground">
-                <TextView android:layout_width="@dimen/settings_icon_size" android:layout_height="wrap_content" android:text="📞" android:textSize="@dimen/settings_icon_text_size" android:gravity="center" />
+                <ImageView android:layout_width="@dimen/settings_icon_size" android:layout_height="@dimen/settings_icon_size" android:src="@drawable/ic_phone" android:tint="@color/text_secondary" android:scaleType="centerInside" />
                 <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/settings_app_phone" android:textColor="@color/text_primary" android:textSize="@dimen/settings_item_title_size" android:layout_marginStart="@dimen/spacing_md" />
                 <TextView android:id="@+id/settings_slot_phone_value" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/settings_app_not_set" android:textColor="@color/text_secondary" android:textSize="12sp" android:layout_marginEnd="@dimen/spacing_sm" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="›" android:textColor="@color/text_tertiary" android:textSize="20sp" />
@@ -306,15 +318,27 @@
         </LinearLayout>
 
         <!-- ═══ 车辆 ═══ -->
-        <TextView
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/settings_vehicle"
-            android:textColor="@color/text_secondary"
-            android:textSize="@dimen/settings_section_title_size"
-            android:textAllCaps="true"
-            android:letterSpacing="0.08"
-            android:layout_marginBottom="@dimen/spacing_md" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="@dimen/spacing_md">
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_cycle"
+                android:tint="@color/text_secondary"
+                android:layout_marginEnd="6dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_vehicle"
+                android:textColor="@color/text_secondary"
+                android:textSize="@dimen/settings_section_title_size"
+                android:textAllCaps="true"
+                android:letterSpacing="0.08" />
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -658,12 +682,12 @@
                 android:orientation="horizontal"
                 android:background="?android:attr/selectableItemBackground">
 
-                <TextView
+                <ImageView
                     android:layout_width="@dimen/settings_icon_size"
-                    android:layout_height="wrap_content"
-                    android:text="⚙️"
-                    android:textSize="@dimen/settings_icon_text_size"
-                    android:gravity="center" />
+                    android:layout_height="@dimen/settings_icon_size"
+                    android:src="@drawable/ic_settings"
+                    android:tint="@color/text_secondary"
+                    android:scaleType="centerInside" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -1068,15 +1092,27 @@
         </LinearLayout>
 
         <!-- ═══ 关于 ═══ -->
-        <TextView
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/settings_about"
-            android:textColor="@color/text_secondary"
-            android:textSize="@dimen/settings_section_title_size"
-            android:textAllCaps="true"
-            android:letterSpacing="0.08"
-            android:layout_marginBottom="@dimen/spacing_md" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="@dimen/spacing_md">
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_more"
+                android:tint="@color/text_secondary"
+                android:layout_marginEnd="6dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_about"
+                android:textColor="@color/text_secondary"
+                android:textSize="@dimen/settings_section_title_size"
+                android:textAllCaps="true"
+                android:letterSpacing="0.08" />
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
